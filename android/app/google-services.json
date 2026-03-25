@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "190336343882",
+    "project_id": "lumen-app-5bcda",
+    "storage_bucket": "lumen-app-5bcda.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:190336343882:android:3e23af43d872e85b41ebb3",
+        "android_client_info": {
+          "package_name": "com.example.gimnasio_emocional"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQRZ40nOGDl41dOWSqu5Xz2Kg-jwfRKsM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

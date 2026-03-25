@@ -1,54 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../../data/models/user_model.dart';
 
-// Por ahora usamos autenticación simulada.
-// En el siguiente paso conectamos Firebase.
 class AuthProvider extends ChangeNotifier {
-  bool _isLoggedIn = false;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  User? get firebaseUser => _auth.currentUser;
+  bool get isLoggedIn => _auth.currentUser != null;
   bool _isLoading = false;
-  String? _errorMessage;
-  String _userName = '';
-  String _userEmail = '';
-
-  bool get isLoggedIn => _isLoggedIn;
   bool get isLoading => _isLoading;
+  String? _errorMessage;
   String? get errorMessage => _errorMessage;
-  String get userName => _userName;
-  String get userEmail => _userEmail;
+  UserModel? _userModel;
+  UserModel? get userModel => _userModel;
 
-  Future<bool> loginWithEmail({
-    required String email,
-    required String password,
-  }) async {
+  String get userName {
+    if (_userModel != null) return _userModel!.name;
+    if (firebaseUser?.displayName != null) return firebaseUser!.displayName!;
+    return '';
+  }
+
+  String get userEmail {
+    if (_userModel != null) return _userModel!.email;
+    if (firebaseUser?.email != null) return firebaseUser!.email!;
+    return '';
+  }
+
+  // Cargar datos del usuario desde Firestore
+  Future<void> loadUserData() async {
+    if (firebaseUser == null) return;
     try {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-
-      // Simular delay de red
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Validación demo
-      if (password.length < 6) {
-        _errorMessage = 'Contraseña incorrecta';
-        _isLoading = false;
-        notifyListeners();
-        return false;
+      final doc = await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .get();
+      if (doc.exists) {
+        _userModel = UserModel.fromMap(doc.data()!);
       }
-
-      _isLoggedIn = true;
-      _userEmail = email;
-      _userName = email.split('@').first;
-      _isLoading = false;
       notifyListeners();
-      return true;
     } catch (e) {
-      _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
-      _isLoading = false;
-      notifyListeners();
-      return false;
+      debugPrint('Error loading user data: $e');
     }
   }
 
+  // Registro con email y contraseña
   Future<bool> registerWithEmail({
     required String email,
     required String password,
@@ -59,14 +58,32 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      await Future.delayed(const Duration(seconds: 2));
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      await credential.user?.updateDisplayName(name);
 
-      _isLoggedIn = true;
-      _userName = name;
-      _userEmail = email;
+      // Crear documento en Firestore
+      final userModel = UserModel(
+        uid: credential.user!.uid,
+        name: name,
+        email: email,
+      );
+      await _firestore
+          .collection('users')
+          .doc(credential.user!.uid)
+          .set(userModel.toMap());
+
+      _userModel = userModel;
       _isLoading = false;
       notifyListeners();
       return true;
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = _getErrorMessage(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return false;
     } catch (e) {
       _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
       _isLoading = false;
@@ -75,17 +92,82 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Login con email y contraseña
+  Future<bool> loginWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      await loadUserData();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on FirebaseAuthException catch (e) {
+      _errorMessage = _getErrorMessage(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Login con Google
   Future<bool> loginWithGoogle() async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      await Future.delayed(const Duration(seconds: 2));
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
 
-      _isLoggedIn = true;
-      _userName = 'Usuario Google';
-      _userEmail = 'user@gmail.com';
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // Verificar si el usuario ya existe en Firestore
+      final doc = await _firestore
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (!doc.exists) {
+        // Nuevo usuario de Google - crear documento
+        final userModel = UserModel(
+          uid: userCredential.user!.uid,
+          name: userCredential.user!.displayName ?? 'Usuario',
+          email: userCredential.user!.email ?? '',
+        );
+        await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set(userModel.toMap());
+        _userModel = userModel;
+      } else {
+        _userModel = UserModel.fromMap(doc.data()!);
+      }
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -97,15 +179,81 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Verificar si un username ya existe
+  Future<bool> isUsernameTaken(String username) async {
+    final query = await _firestore
+        .collection('users')
+        .where('username', isEqualTo: username.toLowerCase())
+        .limit(1)
+        .get();
+    return query.docs.isNotEmpty;
+  }
+
+  // Actualizar perfil del usuario
+  Future<bool> updateUserProfile({
+    String? name,
+    String? username,
+    int? age,
+    String? gender,
+    List<String>? hobbies,
+    List<String>? musicGenres,
+    String? archetype,
+  }) async {
+    if (firebaseUser == null) return false;
+    try {
+      final updates = <String, dynamic>{};
+      if (name != null) updates['name'] = name;
+      if (username != null) updates['username'] = username.toLowerCase();
+      if (age != null) updates['age'] = age;
+      if (gender != null) updates['gender'] = gender;
+      if (hobbies != null) updates['hobbies'] = hobbies;
+      if (musicGenres != null) updates['musicGenres'] = musicGenres;
+      if (archetype != null) updates['archetype'] = archetype;
+
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .update(updates);
+
+      await loadUserData();
+      return true;
+    } catch (e) {
+      debugPrint('Error updating profile: $e');
+      return false;
+    }
+  }
+
+  // Cerrar sesión
   Future<void> logout() async {
-    _isLoggedIn = false;
-    _userName = '';
-    _userEmail = '';
+    await _googleSignIn.signOut();
+    await _auth.signOut();
+    _userModel = null;
     notifyListeners();
   }
 
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  String _getErrorMessage(String code) {
+    switch (code) {
+      case 'email-already-in-use':
+        return 'Este correo ya está registrado';
+      case 'invalid-email':
+        return 'Correo electrónico inválido';
+      case 'weak-password':
+        return 'La contraseña es muy débil (mínimo 6 caracteres)';
+      case 'user-not-found':
+        return 'No existe una cuenta con este correo';
+      case 'wrong-password':
+        return 'Contraseña incorrecta';
+      case 'invalid-credential':
+        return 'Credenciales inválidas. Verifica tu correo y contraseña';
+      case 'too-many-requests':
+        return 'Demasiados intentos. Espera un momento';
+      default:
+        return 'Ocurrió un error. Intenta de nuevo.';
+    }
   }
 }

@@ -46,7 +46,10 @@ class _SplashScreenState extends State<SplashScreen>
 
     final authProvider = context.read<AuthProvider>();
     if (authProvider.isLoggedIn) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      await authProvider.loadUserData();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
     } else {
       Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
     }
