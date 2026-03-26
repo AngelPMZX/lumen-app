@@ -7,6 +7,7 @@ import 'ui/screens/onboarding/onboarding_screen.dart';
 import 'ui/screens/auth/login_screen.dart';
 import 'ui/screens/auth/register_screen.dart';
 import 'ui/screens/home/home_screen.dart';
+import 'ui/screens/profile_setup/profile_setup_screen.dart';
 
 class LumenApp extends StatelessWidget {
   const LumenApp({super.key});
@@ -26,6 +27,7 @@ class LumenApp extends StatelessWidget {
         AppRoutes.login: (_) => const LoginScreen(),
         AppRoutes.register: (_) => const RegisterScreen(),
         AppRoutes.home: (_) => const HomeScreen(),
+        AppRoutes.profileSetup: (_) => const ProfileSetupScreen(),
       },
     );
   }

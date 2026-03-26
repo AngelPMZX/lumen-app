@@ -54,7 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen>
       name: _nameController.text.trim(),
     );
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+      Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
     }
   }
 

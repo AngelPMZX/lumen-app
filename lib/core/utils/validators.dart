@@ -39,4 +39,24 @@ class Validators {
     }
     return null;
   }
+
+  static String? username(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Elige un nombre de usuario';
+    }
+    if (value.length < 3) {
+      return 'Mínimo 3 caracteres';
+    }
+    if (value.length > 20) {
+      return 'Máximo 20 caracteres';
+    }
+    final usernameRegex = RegExp(r'^[a-z0-9._]+$');
+    if (!usernameRegex.hasMatch(value)) {
+      return 'Solo letras minúsculas, números, puntos y guiones bajos';
+    }
+    if (value.startsWith('.') || value.endsWith('.')) {
+      return 'No puede empezar ni terminar con punto';
+    }
+    return null;
+  }
 }
