@@ -66,7 +66,7 @@ class _UsernameStepState extends State<UsernameStep> {
         children: [
           const SizedBox(height: 40),
 
-          // Ícono
+          // ── Ícono header ──
           Container(
             width: 100,
             height: 100,
@@ -89,6 +89,7 @@ class _UsernameStepState extends State<UsernameStep> {
               ),
           const SizedBox(height: 32),
 
+          // ── Título ──
           const Text(
             'Elige tu usuario',
             style: TextStyle(
@@ -107,7 +108,7 @@ class _UsernameStepState extends State<UsernameStep> {
           ).animate().fadeIn(delay: 300.ms),
           const SizedBox(height: 40),
 
-          // Input
+          // ── Input de usuario ──
           Container(
             constraints: const BoxConstraints(maxWidth: 400),
             child: TextField(
@@ -145,9 +146,38 @@ class _UsernameStepState extends State<UsernameStep> {
                         ),
                       )
                     : _isAvailable
-                        ? const Icon(Icons.check_circle_rounded,
-                            color: Color(0xFF10B981))
-                        : null,
+                        ? Container(
+                            margin: const EdgeInsets.all(10),
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981)
+                                  .withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              color: Color(0xFF10B981),
+                              size: 18,
+                            ),
+                          )
+                        : _error != null && _controller.text.isNotEmpty
+                            ? Container(
+                                margin: const EdgeInsets.all(10),
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFF6B6B)
+                                      .withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  color: Color(0xFFFF6B6B),
+                                  size: 18,
+                                ),
+                              )
+                            : null,
                 hintText: 'tu_usuario',
                 hintStyle: TextStyle(
                   color: Colors.white.withValues(alpha: 0.3),
@@ -164,33 +194,50 @@ class _UsernameStepState extends State<UsernameStep> {
                   borderSide: BorderSide(
                     color: _isAvailable
                         ? const Color(0xFF10B981)
-                        : Colors.white.withValues(alpha: 0.3),
+                        : _error != null && _controller.text.isNotEmpty
+                            ? const Color(0xFFFF6B6B)
+                            : Colors.white.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
                 errorText: _error,
                 errorStyle: const TextStyle(color: Color(0xFFFF6B6B)),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 18),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
               ),
             ),
           ).animate().fadeIn(delay: 400.ms),
           const SizedBox(height: 12),
 
-          // Hint
+          // ── Reglas del username ──
           Container(
             constraints: const BoxConstraints(maxWidth: 400),
-            child: Text(
-              'Letras minúsculas, números, puntos y guiones bajos',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.white.withValues(alpha: 0.5),
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              children: [
+                _buildRule(
+                  'Letras minúsculas (a-z)',
+                  _controller.text.isNotEmpty &&
+                      RegExp(r'[a-z]').hasMatch(_controller.text),
+                ),
+                const SizedBox(height: 4),
+                _buildRule(
+                  'Números, puntos y guiones bajos permitidos',
+                  _controller.text.isNotEmpty &&
+                      RegExp(r'^[a-z0-9._]+$').hasMatch(_controller.text),
+                ),
+                const SizedBox(height: 4),
+                _buildRule(
+                  'Mínimo 3 caracteres',
+                  _controller.text.length >= 3,
+                ),
+              ],
             ),
-          ),
+          ).animate().fadeIn(delay: 450.ms),
           const SizedBox(height: 40),
 
-          // Botón
+          // ── Botón Continuar ──
+          // FIX: Sin .animate() para evitar el error de TextStyles
           Container(
             constraints: const BoxConstraints(maxWidth: 400),
             width: double.infinity,
@@ -203,24 +250,75 @@ class _UsernameStepState extends State<UsernameStep> {
                 backgroundColor: Colors.white,
                 foregroundColor: AppColors.primary,
                 disabledBackgroundColor:
-                    Colors.white.withValues(alpha: 0.2),
+                    Colors.white.withValues(alpha: 0.15),
                 disabledForegroundColor:
                     Colors.white.withValues(alpha: 0.4),
+                elevation: _isAvailable ? 4 : 0,
+                shadowColor: Colors.white.withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Text(
-                'Continuar',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Continuar',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_rounded, size: 20),
+                ],
               ),
             ),
-          ).animate().fadeIn(delay: 500.ms),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRule(String text, bool passed) {
+    return Row(
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: passed
+                ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                : Colors.white.withValues(alpha: 0.08),
+            border: Border.all(
+              color: passed
+                  ? const Color(0xFF10B981)
+                  : Colors.white.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
+          ),
+          child: passed
+              ? const Icon(
+                  Icons.check_rounded,
+                  size: 12,
+                  color: Color(0xFF10B981),
+                )
+              : null,
+        ),
+        const SizedBox(width: 10),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            color: passed
+                ? const Color(0xFF10B981).withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.4),
+            fontWeight: passed ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ],
     );
   }
 }

@@ -41,17 +41,39 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _navigateAfterDelay() async {
-    await Future.delayed(const Duration(seconds: 4));
-    if (!mounted) return;
-
     final authProvider = context.read<AuthProvider>();
+
     if (authProvider.isLoggedIn) {
+      // ═══════════════════════════════════════
+      // FAST PATH: Usuario ya logueado
+      // Solo espera lo mínimo para cargar datos
+      // ═══════════════════════════════════════
       await authProvider.loadUserData();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      }
+
+      // Pequeño delay para que al menos se vea el logo (800ms)
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+
+      Future.microtask(() {
+        if (!mounted) return;
+        if (authProvider.isProfileComplete) {
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+        }
+      });
     } else {
-      Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
+      // ═══════════════════════════════════════
+      // SLOW PATH: Usuario nuevo / no logueado
+      // Muestra el splash completo (4 segundos)
+      // ═══════════════════════════════════════
+      await Future.delayed(const Duration(seconds: 4));
+      if (!mounted) return;
+
+      Future.microtask(() {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
+      });
     }
   }
 
@@ -67,7 +89,6 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Fondo degradado
           Container(
             width: double.infinity,
             height: double.infinity,
@@ -86,7 +107,6 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // Partículas de luz
           AnimatedBuilder(
             animation: _particleController,
             builder: (context, _) {
@@ -100,7 +120,6 @@ class _SplashScreenState extends State<SplashScreen>
             },
           ),
 
-          // Resplandor central
           Center(
             child: AnimatedBuilder(
               animation: _pulseController,
@@ -124,12 +143,10 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // Contenido principal
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo container con glow
                 Container(
                   width: 130,
                   height: 130,
@@ -181,7 +198,6 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                 const SizedBox(height: 40),
 
-                // Nombre "Lumen" con estilo
                 ShaderMask(
                   shaderCallback: (bounds) => const LinearGradient(
                     colors: [Colors.white, Color(0xFFD4D0FF)],
@@ -202,14 +218,12 @@ class _SplashScreenState extends State<SplashScreen>
                     .animate()
                     .fadeIn(delay: 600.ms, duration: 1000.ms)
                     .slideY(
-                      begin: 0.4,
-                      end: 0,
+                      begin: 0.4, end: 0,
                       duration: 1000.ms,
                       curve: Curves.easeOutCubic,
                     ),
                 const SizedBox(height: 12),
 
-                // Tagline
                 Text(
                   AppStrings.appTagline,
                   style: TextStyle(
@@ -224,7 +238,6 @@ class _SplashScreenState extends State<SplashScreen>
                     .slideY(begin: 0.3, end: 0, duration: 800.ms),
                 const SizedBox(height: 80),
 
-                // Loading dots
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(3, (index) {
@@ -237,14 +250,11 @@ class _SplashScreenState extends State<SplashScreen>
                         shape: BoxShape.circle,
                       ),
                     )
-                        .animate(
-                          onPlay: (c) => c.repeat(reverse: true),
-                        )
+                        .animate(onPlay: (c) => c.repeat(reverse: true))
                         .fadeIn(delay: (1800 + index * 200).ms)
                         .then()
                         .scaleXY(
-                          begin: 1.0,
-                          end: 1.5,
+                          begin: 1.0, end: 1.5,
                           duration: 600.ms,
                           delay: (index * 200).ms,
                         )
@@ -264,7 +274,6 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// Modelo de partícula
 class _Particle {
   late double x;
   late double y;
@@ -283,7 +292,6 @@ class _Particle {
   }
 }
 
-// Painter para las partículas
 class _ParticlePainter extends CustomPainter {
   final List<_Particle> particles;
   final double progress;

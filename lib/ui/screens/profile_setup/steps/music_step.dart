@@ -1,38 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/constants/app_colors.dart';
-
+ 
 class MusicStep extends StatefulWidget {
   final Function(List<String>) onNext;
-
+ 
   const MusicStep({super.key, required this.onNext});
-
+ 
   @override
   State<MusicStep> createState() => _MusicStepState();
 }
-
+ 
 class _MusicStepState extends State<MusicStep> {
   final Set<String> _selected = {};
   bool _isLoading = false;
-
+ 
   final List<Map<String, dynamic>> _genres = [
-    {'name': 'Pop', 'emoji': '🎤'},
-    {'name': 'Rock', 'emoji': '🎸'},
-    {'name': 'Hip Hop', 'emoji': '🎧'},
-    {'name': 'Electrónica', 'emoji': '🎹'},
-    {'name': 'Reggaetón', 'emoji': '💃'},
-    {'name': 'Lo-fi', 'emoji': '🌙'},
-    {'name': 'Jazz', 'emoji': '🎷'},
-    {'name': 'Clásica', 'emoji': '🎻'},
-    {'name': 'Indie', 'emoji': '🎵'},
-    {'name': 'Metal', 'emoji': '🤘'},
-    {'name': 'K-Pop', 'emoji': '⭐'},
-    {'name': 'Cumbia', 'emoji': '🪗'},
-    {'name': 'Alternativa', 'emoji': '🎶'},
-    {'name': 'Ambient', 'emoji': '🌊'},
-    {'name': 'New Age', 'emoji': '🧘'},
+    {'name': 'Pop', 'emoji': '🎤', 'color': const Color(0xFFEC4899)},
+    {'name': 'Rock', 'emoji': '🎸', 'color': const Color(0xFFEF4444)},
+    {'name': 'Hip Hop', 'emoji': '🎧', 'color': const Color(0xFFF59E0B)},
+    {'name': 'Electrónica', 'emoji': '🎹', 'color': const Color(0xFF3B82F6)},
+    {'name': 'Reggaetón', 'emoji': '💃', 'color': const Color(0xFFF97316)},
+    {'name': 'Lo-fi', 'emoji': '🌙', 'color': const Color(0xFF8B5CF6)},
+    {'name': 'Jazz', 'emoji': '🎷', 'color': const Color(0xFFF59E0B)},
+    {'name': 'Clásica', 'emoji': '🎻', 'color': const Color(0xFF6366F1)},
+    {'name': 'Indie', 'emoji': '🎵', 'color': const Color(0xFF14B8A6)},
+    {'name': 'Metal', 'emoji': '🤘', 'color': const Color(0xFFDC2626)},
+    {'name': 'K-Pop', 'emoji': '⭐', 'color': const Color(0xFFEC4899)},
+    {'name': 'Cumbia', 'emoji': '🪗', 'color': const Color(0xFF22C55E)},
+    {'name': 'Alternativa', 'emoji': '🎶', 'color': const Color(0xFF06B6D4)},
+    {'name': 'Ambient', 'emoji': '🌊', 'color': const Color(0xFF0EA5E9)},
+    {'name': 'New Age', 'emoji': '🧘', 'color': const Color(0xFF10B981)},
   ];
-
+ 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -40,47 +40,79 @@ class _MusicStepState extends State<MusicStep> {
       child: Column(
         children: [
           const SizedBox(height: 20),
-
+ 
+          // ── Ícono header ──
           Container(
             width: 100,
             height: 100,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
-            child: const Icon(
-              Icons.headphones_rounded,
-              size: 50,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.headphones_rounded, size: 50, color: Colors.white),
           ).animate().fadeIn(duration: 600.ms).scale(
                 begin: const Offset(0.5, 0.5),
                 end: const Offset(1.0, 1.0),
                 curve: Curves.easeOutBack,
               ),
           const SizedBox(height: 24),
-
+ 
           const Text(
             '¿Qué música te mueve?',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
           ).animate().fadeIn(delay: 200.ms),
           const SizedBox(height: 8),
           Text(
             'Selecciona al menos 2 géneros',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.7)),
           ).animate().fadeIn(delay: 300.ms),
-          const SizedBox(height: 28),
-
+ 
+          // ── Contador visual ──
+          const SizedBox(height: 12),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: _selected.length >= 2
+                  ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                  : Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _selected.length >= 2
+                    ? const Color(0xFF10B981).withValues(alpha: 0.5)
+                    : Colors.white.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _selected.length >= 2
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  size: 16,
+                  color: _selected.length >= 2
+                      ? const Color(0xFF10B981)
+                      : Colors.white.withValues(alpha: 0.5),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${_selected.length} seleccionados',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _selected.length >= 2
+                        ? const Color(0xFF10B981)
+                        : Colors.white.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+ 
+          // ── Grid de géneros con color ──
           Container(
             constraints: const BoxConstraints(maxWidth: 460),
             child: Wrap(
@@ -90,6 +122,7 @@ class _MusicStepState extends State<MusicStep> {
               children: List.generate(_genres.length, (index) {
                 final genre = _genres[index];
                 final isSelected = _selected.contains(genre['name']);
+                final Color genreColor = genre['color'];
                 return GestureDetector(
                   onTap: () {
                     setState(() {
@@ -101,49 +134,52 @@ class _MusicStepState extends State<MusicStep> {
                     });
                   },
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                    duration: const Duration(milliseconds: 250),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
+                          ? genreColor.withValues(alpha: 0.25)
+                          : Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected
-                            ? Colors.white
-                            : Colors.white.withValues(alpha: 0.2),
+                            ? genreColor.withValues(alpha: 0.7)
+                            : Colors.white.withValues(alpha: 0.15),
+                        width: isSelected ? 2 : 1,
                       ),
+                      boxShadow: isSelected
+                          ? [BoxShadow(color: genreColor.withValues(alpha: 0.2), blurRadius: 8)]
+                          : [],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          genre['emoji'],
-                          style: const TextStyle(fontSize: 18),
-                        ),
+                        Text(genre['emoji'], style: const TextStyle(fontSize: 18)),
                         const SizedBox(width: 8),
                         Text(
                           genre['name'],
                           style: TextStyle(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.white,
-                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.8),
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                             fontSize: 14,
                           ),
                         ),
+                        if (isSelected) ...[
+                          const SizedBox(width: 6),
+                          Icon(Icons.check_rounded, size: 16, color: genreColor),
+                        ],
                       ],
                     ),
                   ),
                 )
                     .animate()
-                    .fadeIn(delay: (400 + index * 50).ms, duration: 400.ms);
+                    .fadeIn(delay: (300 + index * 40).ms, duration: 350.ms);
               }),
             ),
           ),
           const SizedBox(height: 32),
-
+ 
+          // ── Botón final ──
           Container(
             constraints: const BoxConstraints(maxWidth: 420),
             width: double.infinity,
@@ -158,28 +194,34 @@ class _MusicStepState extends State<MusicStep> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: AppColors.primary,
-                disabledBackgroundColor:
-                    Colors.white.withValues(alpha: 0.2),
-                disabledForegroundColor:
-                    Colors.white.withValues(alpha: 0.4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                disabledBackgroundColor: Colors.white.withValues(alpha: 0.15),
+                disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
+                elevation: _selected.length >= 2 ? 4 : 0,
+                shadowColor: Colors.white.withValues(alpha: 0.3),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
               child: _isLoading
                   ? const SizedBox(
-                      width: 24,
-                      height: 24,
+                      width: 24, height: 24,
                       child: CircularProgressIndicator(strokeWidth: 2.5),
                     )
-                  : Text(
-                      _selected.length >= 2
-                          ? 'Descubrir mi arquetipo'
-                          : 'Selecciona ${2 - _selected.length} más',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _selected.length >= 2
+                              ? Icons.auto_awesome_rounded
+                              : Icons.music_note_rounded,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _selected.length >= 2
+                              ? 'Descubrir mi arquetipo'
+                              : 'Selecciona ${2 - _selected.length} más',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                        ),
+                      ],
                     ),
             ),
           ),

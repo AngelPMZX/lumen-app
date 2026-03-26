@@ -3,7 +3,8 @@ class AppRoutes {
   static const onboarding = '/onboarding';
   static const login = '/login';
   static const register = '/register';
-  static const home = '/home';
+  static const home = '/home';         // Ahora apunta al MainShell
   static const profile = '/profile';
   static const profileSetup = '/profile-setup';
 }
+ 

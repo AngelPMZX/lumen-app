@@ -1,10 +1,18 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
+import '../../../data/models/mood_entry.dart';
+import '../../../data/models/quote_service.dart';
+import '../../../data/models/daily_challenge.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/providers/theme_provider.dart';
+import '../../widgets/animated_particles_background.dart';
+import '../../widgets/weekly_mood_chart.dart';
+import '../../widgets/daily_progress_ring.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +24,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _streakGlow;
+  MoodType? _selectedMood;
+  Quote? _quote;
+  Map<int, MoodType> _weeklyMoods = {};
+  bool _isLoadingQuote = true;
+  bool _hasDiaryToday = false;
 
   @override
   void initState() {
@@ -24,6 +37,175 @@ class _HomeScreenState extends State<HomeScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkProfileComplete();
+      _loadData();
+    });
+  }
+
+  void _checkProfileComplete() {
+    try {
+      final authProvider = context.read<AuthProvider>();
+      if (!authProvider.isLoggedIn) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, AppRoutes.login);
+        }
+        return;
+      }
+      if (!authProvider.isProfileComplete) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('Profile check error: $e');
+    }
+  }
+
+  Future<void> _loadData() async {
+    // Cargar frase del día
+    try {
+      final quote = await QuoteService.getQuoteOfTheDay();
+      if (mounted) setState(() { _quote = quote; _isLoadingQuote = false; });
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingQuote = false);
+    }
+
+    // Cargar moods de la semana
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final moods = await authProvider.getWeeklyMoods();
+      if (mounted) setState(() => _weeklyMoods = moods);
+    } catch (e) {
+      debugPrint('Error loading weekly moods: $e');
+    }
+
+    // Restaurar el mood de hoy si ya lo seleccionó antes
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final todayMood = await authProvider.getTodayMood();
+      if (mounted && todayMood != null) {
+        setState(() => _selectedMood = todayMood);
+      }
+    } catch (e) {
+      debugPrint('Error loading today mood: $e');
+    }
+
+    // Verificar si ya escribió en el diario hoy
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final hasDiary = await authProvider.hasDiaryEntryToday();
+      if (mounted) setState(() => _hasDiaryToday = hasDiary);
+    } catch (e) {
+      debugPrint('Error checking diary: $e');
+    }
+  }
+
+  Future<void> _onMoodSelected(MoodType mood) async {
+    HapticFeedback.mediumImpact();
+
+    if (_selectedMood != null && _selectedMood != mood) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Cambiar ánimo',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          content: RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontSize: 15,
+              ),
+              children: [
+                const TextSpan(text: 'Cambiar de '),
+                TextSpan(
+                  text: '${_selectedMood!.emoji} ${_selectedMood!.label}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const TextSpan(text: ' a '),
+                TextSpan(
+                  text: '${mood.emoji} ${mood.label}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const TextSpan(text: '?'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Cancelar',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: mood.color,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Cambiar'),
+            ),
+          ],
+        ),
+      );
+      if (confirm != true) return;
+    }
+
+    setState(() => _selectedMood = mood);
+
+    final authProvider = context.read<AuthProvider>();
+    await authProvider.recordCheckIn();
+
+    if (authProvider.firebaseUser != null) {
+      final entry = MoodEntry(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        mood: mood,
+      );
+      try {
+        final isFirstToday = await authProvider.saveMoodEntry(entry);
+
+        setState(() {
+          _weeklyMoods[DateTime.now().weekday] = mood;
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Text(mood.emoji, style: const TextStyle(fontSize: 20)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isFirstToday
+                          ? '${mood.label} registrado. ¡+${mood.xpReward} XP!'
+                          : '${mood.label} actualizado.',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  if (isFirstToday)
+                    const Icon(Icons.bolt_rounded,
+                        color: Color(0xFFFBBF24), size: 20),
+                ],
+              ),
+              backgroundColor: mood.color.withValues(alpha: 0.9),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              margin: const EdgeInsets.all(16),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error saving mood: $e');
+      }
+    }
   }
 
   @override
@@ -35,537 +217,617 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final greeting = _getGreeting();
+    final progress = authProvider.userProgress;
+    final streak = progress?.currentStreak ?? 0;
+    final bestStreak = progress?.longestStreak ?? 0;
+    final totalXp = progress?.totalXp ?? 0;
+    final level = progress?.level ?? 1;
+    final levelTitle = progress?.levelTitle ?? 'Novato Emocional';
+    final xpForNext = progress?.xpForNextLevel ?? 100;
+    final challenge = DailyChallenge.getToday();
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$greeting,',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          authProvider.userName.isNotEmpty
-                              ? authProvider.userName
-                              : 'Usuario',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: isDark
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Notification bell
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Icon(
-                      Icons.notifications_none_rounded,
-                      color:
-                          isDark ? Colors.white70 : AppColors.textSecondary,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Profile avatar
-                  GestureDetector(
-                    onTap: () async {
-                      await authProvider.logout();
-                      if (context.mounted) {
-                        Navigator.pushReplacementNamed(
-                            context, AppRoutes.login);
-                      }
-                    },
-                    child: Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primary, AppColors.primaryDark],
-                        ),
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Center(
-                        child: Text(
-                          authProvider.userName.isNotEmpty
-                              ? authProvider.userName[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ).animate().fadeIn(duration: 500.ms),
-              const SizedBox(height: 24),
+      body: Stack(
+        children: [
+          const AnimatedParticlesBackground(
+            particleCount: 20,
+            maxShootingStars: 0,
+          ),
 
-              // Streak card con glow
-              AnimatedBuilder(
-                animation: _streakGlow,
-                builder: (context, child) {
-                  return Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF6C63FF),
-                          Color(0xFF5A4FCF),
-                          Color(0xFF4A3AB5),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(
-                              alpha: 0.2 + _streakGlow.value * 0.15),
-                          blurRadius: 20 + _streakGlow.value * 10,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Fire icon with glow
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: AppColors.streak
-                                    .withValues(alpha: 0.2),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.local_fire_department_rounded,
-                                color: AppColors.streak,
-                                size: 28,
-                              ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // HEADER
+                  Row(
+                    children: [
+                      Container(
+                        width: 52, height: 52,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: _getArchetypeGradient(authProvider.userModel?.archetype),
+                          ),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _getArchetypeGradient(authProvider.userModel?.archetype)
+                                  .first.withValues(alpha: 0.3),
+                              blurRadius: 12, offset: const Offset(0, 4),
                             ),
-                            const SizedBox(width: 14),
-                            const Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            authProvider.userName.isNotEmpty
+                                ? authProvider.userName[0].toUpperCase() : 'U',
+                            style: const TextStyle(
+                              color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(greeting, style: TextStyle(
+                                fontSize: 14, color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500)),
+                            Text(
+                              authProvider.userName.isNotEmpty
+                                  ? authProvider.userName : 'Usuario',
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : AppColors.textPrimary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.streak.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.bolt_rounded, color: AppColors.streak, size: 16),
+                            const SizedBox(width: 2),
+                            Text('$totalXp', style: const TextStyle(
+                                color: AppColors.streak, fontSize: 13, fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          themeProvider.toggleTheme();
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 42, height: 42,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            transitionBuilder: (child, anim) =>
+                                RotationTransition(
+                                  turns: Tween(begin: 0.75, end: 1.0).animate(anim),
+                                  child: FadeTransition(opacity: anim, child: child),
+                                ),
+                            child: Icon(
+                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                              key: ValueKey(isDark),
+                              color: isDark ? const Color(0xFFFBBF24) : AppColors.textSecondary,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ).animate().fadeIn(duration: 500.ms),
+                  const SizedBox(height: 20),
+
+                  // FRASE DEL DÍA
+                  if (_quote != null || _isLoadingQuote)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [Colors.white.withValues(alpha: 0.06),
+                                 Colors.white.withValues(alpha: 0.03)]
+                              : [const Color(0xFFFEF9C3), const Color(0xFFFEF3C7)],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : const Color(0xFFFDE68A),
+                        ),
+                      ),
+                      child: _isLoadingQuote
+                          ? const Center(
+                              child: SizedBox(width: 20, height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2)),
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 32, height: 32,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.streak.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(Icons.format_quote_rounded,
+                                          color: AppColors.streak, size: 16),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text('Frase del día',
+                                        style: TextStyle(fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark ? Colors.white70
+                                                : const Color(0xFF92400E))),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
                                 Text(
-                                  '0 días',
+                                  '"${_quote!.text}"',
                                   style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1,
+                                    fontSize: 15, fontWeight: FontWeight.w600,
+                                    fontStyle: FontStyle.italic,
+                                    color: isDark ? Colors.white : const Color(0xFF78350F),
+                                    height: 1.5,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 6),
                                 Text(
-                                  'Racha actual',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                  '— ${_quote!.author}',
+                                  style: TextStyle(fontSize: 13,
+                                      color: isDark ? Colors.white54 : const Color(0xFF92400E),
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                if (_quote!.source == 'ZenQuotes.io') ...[
+                                  const SizedBox(height: 8),
+                                  Text('Powered by ZenQuotes.io',
+                                      style: TextStyle(fontSize: 10,
+                                          color: isDark ? Colors.white24
+                                              : const Color(0xFFB45309).withValues(alpha: 0.4))),
+                                ],
+                              ],
+                            ),
+                    ).animate().fadeIn(delay: 150.ms, duration: 600.ms)
+                        .slideY(begin: 0.1, end: 0),
+                  const SizedBox(height: 16),
+
+                  // PROGRESO CIRCULAR
+                  DailyProgressRing(
+                    checkInDone: _selectedMood != null,
+                    lessonDone: false,
+                    diaryDone: _hasDiaryToday,
+                  ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
+                  const SizedBox(height: 16),
+
+                  // STREAK CARD
+                  AnimatedBuilder(
+                    animation: _streakGlow,
+                    builder: (context, child) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF6C63FF), Color(0xFF5A4FCF), Color(0xFF4A3AB5)],
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(
+                                  alpha: 0.15 + _streakGlow.value * 0.1),
+                              blurRadius: 16 + _streakGlow.value * 8,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 56, height: 56,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.streak.withValues(alpha: 0.2),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.streak.withValues(
+                                            alpha: _streakGlow.value * 0.3),
+                                        blurRadius: 16, spreadRadius: 2),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.local_fire_department_rounded,
+                                      color: AppColors.streak, size: 32),
+                                ),
+                                const SizedBox(width: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('$streak ${streak == 1 ? "día" : "días"}',
+                                        style: const TextStyle(color: Colors.white,
+                                            fontSize: 30, fontWeight: FontWeight.w800, height: 1)),
+                                    const SizedBox(height: 4),
+                                    Text(streak > 0 ? '¡Sigue así!' : 'Haz tu check-in',
+                                        style: const TextStyle(color: Colors.white70,
+                                            fontSize: 14, fontWeight: FontWeight.w500)),
+                                  ],
+                                ),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      const Icon(Icons.emoji_events_rounded,
+                                          color: Color(0xFFFBBF24), size: 18),
+                                      const SizedBox(height: 2),
+                                      Text('$bestStreak', style: const TextStyle(
+                                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                                      const Text('Mejor', style: TextStyle(
+                                          color: Colors.white60, fontSize: 10)),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                            const Spacer(),
-                            // Best streak
+                            const SizedBox(height: 18),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               decoration: BoxDecoration(
-                                color: Colors.white
-                                    .withValues(alpha: 0.15),
-                                borderRadius:
-                                    BorderRadius.circular(12),
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                              child: const Column(
-                                children: [
-                                  Text(
-                                    '0',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Mejor',
-                                    style: TextStyle(
-                                      color: Colors.white60,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: List.generate(7, (index) {
+                                  final days = ['L', 'M', 'Mi', 'J', 'V', 'S', 'D'];
+                                  final today = DateTime.now().weekday - 1;
+                                  final isToday = index == today;
+                                  final isPast = index < today;
+                                  final wasActive = isPast && streak > (today - index);
+                                  return Column(
+                                    children: [
+                                      Text(days[index], style: TextStyle(
+                                          color: isToday ? Colors.white : Colors.white54,
+                                          fontSize: 11,
+                                          fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
+                                      const SizedBox(height: 6),
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 300),
+                                        width: 30, height: 30,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: isToday ? AppColors.streak
+                                              : wasActive ? AppColors.streak.withValues(alpha: 0.4)
+                                              : Colors.white.withValues(alpha: 0.08),
+                                        ),
+                                        child: Icon(
+                                          isToday ? Icons.local_fire_department_rounded
+                                              : wasActive ? Icons.check_rounded
+                                              : Icons.circle_outlined,
+                                          color: isToday || wasActive ? Colors.white : Colors.white24,
+                                          size: isToday ? 16 : wasActive ? 14 : 6,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
-                        // Week progress
+                      );
+                    },
+                  ).animate().fadeIn(delay: 300.ms, duration: 700.ms)
+                      .slideY(begin: 0.15, end: 0),
+                  const SizedBox(height: 20),
+
+                  // MOOD CHECK-IN
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('¿Cómo te sientes hoy?',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.white : AppColors.textPrimary)),
+                      ),
+                      if (_selectedMood != null)
+                        GestureDetector(
+                          onTap: () => setState(() => _selectedMood = null),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.textSecondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.refresh_rounded, size: 14,
+                                    color: AppColors.textSecondary),
+                                const SizedBox(width: 4),
+                                Text('Cambiar', style: TextStyle(fontSize: 12,
+                                    color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ).animate().fadeIn(delay: 450.ms),
+                  const SizedBox(height: 14),
+
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
+                    ),
+                    child: Wrap(
+                      spacing: 6, runSpacing: 10,
+                      alignment: WrapAlignment.center,
+                      children: MoodType.values.map((mood) {
+                        final isSelected = _selectedMood == mood;
+                        return GestureDetector(
+                          onTap: () => _onMoodSelected(mood),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 72,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? mood.color.withValues(alpha: 0.15) : Colors.transparent,
+                              borderRadius: BorderRadius.circular(16),
+                              border: isSelected
+                                  ? Border.all(color: mood.color.withValues(alpha: 0.5), width: 2)
+                                  : null,
+                            ),
+                            child: Column(
+                              children: [
+                                Text(mood.emoji,
+                                    style: TextStyle(fontSize: isSelected ? 30 : 26)),
+                                const SizedBox(height: 4),
+                                Text(mood.label, style: TextStyle(fontSize: 10,
+                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                    color: isSelected ? mood.color : AppColors.textSecondary)),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ).animate().fadeIn(delay: 500.ms, duration: 600.ms)
+                      .slideY(begin: 0.1, end: 0),
+                  const SizedBox(height: 20),
+
+                  // GRÁFICA SEMANAL
+                  WeeklyMoodChart(weeklyMoods: _weeklyMoods)
+                      .animate().fadeIn(delay: 550.ms, duration: 600.ms),
+                  const SizedBox(height: 20),
+
+                  // RETO DIARIO
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          challenge.color.withValues(alpha: isDark ? 0.15 : 0.08),
+                          challenge.color.withValues(alpha: isDark ? 0.08 : 0.03),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: challenge.color.withValues(alpha: isDark ? 0.2 : 0.15)),
+                    ),
+                    child: Row(
+                      children: [
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          width: 52, height: 52,
                           decoration: BoxDecoration(
-                            color:
-                                Colors.white.withValues(alpha: 0.1),
+                            color: challenge.color.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Row(
-                            mainAxisAlignment:
-                                MainAxisAlignment.spaceAround,
-                            children: List.generate(7, (index) {
-                              final days = [
-                                'L', 'M', 'M', 'J', 'V', 'S', 'D'
-                              ];
-                              final today =
-                                  DateTime.now().weekday - 1;
-                              final isToday = index == today;
-
-                              return Column(
+                          child: Icon(challenge.icon, color: challenge.color, size: 26),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  Text(
-                                    days[index],
-                                    style: TextStyle(
-                                      color: isToday
-                                          ? Colors.white
-                                          : Colors.white54,
-                                      fontSize: 12,
-                                      fontWeight: isToday
-                                          ? FontWeight.w700
-                                          : FontWeight.w400,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
                                   Container(
-                                    width: 32,
-                                    height: 32,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isToday
-                                          ? AppColors.streak
-                                          : Colors.white.withValues(
-                                              alpha: 0.1),
-                                      border: isToday
-                                          ? Border.all(
-                                              color: AppColors.streak
-                                                  .withValues(
-                                                      alpha: 0.5),
-                                              width: 2,
-                                            )
-                                          : null,
+                                      color: challenge.color.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: Icon(
-                                      isToday
-                                          ? Icons.today_rounded
-                                          : Icons.circle_outlined,
-                                      color: isToday
-                                          ? Colors.white
-                                          : Colors.white24,
-                                      size: isToday ? 16 : 8,
-                                    ),
+                                    child: Text('Reto · ${challenge.category}',
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
+                                            color: challenge.color)),
                                   ),
+                                  const SizedBox(width: 8),
+                                  Text(challenge.duration,
+                                      style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                                 ],
-                              );
-                            }),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(challenge.title,
+                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                                      color: isDark ? Colors.white : AppColors.textPrimary)),
+                              const SizedBox(height: 2),
+                              Text(challenge.description,
+                                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: challenge.color.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('+${challenge.xpReward}',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
+                                  color: challenge.color)),
+                        ),
+                      ],
+                    ),
+                  ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                  const SizedBox(height: 20),
+
+                  // ACCIONES RÁPIDAS
+                  Text('Tu entrenamiento de hoy',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : AppColors.textPrimary))
+                      .animate().fadeIn(delay: 650.ms),
+                  const SizedBox(height: 14),
+
+                  _buildActionCard(
+                    icon: Icons.menu_book_rounded,
+                    title: 'Lección del día',
+                    subtitle: 'Manejo de emociones difíciles',
+                    color: _getArchetypeGradient(authProvider.userModel?.archetype).first,
+                    isDark: isDark, delay: 700,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildActionCard(
+                    icon: Icons.air_rounded,
+                    title: 'Respiración guiada',
+                    subtitle: '3 minutos de calma',
+                    color: AppColors.moodCalm,
+                    isDark: isDark, delay: 750,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildActionCard(
+                    icon: Icons.edit_note_rounded,
+                    title: 'Diario rápido',
+                    subtitle: 'Escribe sobre tu día',
+                    color: const Color(0xFF10B981),
+                    isDark: isDark, delay: 800,
+                  ),
+                  const SizedBox(height: 24),
+
+                  // STATS RÁPIDOS
+                  Text('Tu resumen',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : AppColors.textPrimary))
+                      .animate().fadeIn(delay: 850.ms),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      _buildStatCard('🔥', '$streak', 'Racha', isDark),
+                      const SizedBox(width: 12),
+                      _buildStatCard('⚡', '$totalXp', 'XP Total', isDark),
+                      const SizedBox(width: 12),
+                      _buildStatCard('🏆', 'Nv $level', levelTitle, isDark),
+                    ],
+                  ).animate().fadeIn(delay: 900.ms),
+                  const SizedBox(height: 20),
+
+                  // NIVEL Y XP
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? [Colors.white.withValues(alpha: 0.06),
+                               Colors.white.withValues(alpha: 0.03)]
+                            : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)],
+                      ),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.08)
+                            : const Color(0xFFDDD6FE)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60, height: 60,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: _getArchetypeGradient(authProvider.userModel?.archetype),
+                              begin: Alignment.topLeft, end: Alignment.bottomRight),
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _getArchetypeGradient(authProvider.userModel?.archetype)
+                                    .first.withValues(alpha: 0.3),
+                                blurRadius: 12, offset: const Offset(0, 4)),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('Nv', style: TextStyle(color: Colors.white60,
+                                  fontSize: 10, fontWeight: FontWeight.w600)),
+                              Text('$level', style: const TextStyle(color: Colors.white,
+                                  fontSize: 22, fontWeight: FontWeight.w800, height: 1)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(levelTitle, style: TextStyle(fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.white : AppColors.textPrimary)),
+                              const SizedBox(height: 10),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: LinearProgressIndicator(
+                                  value: (totalXp % xpForNext) / xpForNext,
+                                  backgroundColor: isDark
+                                      ? Colors.white.withValues(alpha: 0.1)
+                                      : const Color(0xFFDDD6FE),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _getArchetypeGradient(authProvider.userModel?.archetype).first),
+                                  minHeight: 10,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text('${totalXp % xpForNext} / $xpForNext XP',
+                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  );
-                },
-              )
-                  .animate()
-                  .fadeIn(delay: 200.ms, duration: 700.ms)
-                  .slideY(begin: 0.15, end: 0),
-              const SizedBox(height: 24),
-
-              // Mood question
-              Text(
-                '¿Cómo te sientes hoy?',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-              ).animate().fadeIn(delay: 400.ms),
-              const SizedBox(height: 14),
-
-              // Mood selector
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : AppColors.surface,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.grey.shade200,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildMoodOption('😊', 'Feliz', AppColors.moodHappy),
-                    _buildMoodOption('😌', 'Calma', AppColors.moodCalm),
-                    _buildMoodOption('😐', 'Normal', AppColors.moodNeutral),
-                    _buildMoodOption('😢', 'Triste', AppColors.moodSad),
-                    _buildMoodOption(
-                        '😰', 'Ansioso', AppColors.moodAnxious),
-                  ],
-                ),
-              )
-                  .animate()
-                  .fadeIn(delay: 500.ms, duration: 600.ms)
-                  .slideY(begin: 0.1, end: 0),
-              const SizedBox(height: 28),
-
-              // Section title
-              Text(
-                'Tu entrenamiento de hoy',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-              ).animate().fadeIn(delay: 600.ms),
-              const SizedBox(height: 14),
-
-              // Action cards
-              _buildActionCard(
-                icon: Icons.emoji_emotions_rounded,
-                title: 'Check-in de ánimo',
-                subtitle: 'Registra cómo te sientes',
-                color: AppColors.secondary,
-                iconBg: const Color(0xFFD1FAE5),
-                isDark: isDark,
-              )
-                  .animate()
-                  .fadeIn(delay: 700.ms)
-                  .slideX(begin: -0.05, end: 0),
-              const SizedBox(height: 12),
-              _buildActionCard(
-                icon: Icons.menu_book_rounded,
-                title: 'Lección del día',
-                subtitle: 'Manejo de emociones difíciles',
-                color: AppColors.primary,
-                iconBg: const Color(0xFFE8E5FF),
-                isDark: isDark,
-              )
-                  .animate()
-                  .fadeIn(delay: 800.ms)
-                  .slideX(begin: -0.05, end: 0),
-              const SizedBox(height: 12),
-              _buildActionCard(
-                icon: Icons.air_rounded,
-                title: 'Respiración guiada',
-                subtitle: '3 minutos de calma',
-                color: AppColors.moodCalm,
-                iconBg: const Color(0xFFDBEAFE),
-                isDark: isDark,
-              )
-                  .animate()
-                  .fadeIn(delay: 900.ms)
-                  .slideX(begin: -0.05, end: 0),
-              const SizedBox(height: 12),
-              _buildActionCard(
-                icon: Icons.format_quote_rounded,
-                title: 'Frase del día',
-                subtitle: 'Tu dosis de inspiración',
-                color: AppColors.streak,
-                iconBg: const Color(0xFFFEF3C7),
-                isDark: isDark,
-              )
-                  .animate()
-                  .fadeIn(delay: 1000.ms)
-                  .slideX(begin: -0.05, end: 0),
-              const SizedBox(height: 28),
-
-              // Level progress
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isDark
-                        ? [
-                            Colors.white.withValues(alpha: 0.06),
-                            Colors.white.withValues(alpha: 0.03),
-                          ]
-                        : [
-                            const Color(0xFFF5F3FF),
-                            const Color(0xFFEDE9FE),
-                          ],
-                  ),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : const Color(0xFFDDD6FE),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Level badge
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            AppColors.primary,
-                            AppColors.primaryDark,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary
-                                .withValues(alpha: 0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Nv',
-                            style: TextStyle(
-                              color: Colors.white60,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            '1',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              height: 1,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Novato Emocional',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: LinearProgressIndicator(
-                              value: 0.0,
-                              backgroundColor: isDark
-                                  ? Colors.white.withValues(alpha: 0.1)
-                                  : const Color(0xFFDDD6FE),
-                              valueColor:
-                                  const AlwaysStoppedAnimation<Color>(
-                                      AppColors.primary),
-                              minHeight: 10,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            '0 / 100 XP para el siguiente nivel',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ).animate().fadeIn(delay: 1100.ms),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMoodOption(String emoji, String label, Color color) {
-    return GestureDetector(
-      onTap: () {
-        // TODO: Fase 3 - Check-in de ánimo
-      },
-      child: Column(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: color.withValues(alpha: 0.2),
+                  ).animate().fadeIn(delay: 950.ms),
+                ],
               ),
-            ),
-            child: Center(
-              child: Text(emoji, style: const TextStyle(fontSize: 26)),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -573,41 +835,52 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _buildStatCard(String emoji, String value, String label, bool isDark) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 22)),
+            const SizedBox(height: 6),
+            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : AppColors.textPrimary)),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required Color iconBg,
-    required bool isDark,
+    required IconData icon, required String title, required String subtitle,
+    required Color color, required bool isDark, required int delay,
   }) {
     return GestureDetector(
       onTap: () {},
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
+        width: double.infinity, padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : AppColors.surface,
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.grey.shade200,
-          ),
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
         ),
         child: Row(
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 52, height: 52,
               decoration: BoxDecoration(
-                color: isDark
-                    ? color.withValues(alpha: 0.15)
-                    : iconBg,
-                borderRadius: BorderRadius.circular(16),
-              ),
+                color: color.withValues(alpha: isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(16)),
               child: Icon(icon, color: color, size: 26),
             ),
             const SizedBox(width: 16),
@@ -615,45 +888,35 @@ class _HomeScreenState extends State<HomeScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color:
-                          isDark ? Colors.white : AppColors.textPrimary,
-                    ),
-                  ),
+                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : AppColors.textPrimary)),
                   const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  Text(subtitle, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                 ],
               ),
             ),
             Container(
-              width: 36,
-              height: 36,
+              width: 36, height: 36,
               decoration: BoxDecoration(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.06)
-                    : color.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.chevron_right_rounded,
-                color: color,
-                size: 20,
-              ),
+                color: color.withValues(alpha: isDark ? 0.15 : 0.08),
+                borderRadius: BorderRadius.circular(10)),
+              child: Icon(Icons.chevron_right_rounded, color: color, size: 20),
             ),
           ],
         ),
       ),
-    );
+    ).animate().fadeIn(delay: delay.ms).slideX(begin: -0.05, end: 0);
+  }
+
+  List<Color> _getArchetypeGradient(String? archetype) {
+    switch (archetype) {
+      case 'explorador': return [const Color(0xFF6366F1), const Color(0xFF4338CA)];
+      case 'guerrero':   return [const Color(0xFFEF4444), const Color(0xFFDC2626)];
+      case 'social':     return [const Color(0xFFEC4899), const Color(0xFFDB2777)];
+      case 'sabio':      return [const Color(0xFF10B981), const Color(0xFF059669)];
+      case 'libre':      return [const Color(0xFFF59E0B), const Color(0xFFD97706)];
+      default:           return [AppColors.primary, AppColors.primaryDark];
+    }
   }
 
   String _getGreeting() {

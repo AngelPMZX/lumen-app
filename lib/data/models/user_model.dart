@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   final String uid;
   final String name;
@@ -25,6 +27,23 @@ class UserModel {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
+  /// Para CREAR un documento nuevo en Firestore (.set())
+  /// Usa FieldValue.serverTimestamp() para que el servidor ponga la hora
+  Map<String, dynamic> toFirestoreMap() => {
+        'uid': uid,
+        'name': name,
+        'username': username,
+        'email': email,
+        'age': age,
+        'gender': gender,
+        'hobbies': hobbies,
+        'musicGenres': musicGenres,
+        'archetype': archetype,
+        'profileComplete': profileComplete,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+  /// Para uso LOCAL (no Firestore) — serializa createdAt como ISO string
   Map<String, dynamic> toMap() => {
         'uid': uid,
         'name': name,
@@ -51,9 +70,18 @@ class UserModel {
       musicGenres: List<String>.from(map['musicGenres'] ?? []),
       archetype: map['archetype'],
       profileComplete: map['profileComplete'] ?? false,
-      createdAt: DateTime.parse(
-          map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: _parseDateTime(map['createdAt']),
     );
+  }
+
+  /// Parsea fechas que pueden venir como Timestamp de Firestore o String ISO
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is Timestamp) return value.toDate();
+    if (value is String) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    return DateTime.now();
   }
 
   UserModel copyWith({
