@@ -13,6 +13,7 @@ import '../../../domain/providers/theme_provider.dart';
 import '../../widgets/animated_particles_background.dart';
 import '../../widgets/weekly_mood_chart.dart';
 import '../../widgets/daily_progress_ring.dart';
+import '../reminders/reminders_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -65,7 +66,6 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _loadData() async {
-    // Cargar frase del día
     try {
       final quote = await QuoteService.getQuoteOfTheDay();
       if (mounted) setState(() { _quote = quote; _isLoadingQuote = false; });
@@ -73,7 +73,6 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) setState(() => _isLoadingQuote = false);
     }
 
-    // Cargar moods de la semana
     try {
       final authProvider = context.read<AuthProvider>();
       final moods = await authProvider.getWeeklyMoods();
@@ -82,7 +81,6 @@ class _HomeScreenState extends State<HomeScreen>
       debugPrint('Error loading weekly moods: $e');
     }
 
-    // Restaurar el mood de hoy si ya lo seleccionó antes
     try {
       final authProvider = context.read<AuthProvider>();
       final todayMood = await authProvider.getTodayMood();
@@ -93,7 +91,6 @@ class _HomeScreenState extends State<HomeScreen>
       debugPrint('Error loading today mood: $e');
     }
 
-    // Verificar si ya escribió en el diario hoy
     try {
       final authProvider = context.read<AuthProvider>();
       final hasDiary = await authProvider.hasDiaryEntryToday();
@@ -735,13 +732,25 @@ class _HomeScreenState extends State<HomeScreen>
                     color: const Color(0xFF10B981),
                     isDark: isDark, delay: 800,
                   ),
+                  const SizedBox(height: 12),
+                  _buildActionCard(
+                    icon: Icons.track_changes_rounded,
+                    title: 'Hábitos y Recordatorios',
+                    subtitle: 'Tus metas diarias de bienestar',
+                    color: const Color(0xFF8B5CF6),
+                    isDark: isDark, delay: 850,
+                    onTap: () {
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const RemindersScreen()));
+                    },
+                  ),
                   const SizedBox(height: 24),
 
                   // STATS RÁPIDOS
                   Text('Tu resumen',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
                           color: isDark ? Colors.white : AppColors.textPrimary))
-                      .animate().fadeIn(delay: 850.ms),
+                      .animate().fadeIn(delay: 900.ms),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -751,7 +760,7 @@ class _HomeScreenState extends State<HomeScreen>
                       const SizedBox(width: 12),
                       _buildStatCard('🏆', 'Nv $level', levelTitle, isDark),
                     ],
-                  ).animate().fadeIn(delay: 900.ms),
+                  ).animate().fadeIn(delay: 950.ms),
                   const SizedBox(height: 20),
 
                   // NIVEL Y XP
@@ -825,7 +834,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ],
                     ),
-                  ).animate().fadeIn(delay: 950.ms),
+                  ).animate().fadeIn(delay: 1000.ms),
                 ],
               ),
             ),
@@ -863,9 +872,10 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _buildActionCard({
     required IconData icon, required String title, required String subtitle,
     required Color color, required bool isDark, required int delay,
+    VoidCallback? onTap,
   }) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap ?? () {},
       child: Container(
         width: double.infinity, padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(

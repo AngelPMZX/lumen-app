@@ -6,7 +6,8 @@ import '../../data/models/user_model.dart';
 import '../../data/models/user_progress.dart';
 import '../../data/models/mood_entry.dart';
 import '../../data/models/diary_entry.dart';
-
+import '../../data/models/reminder.dart';
+import '../../data/models/habit.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -678,6 +679,243 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error deleting diary entry: $e');
       rethrow;
+    }
+  }
+
+  // ── RECORDATORIOS (fix: orderBy single field) ──
+ 
+  Future<void> saveReminder(Reminder reminder) async {
+    if (firebaseUser == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('reminders')
+          .doc(reminder.id)
+          .set(reminder.toMap());
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error saving reminder: $e');
+      rethrow;
+    }
+  }
+ 
+  Future<List<Reminder>> getReminders() async {
+    if (firebaseUser == null) return [];
+    try {
+      // FIX: usar timeInMinutes en vez de orderBy doble (hour + minute)
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('reminders')
+          .orderBy('timeInMinutes')
+          .get();
+      return snapshot.docs
+          .map((doc) => Reminder.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      debugPrint('Error loading reminders: $e');
+      // Fallback sin orderBy si el índice no existe aún
+      try {
+        final snapshot = await _firestore
+            .collection('users')
+            .doc(firebaseUser!.uid)
+            .collection('reminders')
+            .get();
+        final list = snapshot.docs
+            .map((doc) => Reminder.fromMap(doc.data()))
+            .toList();
+        list.sort((a, b) => a.timeInMinutes.compareTo(b.timeInMinutes));
+        return list;
+      } catch (e2) {
+        debugPrint('Fallback also failed: $e2');
+        return [];
+      }
+    }
+  }
+ 
+  Future<void> toggleReminder(String reminderId, bool isEnabled) async {
+    if (firebaseUser == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('reminders')
+          .doc(reminderId)
+          .update({'isEnabled': isEnabled});
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error toggling reminder: $e');
+      rethrow;
+    }
+  }
+ 
+  Future<void> deleteReminder(String reminderId) async {
+    if (firebaseUser == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('reminders')
+          .doc(reminderId)
+          .delete();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting reminder: $e');
+      rethrow;
+    }
+  }
+ 
+  // ── HÁBITOS ──
+ 
+  Future<void> saveHabit(Habit habit) async {
+    if (firebaseUser == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('habits')
+          .doc(habit.id)
+          .set(habit.toMap());
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error saving habit: $e');
+      rethrow;
+    }
+  }
+ 
+  Future<List<Habit>> getHabits() async {
+    if (firebaseUser == null) return [];
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('habits')
+          .orderBy('createdAt')
+          .get();
+      return snapshot.docs
+          .map((doc) => Habit.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      debugPrint('Error loading habits: $e');
+      return [];
+    }
+  }
+ 
+  Future<void> deleteHabit(String habitId) async {
+    if (firebaseUser == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('habits')
+          .doc(habitId)
+          .delete();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error deleting habit: $e');
+      rethrow;
+    }
+  }
+ 
+  /// Check-in de un hábito para hoy.
+  /// Solo da XP la PRIMERA vez que se marca. Si desmarca y vuelve
+  /// a marcar, registra el check-in pero NO suma XP otra vez.
+  Future<void> checkInHabit(String habitId) async {
+    if (firebaseUser == null) return;
+    try {
+      final today = DateTime.now();
+      final checkIn = HabitCheckIn(habitId: habitId, date: today);
+ 
+      // Verificar si ya existía un check-in hoy para este hábito
+      final existingDoc = await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('habit_checkins')
+          .doc(checkIn.docId)
+          .get();
+ 
+      final isFirstTime = !existingDoc.exists;
+ 
+      // Guardar/restaurar el check-in
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('habit_checkins')
+          .doc(checkIn.docId)
+          .set(checkIn.toMap());
+ 
+      // Solo dar XP la primera vez del día
+      if (isFirstTime && _userProgress != null) {
+        final newXp = _userProgress!.totalXp + 5;
+        final newLevel = (newXp ~/ 100) + 1;
+        final updatedProgress = UserProgress(
+          currentStreak: _userProgress!.currentStreak,
+          longestStreak: _userProgress!.longestStreak,
+          lastCheckIn: _userProgress!.lastCheckIn,
+          totalXp: newXp,
+          level: newLevel,
+        );
+        await _firestore
+            .collection('users')
+            .doc(firebaseUser!.uid)
+            .collection('progress')
+            .doc('current')
+            .set(updatedProgress.toMap());
+        _userProgress = updatedProgress;
+      }
+ 
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error checking in habit: $e');
+      rethrow;
+    }
+  }
+ 
+  /// Deshacer check-in de un hábito para hoy
+  Future<void> uncheckHabit(String habitId) async {
+    if (firebaseUser == null) return;
+    try {
+      final today = DateTime.now();
+      final checkIn = HabitCheckIn(habitId: habitId, date: today);
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('habit_checkins')
+          .doc(checkIn.docId)
+          .delete();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error unchecking habit: $e');
+      rethrow;
+    }
+  }
+ 
+  /// Obtiene los IDs de hábitos completados hoy
+  Future<Set<String>> getTodayHabitCheckIns() async {
+    if (firebaseUser == null) return {};
+    try {
+      final today = DateTime.now();
+      final dateStr =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+ 
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('habit_checkins')
+          .get();
+ 
+      return snapshot.docs
+          .where((doc) => doc.id.endsWith(dateStr))
+          .map((doc) {
+            final data = doc.data();
+            return data['habitId'] as String? ?? '';
+          })
+          .where((id) => id.isNotEmpty)
+          .toSet();
+    } catch (e) {
+      debugPrint('Error loading today checkins: $e');
+      return {};
     }
   }
 
