@@ -8,12 +8,15 @@ import '../../../core/constants/app_routes.dart';
 import '../../../data/models/mood_entry.dart';
 import '../../../data/models/quote_service.dart';
 import '../../../data/models/daily_challenge.dart';
+import '../../../data/models/wellness_route.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/theme_provider.dart';
 import '../../widgets/animated_particles_background.dart';
 import '../../widgets/weekly_mood_chart.dart';
 import '../../widgets/daily_progress_ring.dart';
 import '../reminders/reminders_screen.dart';
+import '../routes/lesson_screen.dart';
+import '../diary/new_diary_entry_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,6 +33,8 @@ class _HomeScreenState extends State<HomeScreen>
   Map<int, MoodType> _weeklyMoods = {};
   bool _isLoadingQuote = true;
   bool _hasDiaryToday = false;
+  Set<String> _completedLessons = {};
+  bool _hasLessonToday = false;
 
   @override
   void initState() {
@@ -98,6 +103,76 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (e) {
       debugPrint('Error checking diary: $e');
     }
+
+    // Cargar lecciones completadas
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final completed = await authProvider.getCompletedLessons();
+      if (mounted) setState(() => _completedLessons = completed);
+    } catch (e) {
+      debugPrint('Error loading completed lessons: $e');
+    }
+  }
+
+  /// Encuentra la siguiente lección sin completar y la abre
+  Future<void> _openNextLesson() async {
+    for (final route in WellnessRoute.all) {
+      for (int i = 0; i < route.lessons.length; i++) {
+        final lesson = route.lessons[i];
+        if (!_completedLessons.contains(lesson.id)) {
+          // Verificar que esté desbloqueada
+          if (i == 0 || _completedLessons.contains(route.lessons[i - 1].id)) {
+            final result = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(builder: (_) => LessonScreen(
+                lesson: lesson,
+                routeColor: route.color,
+                routeEmoji: route.emoji,
+              )),
+            );
+            if (result == true) {
+              _loadData();
+              setState(() => _hasLessonToday = true);
+            }
+            return;
+          }
+        }
+      }
+    }
+    // Si todas están completadas
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Text('🎉', style: TextStyle(fontSize: 20)),
+              SizedBox(width: 10),
+              Text('¡Has completado todas las lecciones!',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+  }
+
+  /// Obtiene info de la siguiente lección
+  (String, String, Color)? get _nextLessonInfo {
+    for (final route in WellnessRoute.all) {
+      for (int i = 0; i < route.lessons.length; i++) {
+        final lesson = route.lessons[i];
+        if (!_completedLessons.contains(lesson.id)) {
+          if (i == 0 || _completedLessons.contains(route.lessons[i - 1].id)) {
+            return (lesson.title, '${route.emoji} ${route.title}', route.color);
+          }
+        }
+      }
+    }
+    return null;
   }
 
   Future<void> _onMoodSelected(MoodType mood) async {
@@ -225,10 +300,24 @@ class _HomeScreenState extends State<HomeScreen>
     final levelTitle = progress?.levelTitle ?? 'Novato Emocional';
     final xpForNext = progress?.xpForNextLevel ?? 100;
     final challenge = DailyChallenge.getToday();
+    final nextLesson = _nextLessonInfo;
 
     return Scaffold(
       body: Stack(
         children: [
+          // Fondo con gradiente sutil
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isDark
+                    ? [const Color(0xFF0F0F23), const Color(0xFF1A1A2E), const Color(0xFF16213E)]
+                    : [const Color(0xFFF0F4FF), const Color(0xFFFAFBFF), Colors.white],
+              ),
+            ),
+          ),
+
           const AnimatedParticlesBackground(
             particleCount: 20,
             maxShootingStars: 0,
@@ -414,7 +503,7 @@ class _HomeScreenState extends State<HomeScreen>
                   // PROGRESO CIRCULAR
                   DailyProgressRing(
                     checkInDone: _selectedMood != null,
-                    lessonDone: false,
+                    lessonDone: _hasLessonToday,
                     diaryDone: _hasDiaryToday,
                   ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
                   const SizedBox(height: 16),
@@ -583,7 +672,7 @@ class _HomeScreenState extends State<HomeScreen>
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
+                      color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(
                         color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
@@ -711,10 +800,11 @@ class _HomeScreenState extends State<HomeScreen>
 
                   _buildActionCard(
                     icon: Icons.menu_book_rounded,
-                    title: 'Lección del día',
-                    subtitle: 'Manejo de emociones difíciles',
-                    color: _getArchetypeGradient(authProvider.userModel?.archetype).first,
+                    title: nextLesson != null ? nextLesson.$1 : 'Todas completadas',
+                    subtitle: nextLesson != null ? nextLesson.$2 : '¡Felicidades! 🎉',
+                    color: nextLesson?.$3 ?? const Color(0xFF10B981),
                     isDark: isDark, delay: 700,
+                    onTap: _openNextLesson,
                   ),
                   const SizedBox(height: 12),
                   _buildActionCard(
@@ -724,13 +814,19 @@ class _HomeScreenState extends State<HomeScreen>
                     color: AppColors.moodCalm,
                     isDark: isDark, delay: 750,
                   ),
-                  const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.edit_note_rounded,
                     title: 'Diario rápido',
                     subtitle: 'Escribe sobre tu día',
                     color: const Color(0xFF10B981),
                     isDark: isDark, delay: 800,
+                    onTap: () async {
+                      final result = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()),
+                      );
+                      if (result == true) _loadData();
+                    },
                   ),
                   const SizedBox(height: 12),
                   _buildActionCard(
@@ -849,7 +945,7 @@ class _HomeScreenState extends State<HomeScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
@@ -879,7 +975,7 @@ class _HomeScreenState extends State<HomeScreen>
       child: Container(
         width: double.infinity, padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),

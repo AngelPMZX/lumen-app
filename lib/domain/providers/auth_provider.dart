@@ -959,6 +959,79 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // ═══════════════════════════════════════════════════════
+  // AGREGAR ESTOS MÉTODOS al auth_provider.dart
+  // (dentro de la clase AuthProvider, antes del cierre })
+  // ═══════════════════════════════════════════════════════
+
+  /// Obtiene los IDs de lecciones completadas
+  Future<Set<String>> getCompletedLessons() async {
+    if (firebaseUser == null) return {};
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('completed_lessons')
+          .get();
+      return snapshot.docs.map((doc) => doc.id).toSet();
+    } catch (e) {
+      debugPrint('Error loading completed lessons: $e');
+      return {};
+    }
+  }
+
+  /// Completa una lección y suma XP
+  Future<void> completeLesson(String lessonId, int xpReward) async {
+    if (firebaseUser == null) return;
+    try {
+      // Verificar si ya la completó antes
+      final existing = await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('completed_lessons')
+          .doc(lessonId)
+          .get();
+
+      if (existing.exists) return; // Ya la completó, no dar XP de nuevo
+
+      // Marcar como completada
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('completed_lessons')
+          .doc(lessonId)
+          .set({
+        'completedAt': FieldValue.serverTimestamp(),
+        'xpEarned': xpReward,
+      });
+
+      // Sumar XP
+      if (_userProgress != null) {
+        final newXp = _userProgress!.totalXp + xpReward;
+        final newLevel = (newXp ~/ 100) + 1;
+        final updatedProgress = UserProgress(
+          currentStreak: _userProgress!.currentStreak,
+          longestStreak: _userProgress!.longestStreak,
+          lastCheckIn: _userProgress!.lastCheckIn,
+          totalXp: newXp,
+          level: newLevel,
+        );
+        await _firestore
+            .collection('users')
+            .doc(firebaseUser!.uid)
+            .collection('progress')
+            .doc('current')
+            .set(updatedProgress.toMap());
+        _userProgress = updatedProgress;
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error completing lesson: $e');
+      rethrow;
+    }
+  }
+
   // ═══════════════════════════════════════════
   // Cerrar sesión
   // ═══════════════════════════════════════════
