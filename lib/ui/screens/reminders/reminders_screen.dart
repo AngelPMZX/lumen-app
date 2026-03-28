@@ -48,7 +48,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
     }
   }
 
-  Future<void> _toggleHabitCheckIn(Habit habit) async {
+   Future<void> _toggleHabitCheckIn(Habit habit) async {
     HapticFeedback.mediumImpact();
     final auth = context.read<AuthProvider>();
     final isChecked = _todayCheckIns.contains(habit.id);
@@ -57,7 +57,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         await auth.uncheckHabit(habit.id);
         setState(() => _todayCheckIns.remove(habit.id));
       } else {
-        await auth.checkInHabit(habit.id);
+        final earnedXp = await auth.checkInHabit(habit.id);
         setState(() => _todayCheckIns.add(habit.id));
         if (mounted) {
           ScaffoldMessenger.of(context).clearSnackBars();
@@ -67,13 +67,19 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 children: [
                   Text(habit.emoji, style: const TextStyle(fontSize: 18)),
                   const SizedBox(width: 10),
-                  Text('${habit.title} completado. ¡+5 XP!',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                  Text(
+                    earnedXp
+                        ? '${habit.title} completado. ¡+5 XP!'
+                        : '${habit.title} completado.',
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
               backgroundColor: habit.color.withValues(alpha: 0.9),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
               margin: const EdgeInsets.all(16),
               duration: const Duration(seconds: 2),
             ),

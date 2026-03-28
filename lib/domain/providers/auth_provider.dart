@@ -818,11 +818,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
  
-  /// Check-in de un hábito para hoy.
-  /// Solo da XP la PRIMERA vez que se marca. Si desmarca y vuelve
-  /// a marcar, registra el check-in pero NO suma XP otra vez.
-  Future<void> checkInHabit(String habitId) async {
-    if (firebaseUser == null) return;
+   /// Check-in de un hábito para hoy.
+  /// Solo da XP la PRIMERA vez que se marca en el día.
+  /// Retorna true si dio XP, false si solo restauró.
+  Future<bool> checkInHabit(String habitId) async {
+    if (firebaseUser == null) return false;
     try {
       final today = DateTime.now();
       final checkIn = HabitCheckIn(habitId: habitId, date: today);
@@ -837,7 +837,7 @@ class AuthProvider extends ChangeNotifier {
  
       final isFirstTime = !existingDoc.exists;
  
-      // Guardar/restaurar el check-in
+      // Guardar/restaurar el check-in (siempre con completed: true)
       await _firestore
           .collection('users')
           .doc(firebaseUser!.uid)
@@ -845,7 +845,7 @@ class AuthProvider extends ChangeNotifier {
           .doc(checkIn.docId)
           .set(checkIn.toMap());
  
-      // Solo dar XP la primera vez del día
+      // Solo dar XP la primera vez del día (doc no existía antes)
       if (isFirstTime && _userProgress != null) {
         final newXp = _userProgress!.totalXp + 5;
         final newLevel = (newXp ~/ 100) + 1;
@@ -866,24 +866,30 @@ class AuthProvider extends ChangeNotifier {
       }
  
       notifyListeners();
+      return isFirstTime;
     } catch (e) {
       debugPrint('Error checking in habit: $e');
       rethrow;
     }
   }
  
-  /// Deshacer check-in de un hábito para hoy
+  /// Deshacer check-in de un hábito para hoy.
+  /// NO elimina el documento — solo lo marca como completed: false.
+  /// Así al volver a marcar, el doc ya existe y no da XP de nuevo.
   Future<void> uncheckHabit(String habitId) async {
     if (firebaseUser == null) return;
     try {
       final today = DateTime.now();
       final checkIn = HabitCheckIn(habitId: habitId, date: today);
+ 
+      // En vez de eliminar, marcar como no completado
       await _firestore
           .collection('users')
           .doc(firebaseUser!.uid)
           .collection('habit_checkins')
           .doc(checkIn.docId)
-          .delete();
+          .update({'completed': false});
+ 
       notifyListeners();
     } catch (e) {
       debugPrint('Error unchecking habit: $e');
@@ -891,7 +897,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
  
-  /// Obtiene los IDs de hábitos completados hoy
+  /// Obtiene los IDs de hábitos completados hoy.
+  /// Solo cuenta los que tienen completed: true.
   Future<Set<String>> getTodayHabitCheckIns() async {
     if (firebaseUser == null) return {};
     try {
@@ -907,6 +914,11 @@ class AuthProvider extends ChangeNotifier {
  
       return snapshot.docs
           .where((doc) => doc.id.endsWith(dateStr))
+          .where((doc) {
+            final data = doc.data();
+            // Solo contar los que están completed: true
+            return data['completed'] == true;
+          })
           .map((doc) {
             final data = doc.data();
             return data['habitId'] as String? ?? '';

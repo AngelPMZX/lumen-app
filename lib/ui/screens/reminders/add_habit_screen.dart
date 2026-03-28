@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/habit.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../widgets/animated_particles_background.dart';
 
 class AddHabitScreen extends StatefulWidget {
   const AddHabitScreen({super.key});
@@ -65,14 +67,12 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 Text(preset.emoji, style: const TextStyle(fontSize: 18)),
                 const SizedBox(width: 10),
                 Text('${preset.title} agregado',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600)),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
               ],
             ),
             backgroundColor: preset.color.withValues(alpha: 0.9),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 2),
           ),
@@ -88,22 +88,18 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     if (!_canSave || _isSaving) return;
     setState(() => _isSaving = true);
     HapticFeedback.mediumImpact();
-
     try {
       final auth = context.read<AuthProvider>();
       final habit = Habit(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text.trim(),
         description: _descController.text.trim().isNotEmpty
-            ? _descController.text.trim()
-            : null,
+            ? _descController.text.trim() : null,
         emoji: _selectedEmoji,
         color: _selectedColor,
       );
       await auth.saveHabit(habit);
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       debugPrint('Error saving custom habit: $e');
       if (mounted) setState(() => _isSaving = false);
@@ -115,415 +111,407 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Agregar hábito',
-            style: TextStyle(fontWeight: FontWeight.w700)),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Sugeridos ──
-            Text(
-              'Sugeridos',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Toca uno para agregarlo rápidamente',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 14),
+      body: Stack(
+        children: [
+          // Fondo con partículas
+          AnimatedParticlesBackground(
+            particleCount: 15,
+            maxShootingStars: isDark ? 2 : 0,
+            particleColor: isDark
+                ? Colors.white.withValues(alpha: 0.3)
+                : const Color(0xFF10B981).withValues(alpha: 0.12),
+          ),
 
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: Habit.presets.map((preset) {
-                return GestureDetector(
-                  onTap: () => _savePreset(preset),
-                  child: Container(
-                    width: (MediaQuery.of(context).size.width - 50) / 2,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.06)
-                          : AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: preset.color.withValues(
-                            alpha: isDark ? 0.2 : 0.15),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: preset.color
-                                .withValues(alpha: isDark ? 0.2 : 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(preset.emoji,
-                                style: const TextStyle(fontSize: 18)),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                preset.title,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if (preset.description != null)
-                                Text(
-                                  preset.description!,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 28),
-
-            // ── Divider ──
-            Row(
+          SafeArea(
+            child: Column(
               children: [
-                Expanded(
-                  child: Divider(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.grey.shade300),
-                ),
+                // AppBar custom
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'o crea el tuyo',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Divider(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.grey.shade300),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // ── Custom form toggle ──
-            if (!_showCustomForm)
-              GestureDetector(
-                onTap: () => setState(() => _showCustomForm = true),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.12)
-                          : Colors.grey.shade300,
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
+                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.edit_rounded,
-                          color: AppColors.primary, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Crear hábito personalizado',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(context),
                       ),
+                      const Expanded(
+                        child: Text('Agregar hábito',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                      ),
+                      const SizedBox(width: 48),
                     ],
                   ),
                 ),
-              )
-            else ...[
-              // ── Custom form ──
-              Text(
-                'Hábito personalizado',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 14),
 
-              // Emoji selector
-              Text('Ícono', style: TextStyle(fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white70 : AppColors.textSecondary)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: _emojiOptions.map((emoji) {
-                  final isSelected = _selectedEmoji == emoji;
-                  return GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      setState(() => _selectedEmoji = emoji);
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? _selectedColor.withValues(alpha: 0.15)
-                            : isDark
-                                ? Colors.white.withValues(alpha: 0.06)
-                                : AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: isSelected
-                            ? Border.all(
-                                color: _selectedColor.withValues(alpha: 0.5),
-                                width: 2)
-                            : Border.all(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : Colors.grey.shade200),
-                      ),
-                      child: Center(
-                        child: Text(emoji,
-                            style: TextStyle(
-                                fontSize: isSelected ? 22 : 18)),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Header visual ──
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: isDark
+                                  ? [const Color(0xFF10B981).withValues(alpha: 0.15),
+                                     const Color(0xFF059669).withValues(alpha: 0.08)]
+                                  : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.2 : 0.15)),
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 64, height: 64,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(Icons.add_task_rounded,
+                                    color: Color(0xFF10B981), size: 32),
+                              ),
+                              const SizedBox(height: 14),
+                              Text('Elige un hábito',
+                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
+                                      color: isDark ? Colors.white : const Color(0xFF065F46))),
+                              const SizedBox(height: 6),
+                              Text('Selecciona un sugerido o crea el tuyo',
+                                  style: TextStyle(fontSize: 14,
+                                      color: isDark ? Colors.white60 : const Color(0xFF047857))),
+                            ],
+                          ),
+                        ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
+                        const SizedBox(height: 24),
 
-              // Color selector
-              Text('Color', style: TextStyle(fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white70 : AppColors.textSecondary)),
-              const SizedBox(height: 8),
-              Row(
-                children: _colorOptions.map((color) {
-                  final isSelected = _selectedColor == color;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        setState(() => _selectedColor = color);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: isSelected ? 36 : 30,
-                        height: isSelected ? 36 : 30,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: isSelected
-                              ? Border.all(color: Colors.white, width: 3)
-                              : null,
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: color.withValues(alpha: 0.4),
-                                    blurRadius: 8,
-                                    spreadRadius: 1,
+                        // ── Sugeridos ──
+                        Text('Sugeridos',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.white : AppColors.textPrimary)),
+                        const SizedBox(height: 12),
+
+                        ...List.generate(Habit.presets.length, (index) {
+                          final preset = Habit.presets[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: GestureDetector(
+                              onTap: () => _savePreset(preset),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      preset.color.withValues(alpha: isDark ? 0.12 : 0.06),
+                                      preset.color.withValues(alpha: isDark ? 0.06 : 0.02),
+                                    ],
                                   ),
-                                ]
-                              : [],
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: preset.color.withValues(alpha: isDark ? 0.2 : 0.12)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 46, height: 46,
+                                      decoration: BoxDecoration(
+                                        color: preset.color.withValues(alpha: isDark ? 0.2 : 0.12),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Center(
+                                        child: Text(preset.emoji,
+                                            style: const TextStyle(fontSize: 22)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(preset.title,
+                                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                                                  color: isDark ? Colors.white : AppColors.textPrimary)),
+                                          if (preset.description != null)
+                                            Text(preset.description!,
+                                                style: TextStyle(fontSize: 13,
+                                                    color: AppColors.textSecondary)),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 34, height: 34,
+                                      decoration: BoxDecoration(
+                                        color: preset.color.withValues(alpha: isDark ? 0.15 : 0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(Icons.add_rounded, color: preset.color, size: 18),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ).animate().fadeIn(delay: (60 * index).ms, duration: 400.ms)
+                              .slideX(begin: -0.03, end: 0);
+                        }),
+                        const SizedBox(height: 24),
+
+                        // ── Divider ──
+                        Row(
+                          children: [
+                            Expanded(child: Divider(
+                                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('o crea el tuyo',
+                                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary,
+                                      fontWeight: FontWeight.w500)),
+                            ),
+                            Expanded(child: Divider(
+                                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
+                          ],
                         ),
-                      ),
+                        const SizedBox(height: 20),
+
+                        // ── Custom form ──
+                        if (!_showCustomForm)
+                          GestureDetector(
+                            onTap: () => setState(() => _showCustomForm = true),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isDark
+                                      ? [AppColors.primary.withValues(alpha: 0.1),
+                                         AppColors.primary.withValues(alpha: 0.05)]
+                                      : [const Color(0xFFEEF2FF), const Color(0xFFF5F3FF)],
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.15),
+                                  width: 1.5),
+                              ),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    width: 48, height: 48,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Icon(Icons.edit_rounded, color: AppColors.primary, size: 24),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text('Crear hábito personalizado',
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                                          color: AppColors.primary)),
+                                  const SizedBox(height: 4),
+                                  Text('Elige emoji, color y nombre',
+                                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                ],
+                              ),
+                            ),
+                          )
+                        else ...[
+                          // ── Expanded custom form ──
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.04)
+                                  : AppColors.surface,
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(
+                                color: _selectedColor.withValues(alpha: isDark ? 0.2 : 0.15)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Personalizar',
+                                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
+                                        color: isDark ? Colors.white : AppColors.textPrimary)),
+                                const SizedBox(height: 16),
+
+                                // Emoji
+                                Text('Ícono', style: TextStyle(fontSize: 13,
+                                    fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8, runSpacing: 8,
+                                  children: _emojiOptions.map((emoji) {
+                                    final sel = _selectedEmoji == emoji;
+                                    return GestureDetector(
+                                      onTap: () { HapticFeedback.lightImpact(); setState(() => _selectedEmoji = emoji); },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        width: 44, height: 44,
+                                        decoration: BoxDecoration(
+                                          color: sel ? _selectedColor.withValues(alpha: 0.15)
+                                              : isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: sel ? Border.all(color: _selectedColor.withValues(alpha: 0.5), width: 2) : null,
+                                        ),
+                                        child: Center(child: Text(emoji, style: TextStyle(fontSize: sel ? 22 : 18))),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Color
+                                Text('Color', style: TextStyle(fontSize: 13,
+                                    fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: _colorOptions.map((color) {
+                                    final sel = _selectedColor == color;
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 10),
+                                      child: GestureDetector(
+                                        onTap: () { HapticFeedback.lightImpact(); setState(() => _selectedColor = color); },
+                                        child: AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          width: sel ? 38 : 30, height: sel ? 38 : 30,
+                                          decoration: BoxDecoration(
+                                            color: color, shape: BoxShape.circle,
+                                            border: sel ? Border.all(color: isDark ? Colors.white : Colors.white, width: 3) : null,
+                                            boxShadow: sel ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 10, spreadRadius: 1)] : [],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Nombre
+                                TextField(
+                                  controller: _titleController,
+                                  onChanged: (_) => setState(() {}),
+                                  maxLength: 40,
+                                  style: TextStyle(fontSize: 15,
+                                      color: isDark ? Colors.white : AppColors.textPrimary),
+                                  decoration: InputDecoration(
+                                    labelText: 'Nombre del hábito',
+                                    labelStyle: TextStyle(color: AppColors.textSecondary),
+                                    hintText: 'Ej: Caminar 20 minutos',
+                                    hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
+                                    filled: true,
+                                    fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade50,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+                                        borderSide: BorderSide(color: _selectedColor, width: 1.5)),
+                                    counterStyle: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                    contentPadding: const EdgeInsets.all(16),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+
+                                // Descripción
+                                TextField(
+                                  controller: _descController,
+                                  maxLength: 80,
+                                  style: TextStyle(fontSize: 15,
+                                      color: isDark ? Colors.white : AppColors.textPrimary),
+                                  decoration: InputDecoration(
+                                    labelText: 'Descripción (opcional)',
+                                    labelStyle: TextStyle(color: AppColors.textSecondary),
+                                    hintText: 'Ej: Antes de las 8am',
+                                    hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
+                                    filled: true,
+                                    fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade50,
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+                                        borderSide: BorderSide(color: _selectedColor, width: 1.5)),
+                                    counterStyle: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                    contentPadding: const EdgeInsets.all(16),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Preview
+                                Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(colors: [
+                                      _selectedColor.withValues(alpha: isDark ? 0.12 : 0.08),
+                                      _selectedColor.withValues(alpha: isDark ? 0.06 : 0.03)]),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: _selectedColor.withValues(alpha: 0.2)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 46, height: 46,
+                                        decoration: BoxDecoration(
+                                          color: _selectedColor.withValues(alpha: 0.2),
+                                          borderRadius: BorderRadius.circular(14)),
+                                        child: Center(child: Text(_selectedEmoji, style: const TextStyle(fontSize: 24))),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _titleController.text.isNotEmpty ? _titleController.text : 'Vista previa',
+                                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                                                  color: isDark ? Colors.white : AppColors.textPrimary)),
+                                            if (_descController.text.isNotEmpty)
+                                              Text(_descController.text,
+                                                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: _selectedColor.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(8)),
+                                        child: Text('+5 XP', style: TextStyle(fontSize: 11,
+                                            fontWeight: FontWeight.w700, color: _selectedColor)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Botón crear
+                                SizedBox(
+                                  width: double.infinity, height: 52,
+                                  child: FilledButton(
+                                    onPressed: _canSave ? _saveCustom : null,
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: _selectedColor,
+                                      disabledBackgroundColor: _selectedColor.withValues(alpha: 0.3),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    ),
+                                    child: _isSaving
+                                        ? const SizedBox(width: 20, height: 20,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                        : const Text('Crear hábito',
+                                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0),
+                        ],
+                      ],
                     ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 20),
-
-              // Title
-              TextField(
-                controller: _titleController,
-                onChanged: (_) => setState(() {}),
-                maxLength: 40,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Nombre del hábito',
-                  labelStyle: TextStyle(color: AppColors.textSecondary),
-                  hintText: 'Ej: Caminar 20 minutos',
-                  hintStyle: TextStyle(
-                      color: isDark ? Colors.white30 : Colors.grey.shade400),
-                  filled: true,
-                  fillColor: isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : AppColors.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide:
-                        BorderSide(color: _selectedColor, width: 1.5),
-                  ),
-                  counterStyle: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
-                  contentPadding: const EdgeInsets.all(16),
                 ),
-              ),
-              const SizedBox(height: 12),
-
-              // Description
-              TextField(
-                controller: _descController,
-                maxLength: 80,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Descripción (opcional)',
-                  labelStyle: TextStyle(color: AppColors.textSecondary),
-                  hintText: 'Ej: Antes de las 8am',
-                  hintStyle: TextStyle(
-                      color: isDark ? Colors.white30 : Colors.grey.shade400),
-                  filled: true,
-                  fillColor: isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : AppColors.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide:
-                        BorderSide(color: _selectedColor, width: 1.5),
-                  ),
-                  counterStyle: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
-                  contentPadding: const EdgeInsets.all(16),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Preview + save
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _selectedColor.withValues(alpha: isDark ? 0.1 : 0.06),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _selectedColor.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: _selectedColor
-                            .withValues(alpha: isDark ? 0.2 : 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(_selectedEmoji,
-                            style: const TextStyle(fontSize: 22)),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        _titleController.text.isNotEmpty
-                            ? _titleController.text
-                            : 'Vista previa',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton(
-                  onPressed: _canSave ? _saveCustom : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _selectedColor,
-                    disabledBackgroundColor:
-                        _selectedColor.withValues(alpha: 0.3),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Crear hábito',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
-          ],
-        ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
