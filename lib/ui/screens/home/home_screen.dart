@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../data/models/mood_entry.dart';
@@ -104,7 +105,6 @@ class _HomeScreenState extends State<HomeScreen>
       debugPrint('Error checking diary: $e');
     }
 
-    // Cargar lecciones completadas
     try {
       final authProvider = context.read<AuthProvider>();
       final completed = await authProvider.getCompletedLessons();
@@ -114,13 +114,11 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// Encuentra la siguiente lección sin completar y la abre
   Future<void> _openNextLesson() async {
     for (final route in WellnessRoute.all) {
       for (int i = 0; i < route.lessons.length; i++) {
         final lesson = route.lessons[i];
         if (!_completedLessons.contains(lesson.id)) {
-          // Verificar que esté desbloqueada
           if (i == 0 || _completedLessons.contains(route.lessons[i - 1].id)) {
             final result = await Navigator.push<bool>(
               context,
@@ -139,16 +137,15 @@ class _HomeScreenState extends State<HomeScreen>
         }
       }
     }
-    // Si todas están completadas
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Text('🎉', style: TextStyle(fontSize: 20)),
-              SizedBox(width: 10),
-              Text('¡Has completado todas las lecciones!',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              const Text('🎉', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 10),
+              Text('home.allLessonsComplete'.tr(),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             ],
           ),
           backgroundColor: const Color(0xFF10B981),
@@ -160,7 +157,6 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  /// Obtiene info de la siguiente lección
   (String, String, Color)? get _nextLessonInfo {
     for (final route in WellnessRoute.all) {
       for (int i = 0; i < route.lessons.length; i++) {
@@ -183,8 +179,8 @@ class _HomeScreenState extends State<HomeScreen>
         context: context,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Cambiar ánimo',
-              style: TextStyle(fontWeight: FontWeight.w700)),
+          title: Text('home.moodChangeTitle'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.w700)),
           content: RichText(
             text: TextSpan(
               style: TextStyle(
@@ -192,12 +188,12 @@ class _HomeScreenState extends State<HomeScreen>
                 fontSize: 15,
               ),
               children: [
-                const TextSpan(text: 'Cambiar de '),
+                TextSpan(text: 'home.moodChangeFrom'.tr()),
                 TextSpan(
                   text: '${_selectedMood!.emoji} ${_selectedMood!.label}',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
-                const TextSpan(text: ' a '),
+                TextSpan(text: 'home.moodChangeTo'.tr()),
                 TextSpan(
                   text: '${mood.emoji} ${mood.label}',
                   style: const TextStyle(fontWeight: FontWeight.w700),
@@ -209,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('Cancelar',
+              child: Text('common.cancel'.tr(),
                   style: TextStyle(color: AppColors.textSecondary)),
             ),
             FilledButton(
@@ -218,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen>
                 backgroundColor: mood.color,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Cambiar'),
+              child: Text('home.moodChange'.tr()),
             ),
           ],
         ),
@@ -254,8 +250,11 @@ class _HomeScreenState extends State<HomeScreen>
                   Expanded(
                     child: Text(
                       isFirstToday
-                          ? '${mood.label} registrado. ¡+${mood.xpReward} XP!'
-                          : '${mood.label} actualizado.',
+                          ? 'home.moodRegistered'.tr(namedArgs: {
+                              'mood': mood.label,
+                              'xp': '${mood.xpReward}',
+                            })
+                          : 'home.moodUpdated'.tr(namedArgs: {'mood': mood.label}),
                       style: const TextStyle(
                           color: Colors.white, fontWeight: FontWeight.w600),
                     ),
@@ -305,7 +304,6 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Fondo con gradiente sutil
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -366,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 fontWeight: FontWeight.w500)),
                             Text(
                               authProvider.userName.isNotEmpty
-                                  ? authProvider.userName : 'Usuario',
+                                  ? authProvider.userName : 'home.user'.tr(),
                               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
                                   color: isDark ? Colors.white : AppColors.textPrimary),
                             ),
@@ -463,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen>
                                           color: AppColors.streak, size: 16),
                                     ),
                                     const SizedBox(width: 10),
-                                    Text('Frase del día',
+                                    Text('home.quoteOfDay'.tr(),
                                         style: TextStyle(fontSize: 12,
                                             fontWeight: FontWeight.w700,
                                             color: isDark ? Colors.white70
@@ -553,13 +551,19 @@ class _HomeScreenState extends State<HomeScreen>
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('$streak ${streak == 1 ? "día" : "días"}',
-                                        style: const TextStyle(color: Colors.white,
-                                            fontSize: 30, fontWeight: FontWeight.w800, height: 1)),
+                                    Text(
+                                      streak == 1
+                                          ? 'home.streakDay'.tr()
+                                          : 'home.streakDays'.tr(namedArgs: {'count': '$streak'}),
+                                      style: const TextStyle(color: Colors.white,
+                                          fontSize: 30, fontWeight: FontWeight.w800, height: 1)),
                                     const SizedBox(height: 4),
-                                    Text(streak > 0 ? '¡Sigue así!' : 'Haz tu check-in',
-                                        style: const TextStyle(color: Colors.white70,
-                                            fontSize: 14, fontWeight: FontWeight.w500)),
+                                    Text(
+                                      streak > 0
+                                          ? 'home.streakKeepGoing'.tr()
+                                          : 'home.streakDoCheckin'.tr(),
+                                      style: const TextStyle(color: Colors.white70,
+                                          fontSize: 14, fontWeight: FontWeight.w500)),
                                   ],
                                 ),
                                 const Spacer(),
@@ -576,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       const SizedBox(height: 2),
                                       Text('$bestStreak', style: const TextStyle(
                                           color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                                      const Text('Mejor', style: TextStyle(
+                                      Text('home.streakBest'.tr(), style: const TextStyle(
                                           color: Colors.white60, fontSize: 10)),
                                     ],
                                   ),
@@ -593,7 +597,11 @@ class _HomeScreenState extends State<HomeScreen>
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                                 children: List.generate(7, (index) {
-                                  final days = ['L', 'M', 'Mi', 'J', 'V', 'S', 'D'];
+                                  final days = [
+                                    'days.monShort'.tr(), 'days.tueShort'.tr(), 'days.wedShort'.tr(),
+                                    'days.thuShort'.tr(), 'days.friShort'.tr(), 'days.satShort'.tr(),
+                                    'days.sunShort'.tr(),
+                                  ];
                                   final today = DateTime.now().weekday - 1;
                                   final isToday = index == today;
                                   final isPast = index < today;
@@ -639,7 +647,7 @@ class _HomeScreenState extends State<HomeScreen>
                   Row(
                     children: [
                       Expanded(
-                        child: Text('¿Cómo te sientes hoy?',
+                        child: Text('home.moodCheckIn'.tr(),
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
                                 color: isDark ? Colors.white : AppColors.textPrimary)),
                       ),
@@ -658,7 +666,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 Icon(Icons.refresh_rounded, size: 14,
                                     color: AppColors.textSecondary),
                                 const SizedBox(width: 4),
-                                Text('Cambiar', style: TextStyle(fontSize: 12,
+                                Text('home.moodChange'.tr(), style: TextStyle(fontSize: 12,
                                     color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
                               ],
                             ),
@@ -757,7 +765,8 @@ class _HomeScreenState extends State<HomeScreen>
                                       color: challenge.color.withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: Text('Reto · ${challenge.category}',
+                                    child: Text(
+                                        'home.challengeLabel'.tr(namedArgs: {'category': challenge.category}),
                                         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
                                             color: challenge.color)),
                                   ),
@@ -792,7 +801,7 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 20),
 
                   // ACCIONES RÁPIDAS
-                  Text('Tu entrenamiento de hoy',
+                  Text('home.todayTraining'.tr(),
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
                           color: isDark ? Colors.white : AppColors.textPrimary))
                       .animate().fadeIn(delay: 650.ms),
@@ -800,8 +809,8 @@ class _HomeScreenState extends State<HomeScreen>
 
                   _buildActionCard(
                     icon: Icons.menu_book_rounded,
-                    title: nextLesson != null ? nextLesson.$1 : 'Todas completadas',
-                    subtitle: nextLesson != null ? nextLesson.$2 : '¡Felicidades! 🎉',
+                    title: nextLesson != null ? nextLesson.$1 : 'home.allComplete'.tr(),
+                    subtitle: nextLesson != null ? nextLesson.$2 : 'home.congratulations'.tr(),
                     color: nextLesson?.$3 ?? const Color(0xFF10B981),
                     isDark: isDark, delay: 700,
                     onTap: _openNextLesson,
@@ -809,15 +818,15 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.air_rounded,
-                    title: 'Respiración guiada',
-                    subtitle: '3 minutos de calma',
+                    title: 'home.breathingTitle'.tr(),
+                    subtitle: 'home.breathingSubtitle'.tr(),
                     color: AppColors.moodCalm,
                     isDark: isDark, delay: 750,
                   ),
                   _buildActionCard(
                     icon: Icons.edit_note_rounded,
-                    title: 'Diario rápido',
-                    subtitle: 'Escribe sobre tu día',
+                    title: 'home.quickDiary'.tr(),
+                    subtitle: 'home.quickDiarySubtitle'.tr(),
                     color: const Color(0xFF10B981),
                     isDark: isDark, delay: 800,
                     onTap: () async {
@@ -831,8 +840,8 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.track_changes_rounded,
-                    title: 'Hábitos y Recordatorios',
-                    subtitle: 'Tus metas diarias de bienestar',
+                    title: 'home.habitsReminders'.tr(),
+                    subtitle: 'home.habitsRemindersSubtitle'.tr(),
                     color: const Color(0xFF8B5CF6),
                     isDark: isDark, delay: 850,
                     onTap: () {
@@ -843,16 +852,16 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 24),
 
                   // STATS RÁPIDOS
-                  Text('Tu resumen',
+                  Text('home.yourSummary'.tr(),
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
                           color: isDark ? Colors.white : AppColors.textPrimary))
                       .animate().fadeIn(delay: 900.ms),
                   const SizedBox(height: 14),
                   Row(
                     children: [
-                      _buildStatCard('🔥', '$streak', 'Racha', isDark),
+                      _buildStatCard('🔥', '$streak', 'home.streak'.tr(), isDark),
                       const SizedBox(width: 12),
-                      _buildStatCard('⚡', '$totalXp', 'XP Total', isDark),
+                      _buildStatCard('⚡', '$totalXp', 'home.totalXp'.tr(), isDark),
                       const SizedBox(width: 12),
                       _buildStatCard('🏆', 'Nv $level', levelTitle, isDark),
                     ],
@@ -1027,8 +1036,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Buenos días';
-    if (hour < 18) return 'Buenas tardes';
-    return 'Buenas noches';
+    if (hour < 12) return 'home.greetingMorning'.tr();
+    if (hour < 18) return 'home.greetingAfternoon'.tr();
+    return 'home.greetingEvening'.tr();
   }
 }

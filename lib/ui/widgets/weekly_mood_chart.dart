@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/mood_entry.dart';
 
-/// Mini gráfica de ánimo semanal.
-/// Muestra 7 puntos (L-D) con colores del mood registrado ese día.
-/// Los días sin registro se muestran como puntos grises vacíos.
 class WeeklyMoodChart extends StatelessWidget {
-  final Map<int, MoodType> weeklyMoods; // weekday (1-7) → mood
+  final Map<int, MoodType> weeklyMoods;
 
   const WeeklyMoodChart({super.key, required this.weeklyMoods});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final days = ['L', 'M', 'Mi', 'J', 'V', 'S', 'D'];
-    final today = DateTime.now().weekday; // 1 = Monday
+    final days = [
+      'days.monShort'.tr(), 'days.tueShort'.tr(), 'days.wedShort'.tr(),
+      'days.thuShort'.tr(), 'days.friShort'.tr(), 'days.satShort'.tr(),
+      'days.sunShort'.tr(),
+    ];
+    final today = DateTime.now().weekday;
 
     return Container(
       width: double.infinity,
@@ -40,7 +42,7 @@ class WeeklyMoodChart extends StatelessWidget {
                   color: isDark ? Colors.white70 : AppColors.textSecondary),
               const SizedBox(width: 8),
               Text(
-                'Tu semana emocional',
+                'home.weeklyMood'.tr(),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
@@ -50,7 +52,6 @@ class WeeklyMoodChart extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          // Puntos con línea conectora
           SizedBox(
             height: 70,
             child: LayoutBuilder(
@@ -58,7 +59,6 @@ class WeeklyMoodChart extends StatelessWidget {
                 final spacing = constraints.maxWidth / 7;
                 return Stack(
                   children: [
-                    // Línea conectora
                     Positioned(
                       top: 20,
                       left: spacing / 2,
@@ -73,7 +73,6 @@ class WeeklyMoodChart extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Puntos
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: List.generate(7, (index) {
@@ -84,7 +83,6 @@ class WeeklyMoodChart extends StatelessWidget {
 
                         return Column(
                           children: [
-                            // Punto del mood
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               width: isToday ? 36 : 28,
@@ -95,58 +93,40 @@ class WeeklyMoodChart extends StatelessWidget {
                                     ? mood.color.withValues(
                                         alpha: isToday ? 1.0 : 0.7)
                                     : isDark
-                                        ? Colors.white
-                                            .withValues(alpha: 0.08)
+                                        ? Colors.white.withValues(alpha: 0.08)
                                         : Colors.grey.shade200,
                                 border: isToday
                                     ? Border.all(
-                                        color: mood?.color ??
-                                            AppColors.primary,
+                                        color: mood?.color ?? AppColors.primary,
                                         width: 2.5)
                                     : null,
                                 boxShadow: mood != null && isToday
                                     ? [
                                         BoxShadow(
-                                          color: mood.color
-                                              .withValues(alpha: 0.3),
-                                          blurRadius: 8,
-                                          spreadRadius: 1,
+                                          color: mood.color.withValues(alpha: 0.3),
+                                          blurRadius: 8, spreadRadius: 1,
                                         ),
                                       ]
                                     : [],
                               ),
                               child: Center(
                                 child: mood != null
-                                    ? Text(
-                                        mood.emoji,
-                                        style: TextStyle(
-                                          fontSize: isToday ? 16 : 12,
-                                        ),
-                                      )
+                                    ? Text(mood.emoji,
+                                        style: TextStyle(fontSize: isToday ? 16 : 12))
                                     : isFuture
                                         ? null
-                                        : Icon(
-                                            Icons.remove_rounded,
-                                            size: 12,
-                                            color: isDark
-                                                ? Colors.white24
-                                                : Colors.grey.shade400,
-                                          ),
+                                        : Icon(Icons.remove_rounded, size: 12,
+                                            color: isDark ? Colors.white24 : Colors.grey.shade400),
                               ),
                             ),
                             const SizedBox(height: 6),
-                            // Label del día
                             Text(
                               days[index],
                               style: TextStyle(
                                 fontSize: 11,
-                                fontWeight: isToday
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
+                                fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                                 color: isToday
-                                    ? (isDark
-                                        ? Colors.white
-                                        : AppColors.textPrimary)
+                                    ? (isDark ? Colors.white : AppColors.textPrimary)
                                     : AppColors.textSecondary,
                               ),
                             ),

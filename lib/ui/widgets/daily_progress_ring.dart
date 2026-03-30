@@ -1,10 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 
-/// Progreso circular del día.
-/// Muestra 3 anillos concéntricos: check-in, lección, diario.
-/// Cada uno se llena independientemente.
 class DailyProgressRing extends StatelessWidget {
   final bool checkInDone;
   final bool lessonDone;
@@ -40,7 +38,6 @@ class DailyProgressRing extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Anillos
           SizedBox(
             width: 80,
             height: 80,
@@ -64,13 +61,12 @@ class DailyProgressRing extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 20),
-          // Lista de tareas
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Progreso de hoy',
+                  'home.dailyProgress'.tr(),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -78,13 +74,13 @@ class DailyProgressRing extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildTask('Check-in de ánimo', checkInDone,
+                _buildTask('home.taskCheckIn'.tr(), checkInDone,
                     const Color(0xFF10B981), isDark),
                 const SizedBox(height: 8),
-                _buildTask('Lección del día', lessonDone,
+                _buildTask('home.taskLesson'.tr(), lessonDone,
                     const Color(0xFF6366F1), isDark),
                 const SizedBox(height: 8),
-                _buildTask('Diario rápido', diaryDone,
+                _buildTask('home.taskDiary'.tr(), diaryDone,
                     const Color(0xFFF59E0B), isDark),
               ],
             ),
@@ -151,44 +147,29 @@ class _RingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    const startAngle = -pi / 2;
-    const sweepAngle = 2 * pi;
-
-    // Anillo exterior — Check-in (verde)
     _drawRing(canvas, center, 36, const Color(0xFF10B981), checkIn);
-
-    // Anillo medio — Lección (púrpura)
     _drawRing(canvas, center, 26, const Color(0xFF6366F1), lesson);
-
-    // Anillo interior — Diario (ámbar)
     _drawRing(canvas, center, 16, const Color(0xFFF59E0B), diary);
   }
 
   void _drawRing(
       Canvas canvas, Offset center, double radius, Color color, bool filled) {
-    // Fondo del anillo
     final bgPaint = Paint()
       ..color = color.withValues(alpha: isDark ? 0.12 : 0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 6
       ..strokeCap = StrokeCap.round;
-
     canvas.drawCircle(center, radius, bgPaint);
 
-    // Progreso
     if (filled) {
       final progressPaint = Paint()
         ..color = color
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6
         ..strokeCap = StrokeCap.round;
-
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
-        -pi / 2,
-        2 * pi,
-        false,
-        progressPaint,
+        -pi / 2, 2 * pi, false, progressPaint,
       );
     }
   }
