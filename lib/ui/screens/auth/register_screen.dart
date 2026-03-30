@@ -2,9 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../core/utils/validators.dart';
 import '../../../domain/providers/auth_provider.dart';
 
@@ -89,8 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             builder: (context, _) {
               return CustomPaint(
                 size: MediaQuery.of(context).size,
-                painter:
-                    _RegisterBgPainter(progress: _bgController.value),
+                painter: _RegisterBgPainter(progress: _bgController.value),
               );
             },
           ),
@@ -109,7 +108,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                       children: [
                         GestureDetector(
                           onTap: () => Navigator.pushReplacementNamed(
-                              context, AppRoutes.login),
+                            context,
+                            AppRoutes.login,
+                          ),
                           child: Container(
                             width: 44,
                             height: 44,
@@ -117,8 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                               color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color:
-                                    Colors.white.withValues(alpha: 0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                               ),
                             ),
                             child: const Icon(
@@ -129,20 +129,20 @@ class _RegisterScreenState extends State<RegisterScreen>
                           ),
                         ),
                         const SizedBox(width: 16),
-                        const Column(
+                        Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Únete a Lumen',
-                              style: TextStyle(
+                              'auth.joinLumen'.tr(),
+                              style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
                               ),
                             ),
                             Text(
-                              'Tu viaje comienza aquí ✨',
-                              style: TextStyle(
+                              'auth.journeyStarts'.tr(),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.white70,
                               ),
@@ -155,217 +155,212 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                     // Card de registro
                     Container(
-                      width: double.infinity,
-                      constraints: const BoxConstraints(maxWidth: 420),
-                      padding: const EdgeInsets.all(28),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1E1E2E)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 30,
-                            offset: const Offset(0, 10),
+                          width: double.infinity,
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          padding: const EdgeInsets.all(28),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF1E1E2E)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 30,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppStrings.register,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Completa tus datos para crear tu cuenta',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'auth.register'.tr(),
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'auth.completeData'.tr(),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
 
-                          // Error message
-                          Consumer<AuthProvider>(
-                            builder: (context, auth, _) {
-                              if (auth.errorMessage != null) {
-                                return Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(12),
-                                  margin: const EdgeInsets.only(
-                                      bottom: 16),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.accent
-                                        .withValues(alpha: 0.1),
-                                    borderRadius:
-                                        BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.accent
-                                          .withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.error_outline,
-                                          color: AppColors.accent,
-                                          size: 20),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          auth.errorMessage!,
-                                          style: const TextStyle(
-                                              color: AppColors.accent,
-                                              fontSize: 13),
+                              // Error message
+                              Consumer<AuthProvider>(
+                                builder: (context, auth, _) {
+                                  if (auth.errorMessage != null) {
+                                    return Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accent.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: AppColors.accent.withValues(
+                                            alpha: 0.3,
+                                          ),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ).animate().shake(duration: 400.ms);
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-
-                          // Form
-                          Form(
-                            key: _formKey,
-                            child: Column(
-                              children: [
-                                _buildTextField(
-                                  controller: _nameController,
-                                  hint: AppStrings.name,
-                                  icon: Icons.person_rounded,
-                                  validator: Validators.name,
-                                  capitalization:
-                                      TextCapitalization.words,
-                                ),
-                                const SizedBox(height: 14),
-                                _buildTextField(
-                                  controller: _emailController,
-                                  hint: AppStrings.email,
-                                  icon: Icons.email_rounded,
-                                  keyboardType:
-                                      TextInputType.emailAddress,
-                                  validator: Validators.email,
-                                ),
-                                const SizedBox(height: 14),
-                                _buildTextField(
-                                  controller: _passwordController,
-                                  hint: AppStrings.password,
-                                  icon: Icons.lock_rounded,
-                                  obscure: _obscurePassword,
-                                  validator: Validators.password,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons
-                                              .visibility_off_rounded
-                                          : Icons
-                                              .visibility_rounded,
-                                      color: AppColors.textSecondary,
-                                      size: 20,
-                                    ),
-                                    onPressed: () => setState(() =>
-                                        _obscurePassword =
-                                            !_obscurePassword),
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                _buildTextField(
-                                  controller:
-                                      _confirmPasswordController,
-                                  hint: AppStrings.confirmPassword,
-                                  icon: Icons.lock_rounded,
-                                  obscure: _obscureConfirm,
-                                  validator: (v) =>
-                                      Validators.confirmPassword(
-                                          v,
-                                          _passwordController.text),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureConfirm
-                                          ? Icons
-                                              .visibility_off_rounded
-                                          : Icons
-                                              .visibility_rounded,
-                                      color: AppColors.textSecondary,
-                                      size: 20,
-                                    ),
-                                    onPressed: () => setState(() =>
-                                        _obscureConfirm =
-                                            !_obscureConfirm),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-
-                          // Register button
-                          Consumer<AuthProvider>(
-                            builder: (context, auth, _) {
-                              return SizedBox(
-                                width: double.infinity,
-                                height: 56,
-                                child: ElevatedButton(
-                                  onPressed: auth.isLoading
-                                      ? null
-                                      : _register,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                        const Color(0xFF10B981),
-                                    foregroundColor: Colors.white,
-                                    elevation: 4,
-                                    shadowColor:
-                                        const Color(0xFF10B981)
-                                            .withValues(alpha: 0.4),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  child: auth.isLoading
-                                      ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child:
-                                              CircularProgressIndicator(
-                                            strokeWidth: 2.5,
-                                            color: Colors.white,
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.error_outline,
+                                            color: AppColors.accent,
+                                            size: 20,
                                           ),
-                                        )
-                                      : const Text(
-                                          AppStrings.register,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight:
-                                                FontWeight.w700,
-                                            letterSpacing: 0.5,
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              auth.errorMessage!,
+                                              style: const TextStyle(
+                                                color: AppColors.accent,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ).animate().shake(duration: 400.ms);
+                                  }
+                                  return const SizedBox.shrink();
+                                },
+                              ),
+
+                              // Form
+                              Form(
+                                key: _formKey,
+                                child: Column(
+                                  children: [
+                                    _buildTextField(
+                                      controller: _nameController,
+                                      hint: 'auth.name'.tr(),
+                                      icon: Icons.person_rounded,
+                                      validator: Validators.name,
+                                      capitalization: TextCapitalization.words,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    _buildTextField(
+                                      controller: _emailController,
+                                      hint: 'auth.email'.tr(),
+                                      icon: Icons.email_rounded,
+                                      keyboardType: TextInputType.emailAddress,
+                                      validator: Validators.email,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    _buildTextField(
+                                      controller: _passwordController,
+                                      hint: 'auth.password'.tr(),
+                                      icon: Icons.lock_rounded,
+                                      obscure: _obscurePassword,
+                                      validator: Validators.password,
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_off_rounded
+                                              : Icons.visibility_rounded,
+                                          color: AppColors.textSecondary,
+                                          size: 20,
+                                        ),
+                                        onPressed: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    _buildTextField(
+                                      controller: _confirmPasswordController,
+                                      hint: 'auth.confirmPassword'.tr(),
+                                      icon: Icons.lock_rounded,
+                                      obscure: _obscureConfirm,
+                                      validator: (v) =>
+                                          Validators.confirmPassword(
+                                            v,
+                                            _passwordController.text,
+                                          ),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscureConfirm
+                                              ? Icons.visibility_off_rounded
+                                              : Icons.visibility_rounded,
+                                          color: AppColors.textSecondary,
+                                          size: 20,
+                                        ),
+                                        onPressed: () => setState(
+                                          () => _obscureConfirm =
+                                              !_obscureConfirm,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 28),
+
+                              // Register button
+                              Consumer<AuthProvider>(
+                                builder: (context, auth, _) {
+                                  return SizedBox(
+                                    width: double.infinity,
+                                    height: 56,
+                                    child: ElevatedButton(
+                                      onPressed: auth.isLoading
+                                          ? null
+                                          : _register,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFF10B981,
+                                        ),
+                                        foregroundColor: Colors.white,
+                                        elevation: 4,
+                                        shadowColor: const Color(
+                                          0xFF10B981,
+                                        ).withValues(alpha: 0.4),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
                                           ),
                                         ),
-                                ),
-                              );
-                            },
+                                      ),
+                                      child: auth.isLoading
+                                          ? const SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2.5,
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : Text(
+                                              'auth.register'.tr(),
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    )
+                        )
                         .animate()
                         .fadeIn(delay: 200.ms, duration: 800.ms)
-                        .slideY(
-                            begin: 0.15,
-                            end: 0,
-                            duration: 800.ms),
+                        .slideY(begin: 0.15, end: 0, duration: 800.ms),
 
                     const SizedBox(height: 28),
 
@@ -374,20 +369,20 @@ class _RegisterScreenState extends State<RegisterScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          AppStrings.hasAccount,
+                          'auth.hasAccount'.tr(),
                           style: TextStyle(
-                            color:
-                                Colors.white.withValues(alpha: 0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 14,
                           ),
                         ),
                         GestureDetector(
-                          onTap: () =>
-                              Navigator.pushReplacementNamed(
-                                  context, AppRoutes.login),
-                          child: const Text(
-                            AppStrings.login,
-                            style: TextStyle(
+                          onTap: () => Navigator.pushReplacementNamed(
+                            context,
+                            AppRoutes.login,
+                          ),
+                          child: Text(
+                            'auth.login'.tr(),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
@@ -430,10 +425,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            TextStyle(color: AppColors.textSecondary, fontSize: 14),
-        prefixIcon:
-            Icon(icon, color: const Color(0xFF10B981), size: 20),
+        hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        prefixIcon: Icon(icon, color: const Color(0xFF10B981), size: 20),
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: isDark
@@ -445,15 +438,16 @@ class _RegisterScreenState extends State<RegisterScreen>
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: Color(0xFF10B981), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF10B981), width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.accent),
         ),
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 16),
+          horizontal: 16,
+          vertical: 16,
+        ),
       ),
     );
   }
@@ -475,8 +469,10 @@ class _RegisterBgPainter extends CustomPainter {
       final phase = random.nextDouble() * pi * 2;
 
       final y = baseY + sin(progress * pi * 2 + phase) * 30;
-      final opacity =
-          (0.15 + 0.2 * sin(progress * pi * 2 + phase)).clamp(0.0, 1.0);
+      final opacity = (0.15 + 0.2 * sin(progress * pi * 2 + phase)).clamp(
+        0.0,
+        1.0,
+      );
 
       paint.color = Colors.white.withValues(alpha: opacity);
       paint.maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.7);

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../../domain/providers/auth_provider.dart';
@@ -47,7 +48,7 @@ class _UsernameStepState extends State<UsernameStep> {
         setState(() {
           _isChecking = false;
           if (taken) {
-            _error = 'Este usuario ya está tomado';
+            _error = 'profileSetup.usernameTaken'.tr();
             _isAvailable = false;
           } else {
             _error = null;
@@ -68,21 +69,24 @@ class _UsernameStepState extends State<UsernameStep> {
 
           // ── Ícono header ──
           Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.2),
-              ),
-            ),
-            child: const Icon(
-              Icons.alternate_email_rounded,
-              size: 50,
-              color: Colors.white,
-            ),
-          ).animate().fadeIn(duration: 600.ms).scale(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: const Icon(
+                  Icons.alternate_email_rounded,
+                  size: 50,
+                  color: Colors.white,
+                ),
+              )
+              .animate()
+              .fadeIn(duration: 600.ms)
+              .scale(
                 begin: const Offset(0.5, 0.5),
                 end: const Offset(1.0, 1.0),
                 curve: Curves.easeOutBack,
@@ -90,9 +94,9 @@ class _UsernameStepState extends State<UsernameStep> {
           const SizedBox(height: 32),
 
           // ── Título ──
-          const Text(
-            'Elige tu usuario',
-            style: TextStyle(
+          Text(
+            'profileSetup.chooseUsername'.tr(),
+            style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
               color: Colors.white,
@@ -100,7 +104,7 @@ class _UsernameStepState extends State<UsernameStep> {
           ).animate().fadeIn(delay: 200.ms),
           const SizedBox(height: 8),
           Text(
-            'Así te conocerán en Lumen',
+            'profileSetup.knownAs'.tr(),
             style: TextStyle(
               fontSize: 16,
               color: Colors.white.withValues(alpha: 0.7),
@@ -131,8 +135,10 @@ class _UsernameStepState extends State<UsernameStep> {
                     ),
                   ),
                 ),
-                prefixIconConstraints:
-                    const BoxConstraints(minWidth: 0, minHeight: 0),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 0,
+                  minHeight: 0,
+                ),
                 suffixIcon: _isChecking
                     ? const Padding(
                         padding: EdgeInsets.all(14),
@@ -146,39 +152,37 @@ class _UsernameStepState extends State<UsernameStep> {
                         ),
                       )
                     : _isAvailable
-                        ? Container(
-                            margin: const EdgeInsets.all(10),
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981)
-                                  .withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check_rounded,
-                              color: Color(0xFF10B981),
-                              size: 18,
-                            ),
-                          )
-                        : _error != null && _controller.text.isNotEmpty
-                            ? Container(
-                                margin: const EdgeInsets.all(10),
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFF6B6B)
-                                      .withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close_rounded,
-                                  color: Color(0xFFFF6B6B),
-                                  size: 18,
-                                ),
-                              )
-                            : null,
-                hintText: 'tu_usuario',
+                    ? Container(
+                        margin: const EdgeInsets.all(10),
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          color: Color(0xFF10B981),
+                          size: 18,
+                        ),
+                      )
+                    : _error != null && _controller.text.isNotEmpty
+                    ? Container(
+                        margin: const EdgeInsets.all(10),
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF6B6B).withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFFFF6B6B),
+                          size: 18,
+                        ),
+                      )
+                    : null,
+                hintText: 'profileSetup.usernameHintShort'.tr(),
                 hintStyle: TextStyle(
                   color: Colors.white.withValues(alpha: 0.3),
                   fontSize: 18,
@@ -195,15 +199,17 @@ class _UsernameStepState extends State<UsernameStep> {
                     color: _isAvailable
                         ? const Color(0xFF10B981)
                         : _error != null && _controller.text.isNotEmpty
-                            ? const Color(0xFFFF6B6B)
-                            : Colors.white.withValues(alpha: 0.3),
+                        ? const Color(0xFFFF6B6B)
+                        : Colors.white.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
                 errorText: _error,
                 errorStyle: const TextStyle(color: Color(0xFFFF6B6B)),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
               ),
             ),
           ).animate().fadeIn(delay: 400.ms),
@@ -216,19 +222,19 @@ class _UsernameStepState extends State<UsernameStep> {
             child: Column(
               children: [
                 _buildRule(
-                  'Letras minúsculas (a-z)',
+                  'profileSetup.ruleLowercase'.tr(),
                   _controller.text.isNotEmpty &&
                       RegExp(r'[a-z]').hasMatch(_controller.text),
                 ),
                 const SizedBox(height: 4),
                 _buildRule(
-                  'Números, puntos y guiones bajos permitidos',
+                  'profileSetup.ruleCharsAllowed'.tr(),
                   _controller.text.isNotEmpty &&
                       RegExp(r'^[a-z0-9._]+$').hasMatch(_controller.text),
                 ),
                 const SizedBox(height: 4),
                 _buildRule(
-                  'Mínimo 3 caracteres',
+                  'profileSetup.ruleMinChars'.tr(),
                   _controller.text.length >= 3,
                 ),
               ],
@@ -237,7 +243,6 @@ class _UsernameStepState extends State<UsernameStep> {
           const SizedBox(height: 40),
 
           // ── Botón Continuar ──
-          // FIX: Sin .animate() para evitar el error de TextStyles
           Container(
             constraints: const BoxConstraints(maxWidth: 400),
             width: double.infinity,
@@ -249,28 +254,26 @@ class _UsernameStepState extends State<UsernameStep> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: AppColors.primary,
-                disabledBackgroundColor:
-                    Colors.white.withValues(alpha: 0.15),
-                disabledForegroundColor:
-                    Colors.white.withValues(alpha: 0.4),
+                disabledBackgroundColor: Colors.white.withValues(alpha: 0.15),
+                disabledForegroundColor: Colors.white.withValues(alpha: 0.4),
                 elevation: _isAvailable ? 4 : 0,
                 shadowColor: Colors.white.withValues(alpha: 0.3),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Continuar',
-                    style: TextStyle(
+                    'common.continue'.tr(),
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_rounded, size: 20),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward_rounded, size: 20),
                 ],
               ),
             ),

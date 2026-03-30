@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/providers/auth_provider.dart';
@@ -40,25 +41,28 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _progressAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1 / (_totalSteps - 1),
-    ).animate(CurvedAnimation(
-      parent: _progressController,
-      curve: Curves.easeInOutCubic,
-    ));
+    _progressAnimation = Tween<double>(begin: 0.0, end: 1 / (_totalSteps - 1))
+        .animate(
+          CurvedAnimation(
+            parent: _progressController,
+            curve: Curves.easeInOutCubic,
+          ),
+        );
     _progressController.forward();
   }
 
   void _updateProgress(int step) {
     final newProgress = (step + 1) / (_totalSteps - 1);
-    _progressAnimation = Tween<double>(
-      begin: _previousProgress,
-      end: newProgress.clamp(0.0, 1.0),
-    ).animate(CurvedAnimation(
-      parent: _progressController,
-      curve: Curves.easeInOutCubic,
-    ));
+    _progressAnimation =
+        Tween<double>(
+          begin: _previousProgress,
+          end: newProgress.clamp(0.0, 1.0),
+        ).animate(
+          CurvedAnimation(
+            parent: _progressController,
+            curve: Curves.easeInOutCubic,
+          ),
+        );
     _progressController.forward(from: 0);
     _previousProgress = newProgress.clamp(0.0, 1.0);
   }
@@ -104,7 +108,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    error ?? 'Error al guardar tu perfil',
+                    error ?? 'profileSetup.errorSaveProfile'.tr(),
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -122,14 +126,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       return;
     }
 
-    final (completeSuccess, completeError) =
-        await authProvider.updateUserProfile(markComplete: true);
+    final (completeSuccess, completeError) = await authProvider
+        .updateUserProfile(markComplete: true);
 
     if (!completeSuccess) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(completeError ?? 'Error al completar perfil'),
+            content: Text(
+              completeError ?? 'profileSetup.errorCompleteProfile'.tr(),
+            ),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -156,6 +162,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
       'libre': 0,
     };
 
+    // NOTA: Los valores internos de hobbies se mantienen en español
+    // porque así están guardados en Firestore. Se migrarán en fase posterior.
     for (final hobby in _hobbies) {
       switch (hobby) {
         case 'Lectura':
@@ -230,21 +238,31 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
 
   String _getStepLabel(int step) {
     switch (step) {
-      case 0: return 'Usuario';
-      case 1: return 'Sobre ti';
-      case 2: return 'Hobbies';
-      case 3: return 'Música';
-      default: return '';
+      case 0:
+        return 'profileSetup.stepUser'.tr();
+      case 1:
+        return 'profileSetup.stepAboutYou'.tr();
+      case 2:
+        return 'profileSetup.stepHobbies'.tr();
+      case 3:
+        return 'profileSetup.stepMusic'.tr();
+      default:
+        return '';
     }
   }
 
   IconData _getStepIcon(int step) {
     switch (step) {
-      case 0: return Icons.alternate_email_rounded;
-      case 1: return Icons.person_rounded;
-      case 2: return Icons.interests_rounded;
-      case 3: return Icons.headphones_rounded;
-      default: return Icons.star_rounded;
+      case 0:
+        return Icons.alternate_email_rounded;
+      case 1:
+        return Icons.person_rounded;
+      case 2:
+        return Icons.interests_rounded;
+      case 3:
+        return Icons.headphones_rounded;
+      default:
+        return Icons.star_rounded;
     }
   }
 
@@ -289,9 +307,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
           ),
 
           Positioned(
-            top: -80, right: -60,
+            top: -80,
+            right: -60,
             child: Container(
-              width: 200, height: 200,
+              width: 200,
+              height: 200,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withValues(alpha: 0.05),
@@ -299,9 +319,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
             ),
           ),
           Positioned(
-            bottom: -100, left: -80,
+            bottom: -100,
+            left: -80,
             child: Container(
-              width: 250, height: 250,
+              width: 250,
+              height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white.withValues(alpha: 0.03),
@@ -357,7 +379,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                         archetype: _calculateArchetype(),
                         onContinue: () {
                           Navigator.pushReplacementNamed(
-                              context, AppRoutes.home);
+                            context,
+                            AppRoutes.home,
+                          );
                         },
                       ),
                     ],
@@ -371,7 +395,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     );
   }
 
-  // FIX: Removed .animate() from this entire widget to prevent TextStyle errors
   Widget _buildProgressHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
@@ -385,15 +408,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                 child: GestureDetector(
                   onTap: _currentStep > 0 ? _previousStep : null,
                   child: Container(
-                    width: 42, height: 42,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1)),
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
                     ),
-                    child: const Icon(Icons.arrow_back_rounded,
-                        color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
@@ -415,11 +443,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(4),
                             gradient: const LinearGradient(
-                              colors: [Colors.white, Color(0xFFE0DDFF)]),
+                              colors: [Colors.white, Color(0xFFE0DDFF)],
+                            ),
                             boxShadow: [
                               BoxShadow(
                                 color: Colors.white.withValues(alpha: 0.3),
-                                blurRadius: 8),
+                                blurRadius: 8,
+                              ),
                             ],
                           ),
                         ),
@@ -430,7 +460,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
               ),
               const SizedBox(width: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -439,7 +472,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                   '${_currentStep + 1}/${_totalSteps - 1}',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 13, fontWeight: FontWeight.w700),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -461,24 +496,37 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                           width: isActive ? 36 : 28,
                           height: isActive ? 36 : 28,
                           decoration: BoxDecoration(
-                            color: isActive ? Colors.white
-                                : isCompleted ? Colors.white.withValues(alpha: 0.8)
+                            color: isActive
+                                ? Colors.white
+                                : isCompleted
+                                ? Colors.white.withValues(alpha: 0.8)
                                 : Colors.white.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: isActive || isCompleted ? Colors.white
+                              color: isActive || isCompleted
+                                  ? Colors.white
                                   : Colors.white.withValues(alpha: 0.2),
-                              width: 2),
-                            boxShadow: isActive ? [
-                              BoxShadow(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                blurRadius: 12, spreadRadius: 2),
-                            ] : [],
+                              width: 2,
+                            ),
+                            boxShadow: isActive
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      blurRadius: 12,
+                                      spreadRadius: 2,
+                                    ),
+                                  ]
+                                : [],
                           ),
                           child: Icon(
-                            isCompleted ? Icons.check_rounded : _getStepIcon(index),
+                            isCompleted
+                                ? Icons.check_rounded
+                                : _getStepIcon(index),
                             size: isActive ? 18 : 14,
-                            color: isActive || isCompleted ? AppColors.primary
+                            color: isActive || isCompleted
+                                ? AppColors.primary
                                 : Colors.white.withValues(alpha: 0.5),
                           ),
                         ),
@@ -487,8 +535,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                           _getStepLabel(index),
                           style: TextStyle(
                             fontSize: 10,
-                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                            color: isActive || isCompleted ? Colors.white
+                            fontWeight: isActive
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isActive || isCompleted
+                                ? Colors.white
                                 : Colors.white.withValues(alpha: 0.4),
                           ),
                         ),
@@ -507,12 +558,18 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   (Color, Color) _getArchetypeColors() {
     final arch = _calculateArchetype();
     switch (arch) {
-      case 'explorador': return (const Color(0xFF6366F1), const Color(0xFF4338CA));
-      case 'guerrero':   return (const Color(0xFFEF4444), const Color(0xFFDC2626));
-      case 'social':     return (const Color(0xFFEC4899), const Color(0xFFDB2777));
-      case 'sabio':      return (const Color(0xFF10B981), const Color(0xFF059669));
-      case 'libre':      return (const Color(0xFFF59E0B), const Color(0xFFD97706));
-      default:           return (const Color(0xFF6366F1), const Color(0xFF4338CA));
+      case 'explorador':
+        return (const Color(0xFF6366F1), const Color(0xFF4338CA));
+      case 'guerrero':
+        return (const Color(0xFFEF4444), const Color(0xFFDC2626));
+      case 'social':
+        return (const Color(0xFFEC4899), const Color(0xFFDB2777));
+      case 'sabio':
+        return (const Color(0xFF10B981), const Color(0xFF059669));
+      case 'libre':
+        return (const Color(0xFFF59E0B), const Color(0xFFD97706));
+      default:
+        return (const Color(0xFF6366F1), const Color(0xFF4338CA));
     }
   }
 }
