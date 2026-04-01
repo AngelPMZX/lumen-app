@@ -77,6 +77,32 @@ class DiaryPrompts {
     '¿Qué patrón emocional notas esta semana?',
   ];
 
+  static const List<String> gratitudePromptKeys = [
+    'diary.prompts.gratitude.0',
+    'diary.prompts.gratitude.1',
+    'diary.prompts.gratitude.2',
+    'diary.prompts.gratitude.3',
+    'diary.prompts.gratitude.4',
+    'diary.prompts.gratitude.5',
+    'diary.prompts.gratitude.6',
+    'diary.prompts.gratitude.7',
+    'diary.prompts.gratitude.8',
+    'diary.prompts.gratitude.9',
+  ];
+
+  static const List<String> reflectionPromptKeys = [
+    'diary.prompts.reflection.0',
+    'diary.prompts.reflection.1',
+    'diary.prompts.reflection.2',
+    'diary.prompts.reflection.3',
+    'diary.prompts.reflection.4',
+    'diary.prompts.reflection.5',
+    'diary.prompts.reflection.6',
+    'diary.prompts.reflection.7',
+    'diary.prompts.reflection.8',
+    'diary.prompts.reflection.9',
+  ];
+
   /// Obtiene un prompt aleatorio basado en el día
   static String getRandomGratitudePrompt() {
     final index = DateTime.now().day % gratitudePrompts.length;
@@ -86,5 +112,15 @@ class DiaryPrompts {
   static String getRandomReflectionPrompt() {
     final index = (DateTime.now().day + 5) % reflectionPrompts.length;
     return reflectionPrompts[index];
+  }
+
+  static String getRandomGratitudePromptKey() {
+    final index = DateTime.now().day % gratitudePromptKeys.length;
+    return gratitudePromptKeys[index];
+  }
+
+  static String getRandomReflectionPromptKey() {
+    final index = (DateTime.now().day + 5) % reflectionPromptKeys.length;
+    return reflectionPromptKeys[index];
   }
 }

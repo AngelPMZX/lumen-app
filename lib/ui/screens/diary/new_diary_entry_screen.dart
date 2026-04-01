@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -40,6 +41,12 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
   bool get _canSave =>
       _selectedMood != null && _textController.text.trim().length >= 3;
 
+  String _moodLabel(MoodType mood) {
+    final key = 'mood.${mood.name}';
+    final translated = key.tr();
+    return translated == key ? mood.label : translated;
+  }
+
   Future<void> _saveEntry() async {
     if (!_canSave || _isSaving) return;
 
@@ -65,12 +72,19 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded,
-                    color: Colors.white, size: 20),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
-                const Text('Entrada guardada. ¡+20 XP!',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600)),
+                Text(
+                  'diary.savedSuccessXp'.tr(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
             backgroundColor: const Color(0xFF10B981),
@@ -88,7 +102,9 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
         setState(() => _isSaving = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error al guardar: $e'),
+            content: Text(
+              'diary.saveError'.tr(namedArgs: {'error': e.toString()}),
+            ),
             backgroundColor: const Color(0xFFEF4444),
             behavior: SnackBarBehavior.floating,
             shape:
@@ -106,8 +122,10 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nueva entrada',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(
+          'diary.newEntry'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -134,11 +152,17 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
-                  : const Text('Guardar',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  : Text(
+                      'common.save'.tr(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
             ),
           ),
         ],
@@ -148,9 +172,8 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mood selector
             Text(
-              '¿Cómo te sientes?',
+              'diary.moodLabel'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -195,17 +218,19 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                         border: isSelected
                             ? Border.all(
                                 color: mood.color.withValues(alpha: 0.5),
-                                width: 2)
+                                width: 2,
+                              )
                             : null,
                       ),
                       child: Column(
                         children: [
-                          Text(mood.emoji,
-                              style:
-                                  TextStyle(fontSize: isSelected ? 26 : 22)),
+                          Text(
+                            mood.emoji,
+                            style: TextStyle(fontSize: isSelected ? 26 : 22),
+                          ),
                           const SizedBox(height: 2),
                           Text(
-                            mood.label,
+                            _moodLabel(mood),
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: isSelected
@@ -224,8 +249,6 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Prompt de reflexión
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -247,8 +270,11 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.lightbulb_rounded,
-                      color: Color(0xFF10B981), size: 20),
+                  const Icon(
+                    Icons.lightbulb_rounded,
+                    color: Color(0xFF10B981),
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -267,10 +293,8 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Campo de texto principal
             Text(
-              'Escribe sobre tu día',
+              'diary.writeAboutDay'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -289,9 +313,10 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                 height: 1.6,
               ),
               decoration: InputDecoration(
-                hintText: 'Hoy me siento...',
+                hintText: 'diary.writeHint'.tr(),
                 hintStyle: TextStyle(
-                    color: isDark ? Colors.white30 : Colors.grey.shade400),
+                  color: isDark ? Colors.white30 : Colors.grey.shade400,
+                ),
                 filled: true,
                 fillColor: isDark
                     ? Colors.white.withValues(alpha: 0.06)
@@ -303,16 +328,18 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: const BorderSide(
-                      color: Color(0xFF10B981), width: 1.5),
+                    color: Color(0xFF10B981),
+                    width: 1.5,
+                  ),
                 ),
-                counterStyle: TextStyle(
-                    color: AppColors.textSecondary, fontSize: 11),
+                counterStyle: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
                 contentPadding: const EdgeInsets.all(16),
               ),
             ),
             const SizedBox(height: 16),
-
-            // Toggle de gratitud
             GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
@@ -348,7 +375,7 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Agregar gratitud',
+                        'diary.addGratitude'.tr(),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -359,19 +386,17 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                       ),
                     ),
                     Text(
-                      '+5 XP',
-                      style: TextStyle(
+                      'diary.gratitudeXp'.tr(),
+                      style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFF59E0B),
+                        color: Color(0xFFF59E0B),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-
-            // Campo de gratitud (expandible)
             if (_showGratitude) ...[
               const SizedBox(height: 12),
               Container(
@@ -412,11 +437,12 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                         height: 1.5,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'Escribe aquí...',
+                        hintText: 'diary.writeHere'.tr(),
                         hintStyle: TextStyle(
-                            color: isDark
-                                ? Colors.white30
-                                : Colors.grey.shade400),
+                          color: isDark
+                              ? Colors.white30
+                              : Colors.grey.shade400,
+                        ),
                         filled: true,
                         fillColor: isDark
                             ? Colors.white.withValues(alpha: 0.06)
@@ -425,8 +451,10 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
-                        counterStyle: TextStyle(
-                            color: AppColors.textSecondary, fontSize: 11),
+                        counterStyle: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
                         contentPadding: const EdgeInsets.all(12),
                       ),
                     ),

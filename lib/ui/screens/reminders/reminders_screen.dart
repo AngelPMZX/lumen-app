@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/reminder.dart';
 import '../../../data/models/habit.dart';
@@ -48,10 +49,104 @@ class _RemindersScreenState extends State<RemindersScreen> {
     }
   }
 
-   Future<void> _toggleHabitCheckIn(Habit habit) async {
+  String _localizedHabitTitle(Habit habit) {
+    switch (habit.title) {
+      case 'Hacer ejercicio':
+      case 'Exercise':
+        return 'habits.exercise'.tr();
+      case 'Tomar 2L de agua':
+      case 'Drink 2L of water':
+        return 'habits.water'.tr();
+      case 'Escribir en el diario':
+      case 'Write in diary':
+        return 'habits.writeDiary'.tr();
+      case 'Meditar 5 minutos':
+      case 'Meditate 5 minutes':
+        return 'habits.meditate'.tr();
+      case 'Leer 15 minutos':
+      case 'Read 15 minutes':
+        return 'habits.read'.tr();
+      case 'Dormir 8 horas':
+      case 'Sleep 8 hours':
+        return 'habits.sleep'.tr();
+      case 'Sin redes 1 hora':
+      case 'No social media 1 hour':
+        return 'habits.noSocial'.tr();
+      case 'Practicar gratitud':
+      case 'Practice gratitude':
+        return 'habits.gratitude'.tr();
+      default:
+        return habit.title;
+    }
+  }
+
+  String? _localizedHabitDescription(Habit habit) {
+    switch (habit.description) {
+      case '30 min de actividad física':
+      case '30 min of physical activity':
+        return 'habits.exerciseDesc'.tr();
+      case 'Hidrátate durante el día':
+      case 'Stay hydrated throughout the day':
+        return 'habits.waterDesc'.tr();
+      case 'Reflexiona sobre tu día':
+      case 'Reflect on your day':
+        return 'habits.writeDiaryDesc'.tr();
+      case 'Un momento de calma':
+      case 'A moment of calm':
+        return 'habits.meditateDesc'.tr();
+      case 'Alimenta tu mente':
+      case 'Feed your mind':
+        return 'habits.readDesc'.tr();
+      case 'Descansa bien':
+      case 'Rest well':
+        return 'habits.sleepDesc'.tr();
+      case 'Desconéctate un rato':
+      case 'Disconnect for a while':
+        return 'habits.noSocialDesc'.tr();
+      case '3 cosas que agradeces':
+      case "3 things you're grateful for":
+        return 'habits.gratitudeDesc'.tr();
+      case null:
+        return null;
+      default:
+        return habit.description;
+    }
+  }
+
+  String _repeatLabel(Reminder reminder) {
+    if (reminder.repeatDays.isEmpty) return 'reminders.once'.tr();
+    if (reminder.repeatDays.length == 7) return 'reminders.everyday'.tr();
+    final weekdays = [1, 2, 3, 4, 5];
+    final weekend = [6, 7];
+    if (reminder.repeatDays.length == 5 &&
+        weekdays.every((d) => reminder.repeatDays.contains(d))) {
+      return 'reminders.weekdaysShort'.tr();
+    }
+    if (reminder.repeatDays.length == 2 &&
+        weekend.every((d) => reminder.repeatDays.contains(d))) {
+      return 'reminders.weekends'.tr();
+    }
+
+    final dayNames = {
+      1: 'days.monShort'.tr(),
+      2: 'days.tueShort'.tr(),
+      3: 'days.wedShort'.tr(),
+      4: 'days.thuShort'.tr(),
+      5: 'days.friShort'.tr(),
+      6: 'days.satShort'.tr(),
+      7: 'days.sunShort'.tr(),
+    };
+
+    final sorted = List<int>.from(reminder.repeatDays)..sort();
+    return sorted.map((d) => dayNames[d] ?? '').join(', ');
+  }
+
+  Future<void> _toggleHabitCheckIn(Habit habit) async {
     HapticFeedback.mediumImpact();
     final auth = context.read<AuthProvider>();
     final isChecked = _todayCheckIns.contains(habit.id);
+    final localizedTitle = _localizedHabitTitle(habit);
+
     try {
       if (isChecked) {
         await auth.uncheckHabit(habit.id);
@@ -69,8 +164,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   const SizedBox(width: 10),
                   Text(
                     earnedXp
-                        ? '${habit.title} completado. ¡+5 XP!'
-                        : '${habit.title} completado.',
+                        ? 'habits.completedNamedXp'.tr(namedArgs: {'title': localizedTitle})
+                        : 'habits.completedNamed'.tr(namedArgs: {'title': localizedTitle}),
                     style: const TextStyle(
                         color: Colors.white, fontWeight: FontWeight.w600),
                   ),
@@ -92,16 +187,18 @@ class _RemindersScreenState extends State<RemindersScreen> {
   }
 
   Future<void> _deleteHabit(Habit habit) async {
+    final localizedTitle = _localizedHabitTitle(habit);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Eliminar hábito', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: Text('¿Eliminar "${habit.title}"? Se perderá el historial de este hábito.'),
+        title: Text('habits.deleteHabit'.tr(), style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: Text('habits.deleteConfirmWithHistory'.tr(namedArgs: {'title': localizedTitle})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancelar', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text('common.cancel'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -109,7 +206,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
               backgroundColor: const Color(0xFFEF4444),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Eliminar'),
+            child: Text('common.delete'.tr()),
           ),
         ],
       ),
@@ -125,12 +222,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Eliminar recordatorio', style: TextStyle(fontWeight: FontWeight.w700)),
-        content: Text('¿Eliminar "${reminder.title}"?'),
+        title: Text('reminders.deleteReminder'.tr(), style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: Text('reminders.deleteConfirmNamed'.tr(namedArgs: {'title': reminder.title})),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancelar', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text('common.cancel'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -138,7 +235,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
               backgroundColor: const Color(0xFFEF4444),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Eliminar'),
+            child: Text('common.delete'.tr()),
           ),
         ],
       ),
@@ -180,15 +277,16 @@ class _RemindersScreenState extends State<RemindersScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hábitos y Recordatorios',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
+        title: Text(
+          'home.habitsReminders'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
       body: Stack(
         children: [
-          // Partículas de fondo
           AnimatedParticlesBackground(
             particleCount: 12,
             maxShootingStars: 0,
@@ -196,7 +294,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 ? Colors.white.withValues(alpha: 0.3)
                 : const Color(0xFF8B5CF6).withValues(alpha: 0.15),
           ),
-
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
@@ -204,9 +301,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ══════════════════════════════
-                      // HÁBITOS HEADER
-                      // ══════════════════════════════
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(18),
@@ -237,15 +331,20 @@ class _RemindersScreenState extends State<RemindersScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Hábitos de hoy',
-                                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
-                                          color: isDark ? Colors.white : AppColors.textPrimary)),
+                                  Text(
+                                    'home.habitsToday'.tr(),
+                                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
+                                        color: isDark ? Colors.white : AppColors.textPrimary),
+                                  ),
                                   const SizedBox(height: 2),
                                   Text(
                                     _habits.isEmpty
-                                        ? 'Agrega tu primer hábito'
-                                        : '$completedCount de ${_habits.length} completados',
-                                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                        ? 'habits.emptyStateDesc'.tr()
+                                        : 'habits.todayProgress'.tr(namedArgs: {
+                                            'completed': '$completedCount',
+                                            'total': '${_habits.length}',
+                                          }),
+                                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                                   ),
                                 ],
                               ),
@@ -274,8 +373,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
                           ],
                         ),
                       ).animate().fadeIn(duration: 500.ms),
-
-                      // Progress bar
                       if (_habits.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         ClipRRect(
@@ -291,13 +388,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
                       ],
                       const SizedBox(height: 16),
 
-                      // ── Habit cards ──
                       if (_habits.isEmpty)
                         _buildEmptyState(
                           isDark: isDark,
                           icon: Icons.track_changes_rounded,
-                          title: 'Aún no tienes hábitos',
-                          subtitle: 'Crea hábitos para seguir tu progreso diario',
+                          title: 'habits.emptyState'.tr(),
+                          subtitle: 'habits.emptyTrackingDesc'.tr(),
                           color: const Color(0xFF10B981),
                         )
                       else
@@ -322,9 +418,14 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                     const Icon(Icons.delete_rounded,
                                         color: Color(0xFFEF4444), size: 22),
                                     const SizedBox(width: 6),
-                                    const Text('Eliminar',
-                                        style: TextStyle(color: Color(0xFFEF4444),
-                                            fontWeight: FontWeight.w600, fontSize: 13)),
+                                    Text(
+                                      'common.delete'.tr(),
+                                      style: const TextStyle(
+                                        color: Color(0xFFEF4444),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -337,7 +438,6 @@ class _RemindersScreenState extends State<RemindersScreen> {
                           );
                         }),
 
-                      // Botón agregar hábito
                       const SizedBox(height: 6),
                       GestureDetector(
                         onTap: _navigateToAddHabit,
@@ -357,24 +457,31 @@ class _RemindersScreenState extends State<RemindersScreen> {
                             children: [
                               const Icon(Icons.add_rounded, color: Color(0xFF10B981), size: 20),
                               const SizedBox(width: 8),
-                              const Text('Agregar hábito',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700,
-                                      color: Color(0xFF10B981))),
+                              Text(
+                                'habits.addHabit'.tr(),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF10B981),
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Center(
-                        child: Text('Desliza a la izquierda para eliminar',
-                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary,
-                                fontStyle: FontStyle.italic)),
+                        child: Text(
+                          'habits.swipeToDelete'.tr(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 32),
 
-                      // ══════════════════════════════
-                      // RECORDATORIOS HEADER
-                      // ══════════════════════════════
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(18),
@@ -405,15 +512,19 @@ class _RemindersScreenState extends State<RemindersScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Recordatorios',
-                                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
-                                          color: isDark ? Colors.white : AppColors.textPrimary)),
+                                  Text(
+                                    'reminders.title'.tr(),
+                                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
+                                        color: isDark ? Colors.white : AppColors.textPrimary),
+                                  ),
                                   const SizedBox(height: 2),
                                   Text(
                                     _reminders.isEmpty
-                                        ? 'Programa alertas de bienestar'
-                                        : '${_reminders.where((r) => r.isEnabled).length} activos',
-                                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                        ? 'reminders.scheduleWellbeingAlerts'.tr()
+                                        : 'reminders.activeCount'.tr(namedArgs: {
+                                            'count': '${_reminders.where((r) => r.isEnabled).length}',
+                                          }),
+                                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                                   ),
                                 ],
                               ),
@@ -426,13 +537,19 @@ class _RemindersScreenState extends State<RemindersScreen> {
                                   color: AppColors.primary,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.add_rounded, color: Colors.white, size: 16),
-                                    SizedBox(width: 4),
-                                    Text('Nuevo', style: TextStyle(fontSize: 12,
-                                        fontWeight: FontWeight.w700, color: Colors.white)),
+                                    const Icon(Icons.add_rounded, color: Colors.white, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'common.new'.tr(),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -446,8 +563,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
                         _buildEmptyState(
                           isDark: isDark,
                           icon: Icons.notifications_none_rounded,
-                          title: 'Sin recordatorios',
-                          subtitle: 'Las notificaciones se activarán en móvil',
+                          title: 'reminders.emptyState'.tr(),
+                          subtitle: 'reminders.mobileInstallNote'.tr(),
                           color: AppColors.primary,
                         )
                       else
@@ -484,6 +601,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
   }
 
   Widget _buildHabitCard(Habit habit, bool isChecked, bool isDark, int index) {
+    final localizedTitle = _localizedHabitTitle(habit);
+    final localizedDescription = _localizedHabitDescription(habit);
+
     return GestureDetector(
       onTap: () => _toggleHabitCheckIn(habit),
       child: AnimatedContainer(
@@ -493,7 +613,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
           gradient: isChecked
               ? LinearGradient(colors: [
                   habit.color.withValues(alpha: isDark ? 0.2 : 0.12),
-                  habit.color.withValues(alpha: isDark ? 0.1 : 0.06)])
+                  habit.color.withValues(alpha: isDark ? 0.1 : 0.06),
+                ])
               : null,
           color: isChecked ? null
               : isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
@@ -532,14 +653,21 @@ class _RemindersScreenState extends State<RemindersScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(habit.title,
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : AppColors.textPrimary,
-                          decoration: isChecked ? TextDecoration.lineThrough : null,
-                          decorationColor: AppColors.textSecondary)),
-                  if (habit.description != null && habit.description!.isNotEmpty)
-                    Text(habit.description!,
-                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                  Text(
+                    localizedTitle,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                      decoration: isChecked ? TextDecoration.lineThrough : null,
+                      decorationColor: AppColors.textSecondary,
+                    ),
+                  ),
+                  if (localizedDescription != null && localizedDescription.isNotEmpty)
+                    Text(
+                      localizedDescription,
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
                 ],
               ),
             ),
@@ -550,9 +678,10 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   color: habit.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text('+5 XP',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                        color: habit.color)),
+                child: Text(
+                  'habits.checkInXp'.tr(),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: habit.color),
+                ),
               )
             else
               Container(
@@ -593,7 +722,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [
                     reminder.timeColor.withValues(alpha: isDark ? 0.25 : 0.15),
-                    reminder.timeColor.withValues(alpha: isDark ? 0.1 : 0.05)]),
+                    reminder.timeColor.withValues(alpha: isDark ? 0.1 : 0.05),
+                  ]),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(reminder.timeIcon, color: reminder.timeColor, size: 24),
@@ -605,36 +735,52 @@ class _RemindersScreenState extends State<RemindersScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(reminder.timeLabel,
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
-                                color: reminder.isEnabled
-                                    ? reminder.timeColor : AppColors.textSecondary)),
+                        Text(
+                          reminder.timeLabel,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: reminder.isEnabled ? reminder.timeColor : AppColors.textSecondary,
+                          ),
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(reminder.title,
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : AppColors.textPrimary),
-                              overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            reminder.title,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : AppColors.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        Icon(Icons.repeat_rounded, size: 12, color: AppColors.textSecondary),
+                        const Icon(Icons.repeat_rounded, size: 12, color: AppColors.textSecondary),
                         const SizedBox(width: 4),
-                        Text(reminder.repeatLabel,
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text(
+                          _repeatLabel(reminder),
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
                         if (reminder.message != null && reminder.message!.isNotEmpty) ...[
                           const SizedBox(width: 8),
-                          Icon(Icons.chat_bubble_outline_rounded,
+                          const Icon(Icons.chat_bubble_outline_rounded,
                               size: 12, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
                           Expanded(
-                            child: Text(reminder.message!,
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary,
-                                    fontStyle: FontStyle.italic),
-                                overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              reminder.message!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ],
@@ -655,8 +801,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
   }
 
   Widget _buildEmptyState({
-    required bool isDark, required IconData icon,
-    required String title, required String subtitle, required Color color,
+    required bool isDark,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
   }) {
     return Container(
       width: double.infinity,
@@ -672,10 +821,19 @@ class _RemindersScreenState extends State<RemindersScreen> {
             child: Icon(icon, color: color.withValues(alpha: 0.5), size: 28),
           ),
           const SizedBox(height: 12),
-          Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white70 : AppColors.textPrimary)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white70 : AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(subtitle, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
         ],
       ),
     );

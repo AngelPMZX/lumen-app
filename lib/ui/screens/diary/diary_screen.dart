@@ -1,6 +1,7 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/constants/app_colors.dart';
@@ -72,6 +73,54 @@ class _DiaryScreenState extends State<DiaryScreen> {
     }
   }
 
+  String _calendarLocale() {
+    final locale = context.locale;
+    if (locale.countryCode != null && locale.countryCode!.isNotEmpty) {
+      return '${locale.languageCode}_${locale.countryCode}';
+    }
+    return locale.languageCode == 'es' ? 'es_ES' : 'en_US';
+  }
+
+  String _moodLabel(MoodType mood) {
+    final key = 'mood.${mood.name}';
+    final translated = key.tr();
+    return translated == key ? mood.label : translated;
+  }
+
+  String _entryCountText() {
+    if (_entries.length == 1) {
+      return 'diary.entrySingular'.tr(namedArgs: {'count': '1'});
+    }
+    return 'diary.entryPlural'.tr(
+      namedArgs: {'count': _entries.length.toString()},
+    );
+  }
+
+  String _formatTimeAgo(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inDays == 0) {
+      if (diff.inHours == 0) {
+        return 'diary.timeAgoMinutes'.tr(
+          namedArgs: {'count': diff.inMinutes.toString()},
+        );
+      }
+      return 'diary.timeAgoHours'.tr(
+        namedArgs: {'count': diff.inHours.toString()},
+      );
+    }
+
+    if (diff.inDays == 1) return 'diary.yesterday'.tr();
+    if (diff.inDays < 7) {
+      return 'diary.timeAgoDays'.tr(
+        namedArgs: {'count': diff.inDays.toString()},
+      );
+    }
+
+    return DateFormat('d MMM', _calendarLocale()).format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -82,7 +131,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
             ? const Center(child: CircularProgressIndicator())
             : CustomScrollView(
                 slivers: [
-                  // Header
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -96,8 +144,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                   .withValues(alpha: isDark ? 0.2 : 0.1),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.book_rounded,
-                                color: Color(0xFF10B981), size: 22),
+                            child: const Icon(
+                              Icons.book_rounded,
+                              color: Color(0xFF10B981),
+                              size: 22,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Expanded(
@@ -105,7 +156,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Diario Emocional',
+                                  'diary.screenTitle'.tr(),
                                   style: TextStyle(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w800,
@@ -115,8 +166,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                   ),
                                 ),
                                 Text(
-                                  '${_entries.length} ${_entries.length == 1 ? "entrada" : "entradas"}',
-                                  style: TextStyle(
+                                  _entryCountText(),
+                                  style: const TextStyle(
                                     fontSize: 13,
                                     color: AppColors.textSecondary,
                                   ),
@@ -129,8 +180,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-                  // Calendario heatmap
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -147,7 +196,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                           ),
                         ),
                         child: TableCalendar(
-                          locale: 'es_ES',
+                          locale: _calendarLocale(),
                           firstDay: DateTime(2024, 1, 1),
                           lastDay: DateTime(2030, 12, 31),
                           focusedDay: _focusedDay,
@@ -230,15 +279,17 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                   : AppColors.textPrimary,
                             ),
                             leftChevronIcon: Icon(
-                                Icons.chevron_left_rounded,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppColors.textSecondary),
+                              Icons.chevron_left_rounded,
+                              color: isDark
+                                  ? Colors.white70
+                                  : AppColors.textSecondary,
+                            ),
                             rightChevronIcon: Icon(
-                                Icons.chevron_right_rounded,
-                                color: isDark
-                                    ? Colors.white70
-                                    : AppColors.textSecondary),
+                              Icons.chevron_right_rounded,
+                              color: isDark
+                                  ? Colors.white70
+                                  : AppColors.textSecondary,
+                            ),
                           ),
                           daysOfWeekStyle: DaysOfWeekStyle(
                             weekdayStyle: TextStyle(
@@ -282,13 +333,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ).animate().fadeIn(duration: 500.ms),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-                  // Titulo de entradas
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
-                        'Tus entradas recientes',
+                        'diary.recentEntries'.tr(),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -300,8 +349,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
-
-                  // Lista de entradas o empty state
                   _entries.isEmpty
                       ? SliverToBoxAdapter(child: _buildEmptyState(isDark))
                       : SliverPadding(
@@ -320,7 +367,6 @@ class _DiaryScreenState extends State<DiaryScreen> {
                             ),
                           ),
                         ),
-
                   const SliverToBoxAdapter(child: SizedBox(height: 80)),
                 ],
               ),
@@ -330,8 +376,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
         backgroundColor: const Color(0xFF10B981),
         foregroundColor: Colors.white,
         icon: const Icon(Icons.edit_rounded),
-        label: const Text('Nueva entrada',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        label: Text(
+          'diary.newEntry'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
@@ -351,12 +399,15 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   .withValues(alpha: isDark ? 0.15 : 0.1),
               borderRadius: BorderRadius.circular(24),
             ),
-            child: const Icon(Icons.edit_note_rounded,
-                color: Color(0xFF10B981), size: 40),
+            child: const Icon(
+              Icons.edit_note_rounded,
+              color: Color(0xFF10B981),
+              size: 40,
+            ),
           ),
           const SizedBox(height: 20),
           Text(
-            'Tu diario está vacío',
+            'diary.emptyState'.tr(),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -365,9 +416,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Empieza a registrar cómo te sientes.\nCada entrada es un paso hacia tu bienestar.',
+            'diary.emptyStateLongDesc'.tr(),
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               color: AppColors.textSecondary,
               height: 1.5,
@@ -409,8 +460,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Text(entry.mood.emoji,
-                        style: const TextStyle(fontSize: 20)),
+                    child: Text(
+                      entry.mood.emoji,
+                      style: const TextStyle(fontSize: 20),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -419,7 +472,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        entry.mood.label,
+                        _moodLabel(entry.mood),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -428,7 +481,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       ),
                       Text(
                         timeAgo,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
                         ),
@@ -436,8 +489,11 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right_rounded,
-                    color: AppColors.textSecondary, size: 20),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -465,12 +521,15 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.favorite_rounded,
-                        color: Color(0xFFF59E0B), size: 12),
+                    const Icon(
+                      Icons.favorite_rounded,
+                      color: Color(0xFFF59E0B),
+                      size: 12,
+                    ),
                     const SizedBox(width: 4),
-                    const Text(
-                      'Gratitud',
-                      style: TextStyle(
+                    Text(
+                      'diary.gratitudeTitle'.tr(),
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFFF59E0B),
@@ -485,23 +544,5 @@ class _DiaryScreenState extends State<DiaryScreen> {
       ),
     ).animate().fadeIn(delay: (100 * index).ms, duration: 400.ms)
         .slideX(begin: -0.05, end: 0);
-  }
-
-  String _formatTimeAgo(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
-
-    if (diff.inDays == 0) {
-      if (diff.inHours == 0) return 'Hace ${diff.inMinutes} min';
-      return 'Hace ${diff.inHours}h';
-    }
-    if (diff.inDays == 1) return 'Ayer';
-    if (diff.inDays < 7) return 'Hace ${diff.inDays} días';
-
-    final months = [
-      '', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-    ];
-    return '${date.day} ${months[date.month]}';
   }
 }

@@ -3,7 +3,6 @@
     "name": "Lumen",
     "tagline": "Ilumina tu bienestar interior"
   },
-
   "common": {
     "continue": "Continuar",
     "save": "Guardar",
@@ -25,9 +24,11 @@
     "skip": "Omitir",
     "search": "Buscar",
     "noData": "Sin datos",
-    "comingSoon": "Próximamente"
+    "comingSoon": "Próximamente",
+    "create": "Crear",
+    "new": "Nuevo",
+    "errorWithDetails": "Error: {error}"
   },
-
   "onboarding": {
     "title1": "Bienvenido a tu\nGimnasio Emocional",
     "desc1": "Un espacio seguro para fortalecer tu bienestar emocional, un día a la vez.",
@@ -38,7 +39,6 @@
     "getStarted": "Comenzar",
     "skip": "Omitir"
   },
-
   "auth": {
     "login": "Iniciar Sesión",
     "register": "Crear Cuenta",
@@ -65,7 +65,6 @@
     "journeyStarts": "Tu viaje comienza aquí ✨",
     "completeData": "Completa tus datos para crear tu cuenta"
   },
-
   "validation": {
     "required": "Este campo es obligatorio",
     "invalidEmail": "Ingresa un correo válido",
@@ -90,7 +89,6 @@
     "onlyLowercaseEtc": "Solo letras minúsculas, números, puntos y guiones bajos",
     "noStartEndDot": "No puede empezar ni terminar con punto"
   },
-
   "profileSetup": {
     "title": "Configura tu perfil",
     "step1Title": "Nombre de usuario",
@@ -140,7 +138,6 @@
     "errorSaveProfile": "Error al guardar tu perfil",
     "errorCompleteProfile": "Error al completar perfil"
   },
-
   "archetype": {
     "revealTitle": "Tu arquetipo es...",
     "revealSubtitle": "Basado en tus intereses y personalidad",
@@ -170,7 +167,6 @@
     "freeSpiritStrengths": "Adaptabilidad,Curiosidad,Optimismo",
     "freeSpiritTip": "Tu superpoder es la libertad. Lumen será tu compañero de aventuras en el crecimiento emocional."
   },
-
   "home": {
     "greeting": "¡Hola, {name}!",
     "greetingMorning": "Buenos días",
@@ -216,9 +212,10 @@
     "habitsToday": "Hábitos de hoy",
     "viewHabits": "Ver hábitos",
     "viewReminders": "Ver recordatorios",
-    "user": "Usuario"
+    "user": "Usuario",
+    "levelShort": "Nv",
+    "poweredBy": "Con tecnología de {source}"
   },
-
   "mood": {
     "happy": "Feliz",
     "excited": "Emocionado",
@@ -232,30 +229,76 @@
     "sad": "Triste",
     "angry": "Enojado",
     "stressed": "Estresado",
-    "xpEarned": "+{amount} XP"
+    "xpEarned": "+{amount} XP",
+    "bored": "Aburrido",
+    "lonely": "Solo"
   },
-
   "diary": {
     "title": "Mi Diario",
+    "screenTitle": "Diario Emocional",
     "newEntry": "Nueva entrada",
     "editEntry": "Editar entrada",
     "deleteEntry": "Eliminar entrada",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar esta entrada?",
+    "deleteConfirmDetail": "¿Estás seguro? Esta acción no se puede deshacer.",
     "deleteSuccess": "Entrada eliminada",
+    "deleteError": "Error al eliminar: {error}",
     "emptyState": "Tu diario está vacío",
     "emptyStateDesc": "Escribe tu primera reflexión del día",
+    "emptyStateLongDesc": "Empieza a registrar cómo te sientes.\nCada entrada es un paso hacia tu bienestar.",
     "moodLabel": "¿Cómo te sientes?",
     "reflectionPrompt": "Reflexión del día",
     "reflectionHint": "¿Qué pasó hoy? ¿Qué aprendiste?",
     "gratitudeTitle": "Gratitud",
     "gratitudeHint": "¿Por qué estás agradecido hoy?",
     "gratitudeBonus": "+5 XP por gratitud",
+    "gratitudeXp": "+5 XP",
+    "addGratitude": "Agregar gratitud",
     "charCount": "{current}/{max} caracteres",
     "savedSuccess": "Entrada guardada",
+    "savedSuccessXp": "Entrada guardada. ¡+20 XP!",
+    "saveError": "Error al guardar: {error}",
     "calendarHeatmap": "Mapa de emociones",
-    "noEntriesMonth": "Sin entradas este mes"
+    "noEntriesMonth": "Sin entradas este mes",
+    "recentEntries": "Tus entradas recientes",
+    "entrySingular": "{count} entrada",
+    "entryPlural": "{count} entradas",
+    "timeAgoMinutes": "Hace {count} min",
+    "timeAgoHours": "Hace {count}h",
+    "timeAgoDays": "Hace {count} días",
+    "yesterday": "Ayer",
+    "writeAboutDay": "Escribe sobre tu día",
+    "writeHint": "Hoy me siento...",
+    "writeHere": "Escribe aquí...",
+    "detailTitle": "Entrada del diario",
+    "entryContentTitle": "Lo que escribí",
+    "prompts": {
+      "gratitude": {
+        "0": "¿Qué 3 cosas agradeces hoy?",
+        "1": "¿Quién te hizo sonreír hoy?",
+        "2": "¿Qué momento de hoy quieres recordar?",
+        "3": "¿Qué aprendiste hoy sobre ti mismo?",
+        "4": "¿Qué te dio paz hoy?",
+        "5": "¿Por qué pequeña cosa estás agradecido?",
+        "6": "¿Qué fortaleza usaste hoy?",
+        "7": "¿Qué harías diferente mañana?",
+        "8": "¿Cuál fue tu mayor logro de hoy?",
+        "9": "¿Qué persona impactó positivamente tu día?"
+      },
+      "reflection": {
+        "0": "¿Cómo te sentiste al despertar vs ahora?",
+        "1": "¿Qué emoción dominó tu día?",
+        "2": "¿Hubo algo que te costó manejar?",
+        "3": "¿Qué necesitas soltar antes de dormir?",
+        "4": "¿Te diste permiso de descansar hoy?",
+        "5": "¿Qué límite estableciste hoy?",
+        "6": "¿Algo te sorprendió emocionalmente?",
+        "7": "¿Cómo cuidaste tu bienestar hoy?",
+        "8": "¿Qué te gustaría decirle a tu yo de mañana?",
+        "9": "¿Qué patrón emocional notas esta semana?"
+      }
+    }
   },
-
   "habits": {
     "title": "Mis Hábitos",
     "addHabit": "Agregar hábito",
@@ -297,9 +340,26 @@
     "thursday": "Jue",
     "friday": "Vie",
     "saturday": "Sáb",
-    "sunday": "Dom"
+    "sunday": "Dom",
+    "addedNamed": "{title} agregado",
+    "completedNamed": "{title} completado.",
+    "completedNamedXp": "{title} completado. ¡+5 XP!",
+    "chooseEmojiColorName": "Elige emoji, color y nombre",
+    "chooseHabit": "Elige un hábito",
+    "chooseSuggestedOrCustom": "Selecciona un sugerido o crea el tuyo",
+    "createCustomHabit": "Crear hábito personalizado",
+    "createHabit": "Crear hábito",
+    "customize": "Personalizar",
+    "deleteConfirmWithHistory": "¿Eliminar \"{title}\"? Se perderá el historial de este hábito.",
+    "descHintCustom": "Ej: Antes de las 8am",
+    "emptyTrackingDesc": "Crea hábitos para seguir tu progreso diario",
+    "iconLabel": "Ícono",
+    "nameHintCustom": "Ej: Caminar 20 minutos",
+    "orCreateYours": "o crea el tuyo",
+    "preview": "Vista previa",
+    "suggestedShort": "Sugeridos",
+    "swipeToDelete": "Desliza a la izquierda para eliminar"
   },
-
   "hobbies": {
     "reading": "Lectura",
     "sports": "Deportes",
@@ -317,7 +377,6 @@
     "parties": "Fiestas",
     "martialArts": "Artes marciales"
   },
-
   "musicGenres": {
     "pop": "Pop",
     "rock": "Rock",
@@ -335,7 +394,6 @@
     "ambient": "Ambient",
     "newAge": "New Age"
   },
-
   "reminders": {
     "title": "Mis Recordatorios",
     "addReminder": "Agregar recordatorio",
@@ -355,9 +413,25 @@
     "weekdays": "Lun a Vie",
     "weekends": "Fin de semana",
     "custom": "Personalizado",
-    "notificationNote": "Las notificaciones funcionarán cuando compiles en Android/iOS"
+    "notificationNote": "Las notificaciones funcionarán cuando compiles en Android/iOS",
+    "activeCount": "{count} activos",
+    "afternoon": "Tarde",
+    "created": "Recordatorio creado",
+    "customMessageHint": "Ej: Recuerda respirar y sonreír",
+    "customTitleHint": "Ej: Check-in de la mañana",
+    "deleteConfirmNamed": "¿Eliminar \"{title}\"?",
+    "mobileInstallNote": "Las notificaciones se activarán cuando instales la app en tu celular.",
+    "morning": "Mañana",
+    "nameLabel": "Nombre",
+    "newReminderTitle": "Nuevo recordatorio",
+    "night": "Noche",
+    "once": "Una sola vez",
+    "repeatLabelShort": "Repetir",
+    "scheduleWellbeingAlerts": "Programa alertas de bienestar",
+    "tapToChangeTime": "Toca para cambiar la hora",
+    "updated": "Recordatorio actualizado",
+    "weekdaysShort": "Lun-Vie"
   },
-
   "routes": {
     "title": "Rutas de bienestar",
     "subtitle": "Tu camino hacia el equilibrio emocional",
@@ -392,7 +466,6 @@
     "routeResilience": "Resiliencia",
     "routeResilienceDesc": "Fortalece tu capacidad de recuperación"
   },
-
   "profile": {
     "title": "Mi Perfil",
     "editProfile": "Editar perfil",
@@ -424,7 +497,6 @@
     "deleteAccountConfirm": "Esta acción es permanente. ¿Estás seguro?",
     "settings": "Configuración"
   },
-
   "medals": {
     "firstStep": "Primer Paso",
     "firstStepDesc": "Completa tu primer check-in de ánimo",
@@ -461,7 +533,6 @@
     "moodRainbow": "Arcoíris Emocional",
     "moodRainbowDesc": "Registra los 12 estados de ánimo diferentes"
   },
-
   "challenges": {
     "breathe": "Haz 3 respiraciones profundas",
     "gratitude": "Escribe 3 cosas por las que estás agradecido",
@@ -474,7 +545,6 @@
     "journal": "Escribe sobre algo que te hizo sonreír hoy",
     "kindness": "Haz un acto de bondad con alguien"
   },
-
   "days": {
     "monday": "Lunes",
     "tuesday": "Martes",
@@ -489,9 +559,15 @@
     "thuShort": "Jue",
     "friShort": "Vie",
     "satShort": "Sáb",
-    "sunShort": "Dom"
+    "sunShort": "Dom",
+    "monMini": "L",
+    "tueMini": "M",
+    "wedMini": "Mi",
+    "thuMini": "J",
+    "friMini": "V",
+    "satMini": "S",
+    "sunMini": "D"
   },
-
   "errors": {
     "generic": "Algo salió mal. Intenta de nuevo.",
     "network": "Error de conexión. Verifica tu internet.",
@@ -503,5 +579,825 @@
     "tooManyRequests": "Demasiados intentos. Espera un momento.",
     "saveFailed": "Error al guardar. Intenta de nuevo.",
     "loadFailed": "Error al cargar los datos."
+  },
+  "dailyChallenges": {
+    "categories": {
+      "calm": "Calma",
+      "gratitude": "Gratitud",
+      "mindfulness": "Mindfulness",
+      "wellbeing": "Bienestar",
+      "reflection": "Reflexión",
+      "social": "Social",
+      "body": "Cuerpo",
+      "selfEsteem": "Autoestima"
+    },
+    "breathe": {
+      "title": "Respira profundo",
+      "description": "Haz 3 minutos de respiración diafragmática"
+    },
+    "gratitudeExpress": {
+      "title": "Gratitud express",
+      "description": "Escribe 3 cosas por las que estás agradecido hoy"
+    },
+    "mindfulWalk": {
+      "title": "Caminata consciente",
+      "description": "Camina 5 minutos prestando atención a cada paso"
+    },
+    "digitalDetox": {
+      "title": "Desconexión digital",
+      "description": "Pasa 15 minutos sin mirar tu teléfono"
+    },
+    "quickDiary": {
+      "title": "Diario rápido",
+      "description": "Escribe 3 oraciones sobre cómo te sientes ahora"
+    },
+    "bodyScan": {
+      "title": "Body scan",
+      "description": "Escanea tu cuerpo de pies a cabeza notando tensiones"
+    },
+    "actOfKindness": {
+      "title": "Acto de bondad",
+      "description": "Haz algo amable por alguien hoy, sin esperar nada"
+    },
+    "stretching": {
+      "title": "Estiramiento",
+      "description": "Estira tu cuerpo durante 5 minutos al despertar"
+    },
+    "shortMeditation": {
+      "title": "Meditación breve",
+      "description": "Siéntate en silencio y observa tus pensamientos"
+    },
+    "healingMusic": {
+      "title": "Música sanadora",
+      "description": "Escucha una canción que te haga feliz, con atención plena"
+    },
+    "positiveAffirmation": {
+      "title": "Afirmación positiva",
+      "description": "Repite 3 veces: \"Merezco paz y felicidad\""
+    },
+    "observeNature": {
+      "title": "Observa la naturaleza",
+      "description": "Sal y observa algo natural por 3 minutos (cielo, árbol, etc.)"
+    },
+    "silentForgiveness": {
+      "title": "Perdón silencioso",
+      "description": "Piensa en algo que te molesta y practícalo dejando ir"
+    },
+    "limitComplaints": {
+      "title": "Limita las quejas",
+      "description": "Intenta pasar 2 horas sin quejarte de nada"
+    }
+  },
+  "userProgress": {
+    "levelTitles": {
+      "emotionalNovice": "Novato Emocional",
+      "consciousApprentice": "Aprendiz Consciente",
+      "innerExplorer": "Explorador Interior",
+      "resilientWarrior": "Guerrero Resiliente",
+      "zenMaster": "Maestro Zen"
+    }
+  },
+  "achievements": {
+    "streak3": {
+      "title": "Constante",
+      "description": "3 días de racha"
+    },
+    "streak7": {
+      "title": "Semana Perfecta",
+      "description": "7 días de racha"
+    },
+    "streak14": {
+      "title": "Imparable",
+      "description": "14 días de racha"
+    },
+    "streak30": {
+      "title": "Maestro del Hábito",
+      "description": "30 días de racha"
+    },
+    "xp100": {
+      "title": "Primer Centenario",
+      "description": "Alcanza 100 XP"
+    },
+    "xp500": {
+      "title": "Medio Millar",
+      "description": "Alcanza 500 XP"
+    },
+    "xp1000": {
+      "title": "Leyenda",
+      "description": "Alcanza 1000 XP"
+    },
+    "level2": {
+      "title": "Subiendo",
+      "description": "Alcanza nivel 2"
+    },
+    "level5": {
+      "title": "Escalador",
+      "description": "Alcanza nivel 5"
+    },
+    "level10": {
+      "title": "Veterano",
+      "description": "Alcanza nivel 10"
+    },
+    "diary1": {
+      "title": "Primera Reflexión",
+      "description": "Escribe tu primera entrada"
+    },
+    "diary10": {
+      "title": "Escritor Frecuente",
+      "description": "10 entradas en el diario"
+    },
+    "diary50": {
+      "title": "Diario Personal",
+      "description": "50 entradas en el diario"
+    },
+    "mood1": {
+      "title": "Auto-Consciente",
+      "description": "Tu primer check-in de ánimo"
+    },
+    "mood30": {
+      "title": "Observador Emocional",
+      "description": "30 check-ins de ánimo"
+    },
+    "habits5": {
+      "title": "En Marcha",
+      "description": "Completa 5 hábitos"
+    },
+    "habits50": {
+      "title": "Disciplinado",
+      "description": "Completa 50 hábitos"
+    }
+  },
+  "wellnessRoutes": {
+    "emociones": {
+      "title": "Manejo de Emociones",
+      "description": "Aprende a identificar y gestionar lo que sientes",
+      "lessons": {
+        "emo_1": {
+          "title": "¿Qué son las emociones?",
+          "subtitle": "Las emociones son tu GPS interno"
+        },
+        "emo_2": {
+          "title": "La rueda emocional",
+          "subtitle": "Amplía tu vocabulario emocional"
+        },
+        "emo_3": {
+          "title": "Emociones en el cuerpo",
+          "subtitle": "Tu cuerpo habla, aprende a escucharlo"
+        },
+        "emo_4": {
+          "title": "Técnica STOP",
+          "subtitle": "Pausa antes de reaccionar"
+        },
+        "emo_5": {
+          "title": "Regulación emocional",
+          "subtitle": "Herramientas para el día a día"
+        }
+      }
+    },
+    "autoconocimiento": {
+      "title": "Autoconocimiento",
+      "description": "Descubre quién eres realmente",
+      "lessons": {
+        "auto_1": {
+          "title": "Tus valores",
+          "subtitle": "¿Qué es importante para ti?"
+        },
+        "auto_2": {
+          "title": "Fortalezas personales",
+          "subtitle": "Lo que te hace único"
+        },
+        "auto_3": {
+          "title": "Patrones de pensamiento",
+          "subtitle": "Identifica tus narrativas"
+        }
+      }
+    },
+    "mindfulness": {
+      "title": "Mindfulness",
+      "description": "Vive el presente con atención plena",
+      "lessons": {
+        "mind_1": {
+          "title": "¿Qué es mindfulness?",
+          "subtitle": "Atención al momento presente"
+        },
+        "mind_2": {
+          "title": "Respiración consciente",
+          "subtitle": "Tu ancla al presente"
+        },
+        "mind_3": {
+          "title": "Comer con atención",
+          "subtitle": "Mindfulness en lo cotidiano"
+        }
+      }
+    },
+    "resiliencia": {
+      "title": "Resiliencia",
+      "description": "Fortalece tu capacidad de superar adversidades",
+      "lessons": {
+        "res_1": {
+          "title": "¿Qué es la resiliencia?",
+          "subtitle": "Más que resistir, es crecer"
+        },
+        "res_2": {
+          "title": "Mentalidad de crecimiento",
+          "subtitle": "Los errores son maestros"
+        }
+      }
+    },
+    "autoestima": {
+      "title": "Autoestima",
+      "description": "Construye una relación sana contigo mismo",
+      "lessons": {
+        "est_1": {
+          "title": "Tu diálogo interno",
+          "subtitle": "¿Cómo te hablas a ti mismo?"
+        },
+        "est_2": {
+          "title": "Celebra tus logros",
+          "subtitle": "Lo que has construido importa"
+        }
+      }
+    },
+    "relaciones": {
+      "title": "Relaciones Saludables",
+      "description": "Conecta mejor con los demás",
+      "lessons": {
+        "rel_1": {
+          "title": "Comunicación asertiva",
+          "subtitle": "Di lo que sientes sin herir"
+        },
+        "rel_2": {
+          "title": "Escucha activa",
+          "subtitle": "Oír vs. escuchar"
+        }
+      }
+    },
+    "amor": {
+      "title": "Amor y Conexión",
+      "description": "El amor en todas sus formas",
+      "lessons": {
+        "amor_1": {
+          "title": "Los 5 lenguajes del amor",
+          "subtitle": "¿Cómo das y recibes amor?"
+        },
+        "amor_2": {
+          "title": "Amor propio",
+          "subtitle": "La relación más importante"
+        }
+      }
+    }
+  },
+  "motivationalQuotes": {
+    "0": {
+      "text": "La paz viene de adentro. No la busques afuera.",
+      "author": "Buda"
+    },
+    "1": {
+      "text": "No tienes que controlarlo todo. A veces solo necesitas soltar.",
+      "author": "Lumen"
+    },
+    "2": {
+      "text": "Cada día es una nueva oportunidad para ser más amable contigo mismo.",
+      "author": "Lumen"
+    },
+    "3": {
+      "text": "La vulnerabilidad no es debilidad. Es la mayor medida de coraje.",
+      "author": "Brené Brown"
+    },
+    "4": {
+      "text": "Tu mente es un jardín. Tus pensamientos son las semillas.",
+      "author": "Lumen"
+    },
+    "5": {
+      "text": "No es la carga la que te destruye, es cómo la cargas.",
+      "author": "Lou Holtz"
+    },
+    "6": {
+      "text": "Respira. Estás exactamente donde necesitas estar.",
+      "author": "Lumen"
+    },
+    "7": {
+      "text": "La felicidad no es la ausencia de problemas, sino la habilidad de lidiar con ellos.",
+      "author": "Steve Maraboli"
+    },
+    "8": {
+      "text": "Hoy mereces tu propia amabilidad tanto como cualquier otra persona.",
+      "author": "Lumen"
+    },
+    "9": {
+      "text": "El autocuidado no es egoísmo. No puedes servir de una taza vacía.",
+      "author": "Eleanor Brownn"
+    },
+    "10": {
+      "text": "Las emociones son como olas. Obsérvalas ir y venir.",
+      "author": "Lumen"
+    },
+    "11": {
+      "text": "Un paso pequeño hoy es un gran salto para tu bienestar.",
+      "author": "Lumen"
+    },
+    "12": {
+      "text": "No tienes que ser perfecto para merecer amor y aceptación.",
+      "author": "Lumen"
+    },
+    "13": {
+      "text": "La gratitud transforma lo que tienes en suficiente.",
+      "author": "Melody Beattie"
+    },
+    "14": {
+      "text": "Tu valor no disminuye por la incapacidad de alguien de ver tu luz.",
+      "author": "Lumen"
+    },
+    "15": {
+      "text": "Está bien no estar bien. Lo que importa es no quedarte ahí.",
+      "author": "Lumen"
+    },
+    "16": {
+      "text": "La calma es un superpoder en un mundo lleno de ruido.",
+      "author": "Lumen"
+    },
+    "17": {
+      "text": "No compares tu capítulo 1 con el capítulo 20 de alguien más.",
+      "author": "Lumen"
+    },
+    "18": {
+      "text": "Sé paciente contigo mismo. El crecimiento toma tiempo.",
+      "author": "Lumen"
+    },
+    "19": {
+      "text": "La mejor relación que puedes tener es la que tienes contigo mismo.",
+      "author": "Diane Von Furstenberg"
+    },
+    "20": {
+      "text": "Hoy elige la compasión. Empieza contigo.",
+      "author": "Lumen"
+    },
+    "21": {
+      "text": "El descanso no es rendirse. Es prepararse para seguir.",
+      "author": "Lumen"
+    },
+    "22": {
+      "text": "No necesitas una razón para merecer paz interior.",
+      "author": "Lumen"
+    },
+    "23": {
+      "text": "Cada respiración es una oportunidad para empezar de nuevo.",
+      "author": "Lumen"
+    },
+    "24": {
+      "text": "Tu salud mental es una prioridad, no un lujo.",
+      "author": "Lumen"
+    },
+    "25": {
+      "text": "Las pequeñas victorias de hoy son los grandes logros de mañana.",
+      "author": "Lumen"
+    },
+    "26": {
+      "text": "Permítete sentir. Las emociones no son tu enemigo.",
+      "author": "Lumen"
+    },
+    "27": {
+      "text": "Lo que nutre tu alma nunca es una pérdida de tiempo.",
+      "author": "Lumen"
+    },
+    "28": {
+      "text": "No eres tus pensamientos. Eres quien los observa.",
+      "author": "Eckhart Tolle"
+    },
+    "29": {
+      "text": "Hoy es un buen día para cuidar de ti.",
+      "author": "Lumen"
+    },
+    "30": {
+      "text": "La verdadera fortaleza se muestra en los momentos de vulnerabilidad.",
+      "author": "Lumen"
+    }
+  },
+  "quoteService": {
+    "unknownAuthor": "Desconocido",
+    "localQuotes": {
+      "0": {
+        "text": "La paz viene de adentro. No la busques afuera.",
+        "author": "Buda"
+      },
+      "1": {
+        "text": "No tienes que controlarlo todo. A veces solo necesitas soltar.",
+        "author": "Lumen"
+      },
+      "2": {
+        "text": "Cada día es una nueva oportunidad para ser más amable contigo mismo.",
+        "author": "Lumen"
+      },
+      "3": {
+        "text": "La vulnerabilidad no es debilidad. Es la mayor medida de coraje.",
+        "author": "Brené Brown"
+      },
+      "4": {
+        "text": "Tu mente es un jardín. Tus pensamientos son las semillas.",
+        "author": "Lumen"
+      },
+      "5": {
+        "text": "No es la carga la que te destruye, es cómo la cargas.",
+        "author": "Lou Holtz"
+      },
+      "6": {
+        "text": "Respira. Estás exactamente donde necesitas estar.",
+        "author": "Lumen"
+      },
+      "7": {
+        "text": "Hoy mereces tu propia amabilidad tanto como cualquier otra persona.",
+        "author": "Lumen"
+      },
+      "8": {
+        "text": "El autocuidado no es egoísmo. No puedes servir de una taza vacía.",
+        "author": "Eleanor Brownn"
+      },
+      "9": {
+        "text": "Las emociones son como olas. Obsérvalas ir y venir.",
+        "author": "Lumen"
+      },
+      "10": {
+        "text": "Un paso pequeño hoy es un gran salto para tu bienestar.",
+        "author": "Lumen"
+      },
+      "11": {
+        "text": "No tienes que ser perfecto para merecer amor y aceptación.",
+        "author": "Lumen"
+      },
+      "12": {
+        "text": "La gratitud transforma lo que tienes en suficiente.",
+        "author": "Melody Beattie"
+      },
+      "13": {
+        "text": "Tu valor no disminuye por la incapacidad de alguien de ver tu luz.",
+        "author": "Lumen"
+      },
+      "14": {
+        "text": "Está bien no estar bien. Lo que importa es no quedarte ahí.",
+        "author": "Lumen"
+      },
+      "15": {
+        "text": "La calma es un superpoder en un mundo lleno de ruido.",
+        "author": "Lumen"
+      },
+      "16": {
+        "text": "No compares tu capítulo 1 con el capítulo 20 de alguien más.",
+        "author": "Lumen"
+      },
+      "17": {
+        "text": "Sé paciente contigo mismo. El crecimiento toma tiempo.",
+        "author": "Lumen"
+      },
+      "18": {
+        "text": "La mejor relación que puedes tener es la que tienes contigo mismo.",
+        "author": "Diane Von Furstenberg"
+      },
+      "19": {
+        "text": "Hoy elige la compasión. Empieza contigo.",
+        "author": "Lumen"
+      },
+      "20": {
+        "text": "El descanso no es rendirse. Es prepararse para seguir.",
+        "author": "Lumen"
+      },
+      "21": {
+        "text": "No necesitas una razón para merecer paz interior.",
+        "author": "Lumen"
+      },
+      "22": {
+        "text": "Cada respiración es una oportunidad para empezar de nuevo.",
+        "author": "Lumen"
+      },
+      "23": {
+        "text": "Tu salud mental es una prioridad, no un lujo.",
+        "author": "Lumen"
+      },
+      "24": {
+        "text": "Las pequeñas victorias de hoy son los grandes logros de mañana.",
+        "author": "Lumen"
+      },
+      "25": {
+        "text": "Permítete sentir. Las emociones no son tu enemigo.",
+        "author": "Lumen"
+      },
+      "26": {
+        "text": "Lo que nutre tu alma nunca es una pérdida de tiempo.",
+        "author": "Lumen"
+      },
+      "27": {
+        "text": "No eres tus pensamientos. Eres quien los observa.",
+        "author": "Eckhart Tolle"
+      },
+      "28": {
+        "text": "Hoy es un buen día para cuidar de ti.",
+        "author": "Lumen"
+      },
+      "29": {
+        "text": "La verdadera fortaleza se muestra en los momentos de vulnerabilidad.",
+        "author": "Lumen"
+      },
+      "30": {
+        "text": "Tu viaje importa. Cada paso cuenta.",
+        "author": "Lumen"
+      }
+    }
+  },
+  "achievementData": {
+    "streak_3": {
+      "title": "Constante",
+      "description": "3 días de racha"
+    },
+    "streak_7": {
+      "title": "Semana Perfecta",
+      "description": "7 días de racha"
+    },
+    "streak_14": {
+      "title": "Imparable",
+      "description": "14 días de racha"
+    },
+    "streak_30": {
+      "title": "Maestro del Hábito",
+      "description": "30 días de racha"
+    },
+    "xp_100": {
+      "title": "Primer Centenario",
+      "description": "Alcanza 100 XP"
+    },
+    "xp_500": {
+      "title": "Medio Millar",
+      "description": "Alcanza 500 XP"
+    },
+    "xp_1000": {
+      "title": "Leyenda",
+      "description": "Alcanza 1000 XP"
+    },
+    "level_2": {
+      "title": "Subiendo",
+      "description": "Alcanza nivel 2"
+    },
+    "level_5": {
+      "title": "Escalador",
+      "description": "Alcanza nivel 5"
+    },
+    "level_10": {
+      "title": "Veterano",
+      "description": "Alcanza nivel 10"
+    },
+    "diary_1": {
+      "title": "Primera Reflexión",
+      "description": "Escribe tu primera entrada"
+    },
+    "diary_10": {
+      "title": "Escritor Frecuente",
+      "description": "10 entradas en el diario"
+    },
+    "diary_50": {
+      "title": "Diario Personal",
+      "description": "50 entradas en el diario"
+    },
+    "mood_1": {
+      "title": "Auto-Consciente",
+      "description": "Tu primer check-in de ánimo"
+    },
+    "mood_30": {
+      "title": "Observador Emocional",
+      "description": "30 check-ins de ánimo"
+    },
+    "habits_5": {
+      "title": "En Marcha",
+      "description": "Completa 5 hábitos"
+    },
+    "habits_50": {
+      "title": "Disciplinado",
+      "description": "Completa 50 hábitos"
+    }
+  },
+  "achievementsScreen": {
+    "headerCount": "{unlocked} de {total}",
+    "headerSubtitle": "medallas desbloqueadas",
+    "unlockedSection": "Desbloqueadas",
+    "lockedSection": "Por desbloquear"
+  },
+  "editProfile": {
+    "personalInfo": "Información personal",
+    "nameLabel": "Nombre",
+    "usernameLabel": "Nombre de usuario",
+    "updated": "Perfil actualizado",
+    "passwordAccessDesc": "Actualiza tu contraseña de acceso",
+    "wrongCurrentPassword": "Contraseña actual incorrecta",
+    "changePasswordError": "Error al cambiar contraseña",
+    "emotionalArchetype": "Tu arquetipo emocional",
+    "archetypeLockedDesc": "Determinado en tu registro inicial. No se puede cambiar.",
+    "yourArchetype": "Tu arquetipo",
+    "archetypes": {
+      "explorador": {
+        "shortDesc": "Curioso, reflexivo, busca entenderse"
+      },
+      "guerrero": {
+        "shortDesc": "Fuerte, persistente, no se rinde"
+      },
+      "social": {
+        "shortDesc": "Empático, conectado, inspira a otros"
+      },
+      "sabio": {
+        "shortDesc": "Sereno, equilibrado, busca paz"
+      },
+      "libre": {
+        "shortDesc": "Creativo, espontáneo, vive el momento"
+      }
+    }
+  },
+  "profileScreen": {
+    "currentStreakStat": "Racha\nactual",
+    "bestStreakStat": "Mejor\nracha",
+    "totalXpStat": "XP\ntotal",
+    "diaryEntriesStat": "Entradas\ndiario",
+    "medalsUnlocked": "{unlocked} de {total} desbloqueadas",
+    "editProfileSubtitle": "Nombre, usuario, arquetipo",
+    "moodHistorySubtitle": "Tu resumen emocional",
+    "themeTitle": "Tema",
+    "darkModeOn": "Modo oscuro activado",
+    "lightModeOn": "Modo claro activado",
+    "logoutConfirm": "¿Seguro que quieres cerrar sesión? Tu progreso está guardado en la nube."
+  },
+  "moodHistory": {
+    "title": "Historial de ánimo",
+    "noDataThisMonth": "Sin datos este mes",
+    "noDataDesc": "Escribe en tu diario para ver tu historial",
+    "dominantMoodTitle": "Tu emoción predominante",
+    "recordsThisMonthSingular": "{count} registro este mes",
+    "recordsThisMonthPlural": "{count} registros este mes",
+    "tipsTitle": "Consejos para ti",
+    "distributionTitle": "Distribución",
+    "tips": {
+      "happy": {
+        "0": {
+          "title": "Comparte tu alegría",
+          "desc": "La felicidad se multiplica cuando la compartes con otros."
+        },
+        "1": {
+          "title": "Anota lo que te hace feliz",
+          "desc": "Registrar momentos felices te ayuda a recrearlos."
+        },
+        "2": {
+          "title": "Practica gratitud",
+          "desc": "Agradecer lo bueno fortalece las emociones positivas."
+        }
+      },
+      "excited": {
+        "0": {
+          "title": "Canaliza la energía",
+          "desc": "Aprovecha este impulso para proyectos creativos o metas."
+        },
+        "1": {
+          "title": "Captura el momento",
+          "desc": "Guarda fotos o escribe sobre esta emoción para recordarla."
+        },
+        "2": {
+          "title": "Inspira a otros",
+          "desc": "Tu entusiasmo puede contagiar a quienes te rodean."
+        }
+      },
+      "grateful": {
+        "0": {
+          "title": "Expresa tu gratitud",
+          "desc": "Dile a alguien lo importante que es para ti."
+        },
+        "1": {
+          "title": "Lleva un diario de gratitud",
+          "desc": "Escribe 3 cosas por las que estás agradecido cada día."
+        },
+        "2": {
+          "title": "Cultiva esta emoción",
+          "desc": "La gratitud constante mejora tu bienestar general."
+        }
+      },
+      "calm": {
+        "0": {
+          "title": "Profundiza la calma",
+          "desc": "Medita 5 minutos para mantener este estado de paz."
+        },
+        "1": {
+          "title": "Conecta con la naturaleza",
+          "desc": "Un paseo tranquilo refuerza la serenidad."
+        },
+        "2": {
+          "title": "Lee algo inspirador",
+          "desc": "La tranquilidad es ideal para absorber conocimiento."
+        }
+      },
+      "neutral": {
+        "0": {
+          "title": "Prueba algo nuevo",
+          "desc": "Un día neutral es perfecto para explorar nuevas actividades."
+        },
+        "1": {
+          "title": "Haz ejercicio ligero",
+          "desc": "El movimiento puede elevar tu estado de ánimo naturalmente."
+        },
+        "2": {
+          "title": "Escucha música",
+          "desc": "La música que te gusta puede transformar tu día."
+        }
+      },
+      "tired": {
+        "0": {
+          "title": "Descansa sin culpa",
+          "desc": "Tu cuerpo necesita recuperarse. Permítete descansar."
+        },
+        "1": {
+          "title": "Hidrátate bien",
+          "desc": "La deshidratación aumenta la fatiga. Toma agua."
+        },
+        "2": {
+          "title": "Mejora tu sueño",
+          "desc": "Evita pantallas 1 hora antes de dormir."
+        }
+      },
+      "bored": {
+        "0": {
+          "title": "Prueba un hobby nuevo",
+          "desc": "Pintar, cocinar, jardinería... hay mucho por descubrir."
+        },
+        "1": {
+          "title": "Llama a un amigo",
+          "desc": "Una conversación puede cambiar completamente tu día."
+        },
+        "2": {
+          "title": "Sal a caminar",
+          "desc": "Cambiar de ambiente rompe la monotonía."
+        }
+      },
+      "sad": {
+        "0": {
+          "title": "Está bien sentirse triste",
+          "desc": "Permitirte sentir es el primer paso para sanar."
+        },
+        "1": {
+          "title": "Busca apoyo",
+          "desc": "Habla con alguien de confianza sobre cómo te sientes."
+        },
+        "2": {
+          "title": "Esto también pasará",
+          "desc": "Los días difíciles hacen más valiosos los buenos momentos."
+        }
+      },
+      "anxious": {
+        "0": {
+          "title": "Respiración 4-7-8",
+          "desc": "Inhala 4s, sostén 7s, exhala 8s. Repite 4 veces."
+        },
+        "1": {
+          "title": "Escribe tus preocupaciones",
+          "desc": "Sacar los pensamientos al papel reduce la ansiedad."
+        },
+        "2": {
+          "title": "Técnica de grounding",
+          "desc": "Nombra 5 cosas que ves, 4 que tocas, 3 que oyes."
+        }
+      },
+      "angry": {
+        "0": {
+          "title": "Haz una pausa",
+          "desc": "Cuenta hasta 10 antes de reaccionar. Date espacio."
+        },
+        "1": {
+          "title": "Mueve el cuerpo",
+          "desc": "El ejercicio físico libera la tensión acumulada."
+        },
+        "2": {
+          "title": "Escribe sin filtro",
+          "desc": "Vacía tus pensamientos en papel. No tienes que mostrárselo a nadie."
+        }
+      },
+      "stressed": {
+        "0": {
+          "title": "Prioriza tareas",
+          "desc": "Haz una lista y enfócate en lo más importante primero."
+        },
+        "1": {
+          "title": "Micro-descansos",
+          "desc": "Cada 25 min, toma 5 min de pausa. Tu mente lo agradecerá."
+        },
+        "2": {
+          "title": "Música relajante",
+          "desc": "Sonidos de la naturaleza o lo-fi pueden reducir el estrés."
+        }
+      },
+      "lonely": {
+        "0": {
+          "title": "Conecta con alguien",
+          "desc": "Envía un mensaje a un amigo o familiar. No estás solo."
+        },
+        "1": {
+          "title": "Compañía de mascotas",
+          "desc": "Si tienes mascota, dedícale tiempo. Su amor es incondicional."
+        },
+        "2": {
+          "title": "Únete a una comunidad",
+          "desc": "Hay grupos de intereses donde puedes conocer gente nueva."
+        }
+      }
+    }
   }
 }

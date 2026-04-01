@@ -46,10 +46,14 @@ class UserProgress {
   /// [serverNow] viene de Firebase, NO del reloj del dispositivo.
   UserProgress calculateStreak(DateTime serverNow) {
     final lastDate = DateTime(
-      lastCheckIn.year, lastCheckIn.month, lastCheckIn.day,
+      lastCheckIn.year,
+      lastCheckIn.month,
+      lastCheckIn.day,
     );
     final todayDate = DateTime(
-      serverNow.year, serverNow.month, serverNow.day,
+      serverNow.year,
+      serverNow.month,
+      serverNow.day,
     );
 
     final diffDays = todayDate.difference(lastDate).inDays;
@@ -87,6 +91,14 @@ class UserProgress {
     if (level <= 12) return 'Explorador Interior';
     if (level <= 18) return 'Guerrero Resiliente';
     return 'Maestro Zen';
+  }
+
+  String get levelTitleKey {
+    if (level <= 3) return 'userProgress.levelTitles.emotionalNovice';
+    if (level <= 7) return 'userProgress.levelTitles.consciousApprentice';
+    if (level <= 12) return 'userProgress.levelTitles.innerExplorer';
+    if (level <= 18) return 'userProgress.levelTitles.resilientWarrior';
+    return 'userProgress.levelTitles.zenMaster';
   }
 
   int get xpForNextLevel => level * 100;

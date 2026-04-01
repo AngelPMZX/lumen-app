@@ -37,6 +37,71 @@ class _HomeScreenState extends State<HomeScreen>
   Set<String> _completedLessons = {};
   bool _hasLessonToday = false;
 
+  static const Map<String, String> _quoteTextKeys = {
+    'La paz viene de adentro. No la busques afuera.':
+        'quoteService.localQuotes.0.text',
+    'No tienes que controlarlo todo. A veces solo necesitas soltar.':
+        'quoteService.localQuotes.1.text',
+    'Cada día es una nueva oportunidad para ser más amable contigo mismo.':
+        'quoteService.localQuotes.2.text',
+    'La vulnerabilidad no es debilidad. Es la mayor medida de coraje.':
+        'quoteService.localQuotes.3.text',
+    'Tu mente es un jardín. Tus pensamientos son las semillas.':
+        'quoteService.localQuotes.4.text',
+    'No es la carga la que te destruye, es cómo la cargas.':
+        'quoteService.localQuotes.5.text',
+    'Respira. Estás exactamente donde necesitas estar.':
+        'quoteService.localQuotes.6.text',
+    'Hoy mereces tu propia amabilidad tanto como cualquier otra persona.':
+        'quoteService.localQuotes.7.text',
+    'El autocuidado no es egoísmo. No puedes servir de una taza vacía.':
+        'quoteService.localQuotes.8.text',
+    'Las emociones son como olas. Obsérvalas ir y venir.':
+        'quoteService.localQuotes.9.text',
+    'Un paso pequeño hoy es un gran salto para tu bienestar.':
+        'quoteService.localQuotes.10.text',
+    'No tienes que ser perfecto para merecer amor y aceptación.':
+        'quoteService.localQuotes.11.text',
+    'La gratitud transforma lo que tienes en suficiente.':
+        'quoteService.localQuotes.12.text',
+    'Tu valor no disminuye por la incapacidad de alguien de ver tu luz.':
+        'quoteService.localQuotes.13.text',
+    'Está bien no estar bien. Lo que importa es no quedarte ahí.':
+        'quoteService.localQuotes.14.text',
+    'La calma es un superpoder en un mundo lleno de ruido.':
+        'quoteService.localQuotes.15.text',
+    'No compares tu capítulo 1 con el capítulo 20 de alguien más.':
+        'quoteService.localQuotes.16.text',
+    'Sé paciente contigo mismo. El crecimiento toma tiempo.':
+        'quoteService.localQuotes.17.text',
+    'La mejor relación que puedes tener es la que tienes contigo mismo.':
+        'quoteService.localQuotes.18.text',
+    'Hoy elige la compasión. Empieza contigo.':
+        'quoteService.localQuotes.19.text',
+    'El descanso no es rendirse. Es prepararse para seguir.':
+        'quoteService.localQuotes.20.text',
+    'No necesitas una razón para merecer paz interior.':
+        'quoteService.localQuotes.21.text',
+    'Cada respiración es una oportunidad para empezar de nuevo.':
+        'quoteService.localQuotes.22.text',
+    'Tu salud mental es una prioridad, no un lujo.':
+        'quoteService.localQuotes.23.text',
+    'Las pequeñas victorias de hoy son los grandes logros de mañana.':
+        'quoteService.localQuotes.24.text',
+    'Permítete sentir. Las emociones no son tu enemigo.':
+        'quoteService.localQuotes.25.text',
+    'Lo que nutre tu alma nunca es una pérdida de tiempo.':
+        'quoteService.localQuotes.26.text',
+    'No eres tus pensamientos. Eres quien los observa.':
+        'quoteService.localQuotes.27.text',
+    'Hoy es un buen día para cuidar de ti.':
+        'quoteService.localQuotes.28.text',
+    'La verdadera fortaleza se muestra en los momentos de vulnerabilidad.':
+        'quoteService.localQuotes.29.text',
+    'Tu viaje importa. Cada paso cuenta.':
+        'quoteService.localQuotes.30.text',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -74,7 +139,12 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _loadData() async {
     try {
       final quote = await QuoteService.getQuoteOfTheDay();
-      if (mounted) setState(() { _quote = quote; _isLoadingQuote = false; });
+      if (mounted) {
+        setState(() {
+          _quote = quote;
+          _isLoadingQuote = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _isLoadingQuote = false);
     }
@@ -122,11 +192,13 @@ class _HomeScreenState extends State<HomeScreen>
           if (i == 0 || _completedLessons.contains(route.lessons[i - 1].id)) {
             final result = await Navigator.push<bool>(
               context,
-              MaterialPageRoute(builder: (_) => LessonScreen(
-                lesson: lesson,
-                routeColor: route.color,
-                routeEmoji: route.emoji,
-              )),
+              MaterialPageRoute(
+                builder: (_) => LessonScreen(
+                  lesson: lesson,
+                  routeColor: route.color,
+                  routeEmoji: route.emoji,
+                ),
+              ),
             );
             if (result == true) {
               _loadData();
@@ -144,13 +216,19 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               const Text('🎉', style: TextStyle(fontSize: 20)),
               const SizedBox(width: 10),
-              Text('home.allLessonsComplete'.tr(),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              Text(
+                'home.allLessonsComplete'.tr(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
           backgroundColor: const Color(0xFF10B981),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -163,7 +241,11 @@ class _HomeScreenState extends State<HomeScreen>
         final lesson = route.lessons[i];
         if (!_completedLessons.contains(lesson.id)) {
           if (i == 0 || _completedLessons.contains(route.lessons[i - 1].id)) {
-            return (lesson.title, '${route.emoji} ${route.title}', route.color);
+            return (
+              _lessonTitle(route, lesson),
+              '${route.emoji} ${_routeTitle(route)}',
+              route.color,
+            );
           }
         }
       }
@@ -178,9 +260,12 @@ class _HomeScreenState extends State<HomeScreen>
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('home.moodChangeTitle'.tr(),
-              style: const TextStyle(fontWeight: FontWeight.w700)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'home.moodChangeTitle'.tr(),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           content: RichText(
             text: TextSpan(
               style: TextStyle(
@@ -190,12 +275,13 @@ class _HomeScreenState extends State<HomeScreen>
               children: [
                 TextSpan(text: 'home.moodChangeFrom'.tr()),
                 TextSpan(
-                  text: '${_selectedMood!.emoji} ${_selectedMood!.label}',
+                  text:
+                      '${_selectedMood!.emoji} ${_moodLabel(_selectedMood!)}',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 TextSpan(text: 'home.moodChangeTo'.tr()),
                 TextSpan(
-                  text: '${mood.emoji} ${mood.label}',
+                  text: '${mood.emoji} ${_moodLabel(mood)}',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 const TextSpan(text: '?'),
@@ -205,14 +291,18 @@ class _HomeScreenState extends State<HomeScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('common.cancel'.tr(),
-                  style: TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                'common.cancel'.tr(),
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: FilledButton.styleFrom(
                 backgroundColor: mood.color,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: Text('home.moodChange'.tr()),
             ),
@@ -251,23 +341,31 @@ class _HomeScreenState extends State<HomeScreen>
                     child: Text(
                       isFirstToday
                           ? 'home.moodRegistered'.tr(namedArgs: {
-                              'mood': mood.label,
+                              'mood': _moodLabel(mood),
                               'xp': '${mood.xpReward}',
                             })
-                          : 'home.moodUpdated'.tr(namedArgs: {'mood': mood.label}),
+                          : 'home.moodUpdated'.tr(
+                              namedArgs: {'mood': _moodLabel(mood)},
+                            ),
                       style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.w600),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   if (isFirstToday)
-                    const Icon(Icons.bolt_rounded,
-                        color: Color(0xFFFBBF24), size: 20),
+                    const Icon(
+                      Icons.bolt_rounded,
+                      color: Color(0xFFFBBF24),
+                      size: 20,
+                    ),
                 ],
               ),
               backgroundColor: mood.color.withValues(alpha: 0.9),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                borderRadius: BorderRadius.circular(14),
+              ),
               margin: const EdgeInsets.all(16),
               duration: const Duration(seconds: 2),
             ),
@@ -285,6 +383,223 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  String _moodLabel(MoodType mood) {
+    final key = 'mood.${mood.name}';
+    final translated = key.tr();
+    return translated == key ? mood.label : translated;
+  }
+
+  String _levelTitleKey(int level) {
+    if (level <= 3) return 'userProgress.levelTitles.emotionalNovice';
+    if (level <= 7) return 'userProgress.levelTitles.consciousApprentice';
+    if (level <= 12) return 'userProgress.levelTitles.innerExplorer';
+    if (level <= 18) return 'userProgress.levelTitles.resilientWarrior';
+    return 'userProgress.levelTitles.zenMaster';
+  }
+
+  String _levelTitleText(int level, String fallback, dynamic progress) {
+    try {
+      final key = (progress as dynamic).levelTitleKey as String?;
+      if (key != null) {
+        final translated = key.tr();
+        if (translated != key) return translated;
+      }
+    } catch (_) {}
+
+    final derivedKey = _levelTitleKey(level);
+    final translated = derivedKey.tr();
+    return translated == derivedKey ? fallback : translated;
+  }
+
+  String? _challengeTitleKey(DailyChallenge challenge) {
+    try {
+      final key = (challenge as dynamic).titleKey as String?;
+      if (key != null) return key;
+    } catch (_) {}
+
+    switch (challenge.title) {
+      case 'Respira profundo':
+        return 'dailyChallenges.breathe.title';
+      case 'Gratitud express':
+        return 'dailyChallenges.gratitudeExpress.title';
+      case 'Caminata consciente':
+        return 'dailyChallenges.mindfulWalk.title';
+      case 'Desconexión digital':
+        return 'dailyChallenges.digitalDetox.title';
+      case 'Diario rápido':
+        return 'dailyChallenges.quickDiary.title';
+      case 'Body scan':
+        return 'dailyChallenges.bodyScan.title';
+      case 'Acto de bondad':
+        return 'dailyChallenges.actOfKindness.title';
+      case 'Estiramiento':
+        return 'dailyChallenges.stretching.title';
+      case 'Meditación breve':
+        return 'dailyChallenges.shortMeditation.title';
+      case 'Música sanadora':
+        return 'dailyChallenges.healingMusic.title';
+      case 'Afirmación positiva':
+        return 'dailyChallenges.positiveAffirmation.title';
+      case 'Observa la naturaleza':
+        return 'dailyChallenges.observeNature.title';
+      case 'Perdón silencioso':
+        return 'dailyChallenges.silentForgiveness.title';
+      case 'Limita las quejas':
+        return 'dailyChallenges.limitComplaints.title';
+    }
+    return null;
+  }
+
+  String? _challengeDescriptionKey(DailyChallenge challenge) {
+    try {
+      final key = (challenge as dynamic).descriptionKey as String?;
+      if (key != null) return key;
+    } catch (_) {}
+
+    switch (challenge.title) {
+      case 'Respira profundo':
+        return 'dailyChallenges.breathe.description';
+      case 'Gratitud express':
+        return 'dailyChallenges.gratitudeExpress.description';
+      case 'Caminata consciente':
+        return 'dailyChallenges.mindfulWalk.description';
+      case 'Desconexión digital':
+        return 'dailyChallenges.digitalDetox.description';
+      case 'Diario rápido':
+        return 'dailyChallenges.quickDiary.description';
+      case 'Body scan':
+        return 'dailyChallenges.bodyScan.description';
+      case 'Acto de bondad':
+        return 'dailyChallenges.actOfKindness.description';
+      case 'Estiramiento':
+        return 'dailyChallenges.stretching.description';
+      case 'Meditación breve':
+        return 'dailyChallenges.shortMeditation.description';
+      case 'Música sanadora':
+        return 'dailyChallenges.healingMusic.description';
+      case 'Afirmación positiva':
+        return 'dailyChallenges.positiveAffirmation.description';
+      case 'Observa la naturaleza':
+        return 'dailyChallenges.observeNature.description';
+      case 'Perdón silencioso':
+        return 'dailyChallenges.silentForgiveness.description';
+      case 'Limita las quejas':
+        return 'dailyChallenges.limitComplaints.description';
+    }
+    return null;
+  }
+
+  String? _challengeCategoryKey(DailyChallenge challenge) {
+    try {
+      final key = (challenge as dynamic).categoryKey as String?;
+      if (key != null) return key;
+    } catch (_) {}
+
+    switch (challenge.category) {
+      case 'Calma':
+        return 'dailyChallenges.categories.calm';
+      case 'Gratitud':
+        return 'dailyChallenges.categories.gratitude';
+      case 'Mindfulness':
+        return 'dailyChallenges.categories.mindfulness';
+      case 'Bienestar':
+        return 'dailyChallenges.categories.wellbeing';
+      case 'Reflexión':
+        return 'dailyChallenges.categories.reflection';
+      case 'Social':
+        return 'dailyChallenges.categories.social';
+      case 'Cuerpo':
+        return 'dailyChallenges.categories.body';
+      case 'Autoestima':
+        return 'dailyChallenges.categories.selfEsteem';
+    }
+    return null;
+  }
+
+  String _challengeTitle(DailyChallenge challenge) {
+    final key = _challengeTitleKey(challenge);
+    if (key == null) return challenge.title;
+    final translated = key.tr();
+    return translated == key ? challenge.title : translated;
+  }
+
+  String _challengeDescription(DailyChallenge challenge) {
+    final key = _challengeDescriptionKey(challenge);
+    if (key == null) return challenge.description;
+    final translated = key.tr();
+    return translated == key ? challenge.description : translated;
+  }
+
+  String _challengeCategory(DailyChallenge challenge) {
+    final key = _challengeCategoryKey(challenge);
+    if (key == null) return challenge.category;
+    final translated = key.tr();
+    return translated == key ? challenge.category : translated;
+  }
+
+  String _routeTitle(WellnessRoute route) {
+    try {
+      final key = (route as dynamic).titleKey as String?;
+      if (key != null) {
+        final translated = key.tr();
+        if (translated != key) return translated;
+      }
+    } catch (_) {}
+
+    final key = 'wellnessRoutes.${route.id}.title';
+    final translated = key.tr();
+    return translated == key ? route.title : translated;
+  }
+
+  String _lessonTitle(WellnessRoute route, Lesson lesson) {
+    try {
+      final key = (lesson as dynamic).titleKey as String?;
+      if (key != null) {
+        final translated = key.tr();
+        if (translated != key) return translated;
+      }
+    } catch (_) {}
+
+    final key = 'wellnessRoutes.${route.id}.lessons.${lesson.id}.title';
+    final translated = key.tr();
+    return translated == key ? lesson.title : translated;
+  }
+
+  String _quoteText(Quote quote) {
+    try {
+      final key = (quote as dynamic).textKey as String?;
+      if (key != null) {
+        final translated = key.tr();
+        if (translated != key) return translated;
+      }
+    } catch (_) {}
+
+    final mappedKey = _quoteTextKeys[quote.text];
+    if (mappedKey != null) {
+      final translated = mappedKey.tr();
+      if (translated != mappedKey) return translated;
+    }
+
+    return quote.text;
+  }
+
+  String _quoteAuthor(Quote quote) {
+    try {
+      final key = (quote as dynamic).authorKey as String?;
+      if (key != null) {
+        final translated = key.tr();
+        if (translated != key) return translated;
+      }
+    } catch (_) {}
+
+    if (quote.author == 'Desconocido') {
+      final translated = 'quoteService.unknownAuthor'.tr();
+      if (translated != 'quoteService.unknownAuthor') return translated;
+    }
+
+    return quote.author;
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -296,7 +611,11 @@ class _HomeScreenState extends State<HomeScreen>
     final bestStreak = progress?.longestStreak ?? 0;
     final totalXp = progress?.totalXp ?? 0;
     final level = progress?.level ?? 1;
-    final levelTitle = progress?.levelTitle ?? 'Novato Emocional';
+    final levelTitle = _levelTitleText(
+      level,
+      progress?.levelTitle ?? 'Novato Emocional',
+      progress,
+    );
     final xpForNext = progress?.xpForNextLevel ?? 100;
     final challenge = DailyChallenge.getToday();
     final nextLesson = _nextLessonInfo;
@@ -310,17 +629,23 @@ class _HomeScreenState extends State<HomeScreen>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: isDark
-                    ? [const Color(0xFF0F0F23), const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                    : [const Color(0xFFF0F4FF), const Color(0xFFFAFBFF), Colors.white],
+                    ? [
+                        const Color(0xFF0F0F23),
+                        const Color(0xFF1A1A2E),
+                        const Color(0xFF16213E)
+                      ]
+                    : [
+                        const Color(0xFFF0F4FF),
+                        const Color(0xFFFAFBFF),
+                        Colors.white
+                      ],
               ),
             ),
           ),
-
           const AnimatedParticlesBackground(
             particleCount: 20,
             maxShootingStars: 0,
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -331,26 +656,35 @@ class _HomeScreenState extends State<HomeScreen>
                   Row(
                     children: [
                       Container(
-                        width: 52, height: 52,
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: _getArchetypeGradient(authProvider.userModel?.archetype),
+                            colors: _getArchetypeGradient(
+                              authProvider.userModel?.archetype,
+                            ),
                           ),
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: _getArchetypeGradient(authProvider.userModel?.archetype)
-                                  .first.withValues(alpha: 0.3),
-                              blurRadius: 12, offset: const Offset(0, 4),
+                              color: _getArchetypeGradient(
+                                authProvider.userModel?.archetype,
+                              ).first.withValues(alpha: 0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Center(
                           child: Text(
                             authProvider.userName.isNotEmpty
-                                ? authProvider.userName[0].toUpperCase() : 'U',
+                                ? authProvider.userName[0].toUpperCase()
+                                : 'U',
                             style: const TextStyle(
-                              color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
@@ -359,20 +693,34 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(greeting, style: TextStyle(
-                                fontSize: 14, color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500)),
+                            Text(
+                              greeting,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                             Text(
                               authProvider.userName.isNotEmpty
-                                  ? authProvider.userName : 'home.user'.tr(),
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : AppColors.textPrimary),
+                                  ? authProvider.userName
+                                  : 'home.user'.tr(),
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.streak.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(20),
@@ -380,10 +728,20 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.bolt_rounded, color: AppColors.streak, size: 16),
+                            const Icon(
+                              Icons.bolt_rounded,
+                              color: AppColors.streak,
+                              size: 16,
+                            ),
                             const SizedBox(width: 2),
-                            Text('$totalXp', style: const TextStyle(
-                                color: AppColors.streak, fontSize: 13, fontWeight: FontWeight.w800)),
+                            Text(
+                              '$totalXp',
+                              style: const TextStyle(
+                                color: AppColors.streak,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -395,7 +753,8 @@ class _HomeScreenState extends State<HomeScreen>
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
-                          width: 42, height: 42,
+                          width: 42,
+                          height: 42,
                           decoration: BoxDecoration(
                             color: isDark
                                 ? Colors.white.withValues(alpha: 0.1)
@@ -406,13 +765,21 @@ class _HomeScreenState extends State<HomeScreen>
                             duration: const Duration(milliseconds: 300),
                             transitionBuilder: (child, anim) =>
                                 RotationTransition(
-                                  turns: Tween(begin: 0.75, end: 1.0).animate(anim),
-                                  child: FadeTransition(opacity: anim, child: child),
-                                ),
+                              turns: Tween(begin: 0.75, end: 1.0)
+                                  .animate(anim),
+                              child: FadeTransition(
+                                opacity: anim,
+                                child: child,
+                              ),
+                            ),
                             child: Icon(
-                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                              isDark
+                                  ? Icons.light_mode_rounded
+                                  : Icons.dark_mode_rounded,
                               key: ValueKey(isDark),
-                              color: isDark ? const Color(0xFFFBBF24) : AppColors.textSecondary,
+                              color: isDark
+                                  ? const Color(0xFFFBBF24)
+                                  : AppColors.textSecondary,
                               size: 20,
                             ),
                           ),
@@ -430,9 +797,14 @@ class _HomeScreenState extends State<HomeScreen>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: isDark
-                              ? [Colors.white.withValues(alpha: 0.06),
-                                 Colors.white.withValues(alpha: 0.03)]
-                              : [const Color(0xFFFEF9C3), const Color(0xFFFEF3C7)],
+                              ? [
+                                  Colors.white.withValues(alpha: 0.06),
+                                  Colors.white.withValues(alpha: 0.03)
+                                ]
+                              : [
+                                  const Color(0xFFFEF9C3),
+                                  const Color(0xFFFEF3C7)
+                                ],
                         ),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
@@ -443,8 +815,13 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       child: _isLoadingQuote
                           ? const Center(
-                              child: SizedBox(width: 20, height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2)),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
                             )
                           : Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,49 +829,78 @@ class _HomeScreenState extends State<HomeScreen>
                                 Row(
                                   children: [
                                     Container(
-                                      width: 32, height: 32,
+                                      width: 32,
+                                      height: 32,
                                       decoration: BoxDecoration(
-                                        color: AppColors.streak.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(10),
+                                        color: AppColors.streak.withValues(
+                                          alpha: 0.15,
+                                        ),
+                                        borderRadius:
+                                            BorderRadius.circular(10),
                                       ),
-                                      child: const Icon(Icons.format_quote_rounded,
-                                          color: AppColors.streak, size: 16),
+                                      child: const Icon(
+                                        Icons.format_quote_rounded,
+                                        color: AppColors.streak,
+                                        size: 16,
+                                      ),
                                     ),
                                     const SizedBox(width: 10),
-                                    Text('home.quoteOfDay'.tr(),
-                                        style: TextStyle(fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: isDark ? Colors.white70
-                                                : const Color(0xFF92400E))),
+                                    Text(
+                                      'home.quoteOfDay'.tr(),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : const Color(0xFF92400E),
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  '"${_quote!.text}"',
+                                  '"${_quoteText(_quote!)}"',
                                   style: TextStyle(
-                                    fontSize: 15, fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
                                     fontStyle: FontStyle.italic,
-                                    color: isDark ? Colors.white : const Color(0xFF78350F),
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF78350F),
                                     height: 1.5,
                                   ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  '— ${_quote!.author}',
-                                  style: TextStyle(fontSize: 13,
-                                      color: isDark ? Colors.white54 : const Color(0xFF92400E),
-                                      fontWeight: FontWeight.w500),
+                                  '— ${_quoteAuthor(_quote!)}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : const Color(0xFF92400E),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                                 if (_quote!.source == 'ZenQuotes.io') ...[
                                   const SizedBox(height: 8),
-                                  Text('Powered by ZenQuotes.io',
-                                      style: TextStyle(fontSize: 10,
-                                          color: isDark ? Colors.white24
-                                              : const Color(0xFFB45309).withValues(alpha: 0.4))),
+                                  Text(
+                                    'home.poweredBy'.tr(
+                                      namedArgs: {'source': _quote!.source},
+                                    ),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isDark
+                                          ? Colors.white24
+                                          : const Color(0xFFB45309)
+                                              .withValues(alpha: 0.4),
+                                    ),
+                                  ),
                                 ],
                               ],
                             ),
-                    ).animate().fadeIn(delay: 150.ms, duration: 600.ms)
+                    )
+                        .animate()
+                        .fadeIn(delay: 150.ms, duration: 600.ms)
                         .slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 16),
 
@@ -515,14 +921,20 @@ class _HomeScreenState extends State<HomeScreen>
                         padding: const EdgeInsets.all(22),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFF6C63FF), Color(0xFF5A4FCF), Color(0xFF4A3AB5)],
-                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF6C63FF),
+                              Color(0xFF5A4FCF),
+                              Color(0xFF4A3AB5)
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
                               color: AppColors.primary.withValues(
-                                  alpha: 0.15 + _streakGlow.value * 0.1),
+                                alpha: 0.15 + _streakGlow.value * 0.1,
+                              ),
                               blurRadius: 16 + _streakGlow.value * 8,
                               offset: const Offset(0, 6),
                             ),
@@ -533,19 +945,28 @@ class _HomeScreenState extends State<HomeScreen>
                             Row(
                               children: [
                                 Container(
-                                  width: 56, height: 56,
+                                  width: 56,
+                                  height: 56,
                                   decoration: BoxDecoration(
-                                    color: AppColors.streak.withValues(alpha: 0.2),
+                                    color: AppColors.streak.withValues(
+                                      alpha: 0.2,
+                                    ),
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
                                         color: AppColors.streak.withValues(
-                                            alpha: _streakGlow.value * 0.3),
-                                        blurRadius: 16, spreadRadius: 2),
+                                          alpha: _streakGlow.value * 0.3,
+                                        ),
+                                        blurRadius: 16,
+                                        spreadRadius: 2,
+                                      ),
                                     ],
                                   ),
-                                  child: const Icon(Icons.local_fire_department_rounded,
-                                      color: AppColors.streak, size: 32),
+                                  child: const Icon(
+                                    Icons.local_fire_department_rounded,
+                                    color: AppColors.streak,
+                                    size: 32,
+                                  ),
                                 ),
                                 const SizedBox(width: 16),
                                 Column(
@@ -554,34 +975,64 @@ class _HomeScreenState extends State<HomeScreen>
                                     Text(
                                       streak == 1
                                           ? 'home.streakDay'.tr()
-                                          : 'home.streakDays'.tr(namedArgs: {'count': '$streak'}),
-                                      style: const TextStyle(color: Colors.white,
-                                          fontSize: 30, fontWeight: FontWeight.w800, height: 1)),
+                                          : 'home.streakDays'.tr(
+                                              namedArgs: {
+                                                'count': '$streak'
+                                              },
+                                            ),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1,
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     Text(
                                       streak > 0
                                           ? 'home.streakKeepGoing'.tr()
                                           : 'home.streakDoCheckin'.tr(),
-                                      style: const TextStyle(color: Colors.white70,
-                                          fontSize: 14, fontWeight: FontWeight.w500)),
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const Spacer(),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
                                   child: Column(
                                     children: [
-                                      const Icon(Icons.emoji_events_rounded,
-                                          color: Color(0xFFFBBF24), size: 18),
+                                      const Icon(
+                                        Icons.emoji_events_rounded,
+                                        color: Color(0xFFFBBF24),
+                                        size: 18,
+                                      ),
                                       const SizedBox(height: 2),
-                                      Text('$bestStreak', style: const TextStyle(
-                                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                                      Text('home.streakBest'.tr(), style: const TextStyle(
-                                          color: Colors.white60, fontSize: 10)),
+                                      Text(
+                                        '$bestStreak',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      Text(
+                                        'home.streakBest'.tr(),
+                                        style: const TextStyle(
+                                          color: Colors.white60,
+                                          fontSize: 10,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -589,45 +1040,77 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                             const SizedBox(height: 18),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
                                 children: List.generate(7, (index) {
                                   final days = [
-                                    'days.monShort'.tr(), 'days.tueShort'.tr(), 'days.wedShort'.tr(),
-                                    'days.thuShort'.tr(), 'days.friShort'.tr(), 'days.satShort'.tr(),
+                                    'days.monShort'.tr(),
+                                    'days.tueShort'.tr(),
+                                    'days.wedShort'.tr(),
+                                    'days.thuShort'.tr(),
+                                    'days.friShort'.tr(),
+                                    'days.satShort'.tr(),
                                     'days.sunShort'.tr(),
                                   ];
                                   final today = DateTime.now().weekday - 1;
                                   final isToday = index == today;
                                   final isPast = index < today;
-                                  final wasActive = isPast && streak > (today - index);
+                                  final wasActive =
+                                      isPast && streak > (today - index);
                                   return Column(
                                     children: [
-                                      Text(days[index], style: TextStyle(
-                                          color: isToday ? Colors.white : Colors.white54,
+                                      Text(
+                                        days[index],
+                                        style: TextStyle(
+                                          color: isToday
+                                              ? Colors.white
+                                              : Colors.white54,
                                           fontSize: 11,
-                                          fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
+                                          fontWeight: isToday
+                                              ? FontWeight.w700
+                                              : FontWeight.w400,
+                                        ),
+                                      ),
                                       const SizedBox(height: 6),
                                       AnimatedContainer(
-                                        duration: const Duration(milliseconds: 300),
-                                        width: 30, height: 30,
+                                        duration:
+                                            const Duration(milliseconds: 300),
+                                        width: 30,
+                                        height: 30,
                                         decoration: BoxDecoration(
                                           shape: BoxShape.circle,
-                                          color: isToday ? AppColors.streak
-                                              : wasActive ? AppColors.streak.withValues(alpha: 0.4)
-                                              : Colors.white.withValues(alpha: 0.08),
+                                          color: isToday
+                                              ? AppColors.streak
+                                              : wasActive
+                                                  ? AppColors.streak
+                                                      .withValues(alpha: 0.4)
+                                                  : Colors.white
+                                                      .withValues(alpha: 0.08),
                                         ),
                                         child: Icon(
-                                          isToday ? Icons.local_fire_department_rounded
-                                              : wasActive ? Icons.check_rounded
-                                              : Icons.circle_outlined,
-                                          color: isToday || wasActive ? Colors.white : Colors.white24,
-                                          size: isToday ? 16 : wasActive ? 14 : 6,
+                                          isToday
+                                              ? Icons
+                                                  .local_fire_department_rounded
+                                              : wasActive
+                                                  ? Icons.check_rounded
+                                                  : Icons.circle_outlined,
+                                          color: isToday || wasActive
+                                              ? Colors.white
+                                              : Colors.white24,
+                                          size: isToday
+                                              ? 16
+                                              : wasActive
+                                                  ? 14
+                                                  : 6,
                                         ),
                                       ),
                                     ],
@@ -639,7 +1122,9 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       );
                     },
-                  ).animate().fadeIn(delay: 300.ms, duration: 700.ms)
+                  )
+                      .animate()
+                      .fadeIn(delay: 300.ms, duration: 700.ms)
                       .slideY(begin: 0.15, end: 0),
                   const SizedBox(height: 20),
 
@@ -647,27 +1132,48 @@ class _HomeScreenState extends State<HomeScreen>
                   Row(
                     children: [
                       Expanded(
-                        child: Text('home.moodCheckIn'.tr(),
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white : AppColors.textPrimary)),
+                        child: Text(
+                          'home.moodCheckIn'.tr(),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                          ),
+                        ),
                       ),
                       if (_selectedMood != null)
                         GestureDetector(
                           onTap: () => setState(() => _selectedMood = null),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.textSecondary.withValues(alpha: 0.1),
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.refresh_rounded, size: 14,
-                                    color: AppColors.textSecondary),
+                                Icon(
+                                  Icons.refresh_rounded,
+                                  size: 14,
+                                  color: AppColors.textSecondary,
+                                ),
                                 const SizedBox(width: 4),
-                                Text('home.moodChange'.tr(), style: TextStyle(fontSize: 12,
-                                    color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                                Text(
+                                  'home.moodChange'.tr(),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -680,13 +1186,19 @@ class _HomeScreenState extends State<HomeScreen>
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : Colors.white,
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(
-                        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.grey.shade200,
+                      ),
                     ),
                     child: Wrap(
-                      spacing: 6, runSpacing: 10,
+                      spacing: 6,
+                      runSpacing: 10,
                       alignment: WrapAlignment.center,
                       children: MoodType.values.map((mood) {
                         final isSelected = _selectedMood == mood;
@@ -698,33 +1210,54 @@ class _HomeScreenState extends State<HomeScreen>
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? mood.color.withValues(alpha: 0.15) : Colors.transparent,
+                                  ? mood.color.withValues(alpha: 0.15)
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(16),
                               border: isSelected
-                                  ? Border.all(color: mood.color.withValues(alpha: 0.5), width: 2)
+                                  ? Border.all(
+                                      color:
+                                          mood.color.withValues(alpha: 0.5),
+                                      width: 2,
+                                    )
                                   : null,
                             ),
                             child: Column(
                               children: [
-                                Text(mood.emoji,
-                                    style: TextStyle(fontSize: isSelected ? 30 : 26)),
+                                Text(
+                                  mood.emoji,
+                                  style: TextStyle(
+                                    fontSize: isSelected ? 30 : 26,
+                                  ),
+                                ),
                                 const SizedBox(height: 4),
-                                Text(mood.label, style: TextStyle(fontSize: 10,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                    color: isSelected ? mood.color : AppColors.textSecondary)),
+                                Text(
+                                  _moodLabel(mood),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? mood.color
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                         );
                       }).toList(),
                     ),
-                  ).animate().fadeIn(delay: 500.ms, duration: 600.ms)
+                  )
+                      .animate()
+                      .fadeIn(delay: 500.ms, duration: 600.ms)
                       .slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 20),
 
                   // GRÁFICA SEMANAL
                   WeeklyMoodChart(weeklyMoods: _weeklyMoods)
-                      .animate().fadeIn(delay: 550.ms, duration: 600.ms),
+                      .animate()
+                      .fadeIn(delay: 550.ms, duration: 600.ms),
                   const SizedBox(height: 20),
 
                   // RETO DIARIO
@@ -740,17 +1273,25 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: challenge.color.withValues(alpha: isDark ? 0.2 : 0.15)),
+                        color: challenge.color.withValues(
+                          alpha: isDark ? 0.2 : 0.15,
+                        ),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 52, height: 52,
+                          width: 52,
+                          height: 52,
                           decoration: BoxDecoration(
                             color: challenge.color.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: Icon(challenge.icon, color: challenge.color, size: 26),
+                          child: Icon(
+                            challenge.icon,
+                            color: challenge.color,
+                            size: 26,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -760,40 +1301,77 @@ class _HomeScreenState extends State<HomeScreen>
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: challenge.color.withValues(alpha: 0.15),
+                                      color: challenge.color
+                                          .withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                        'home.challengeLabel'.tr(namedArgs: {'category': challenge.category}),
-                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700,
-                                            color: challenge.color)),
+                                      'home.challengeLabel'.tr(
+                                        namedArgs: {
+                                          'category': _challengeCategory(challenge),
+                                        },
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: challenge.color,
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text(challenge.duration,
-                                      style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                                  Text(
+                                    challenge.duration,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              Text(challenge.title,
-                                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                                      color: isDark ? Colors.white : AppColors.textPrimary)),
+                              Text(
+                                _challengeTitle(challenge),
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
                               const SizedBox(height: 2),
-                              Text(challenge.description,
-                                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                              Text(
+                                _challengeDescription(challenge),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: challenge.color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text('+${challenge.xpReward}',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800,
-                                  color: challenge.color)),
+                          child: Text(
+                            '+${challenge.xpReward}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: challenge.color,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -801,18 +1379,27 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 20),
 
                   // ACCIONES RÁPIDAS
-                  Text('home.todayTraining'.tr(),
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : AppColors.textPrimary))
-                      .animate().fadeIn(delay: 650.ms),
+                  Text(
+                    'home.todayTraining'.tr(),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ).animate().fadeIn(delay: 650.ms),
                   const SizedBox(height: 14),
 
                   _buildActionCard(
                     icon: Icons.menu_book_rounded,
-                    title: nextLesson != null ? nextLesson.$1 : 'home.allComplete'.tr(),
-                    subtitle: nextLesson != null ? nextLesson.$2 : 'home.congratulations'.tr(),
+                    title: nextLesson != null
+                        ? nextLesson.$1
+                        : 'home.allComplete'.tr(),
+                    subtitle: nextLesson != null
+                        ? nextLesson.$2
+                        : 'home.congratulations'.tr(),
                     color: nextLesson?.$3 ?? const Color(0xFF10B981),
-                    isDark: isDark, delay: 700,
+                    isDark: isDark,
+                    delay: 700,
                     onTap: _openNextLesson,
                   ),
                   const SizedBox(height: 12),
@@ -821,18 +1408,22 @@ class _HomeScreenState extends State<HomeScreen>
                     title: 'home.breathingTitle'.tr(),
                     subtitle: 'home.breathingSubtitle'.tr(),
                     color: AppColors.moodCalm,
-                    isDark: isDark, delay: 750,
+                    isDark: isDark,
+                    delay: 750,
                   ),
                   _buildActionCard(
                     icon: Icons.edit_note_rounded,
                     title: 'home.quickDiary'.tr(),
                     subtitle: 'home.quickDiarySubtitle'.tr(),
                     color: const Color(0xFF10B981),
-                    isDark: isDark, delay: 800,
+                    isDark: isDark,
+                    delay: 800,
                     onTap: () async {
                       final result = await Navigator.push<bool>(
                         context,
-                        MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const NewDiaryEntryScreen(),
+                        ),
                       );
                       if (result == true) _loadData();
                     },
@@ -843,19 +1434,28 @@ class _HomeScreenState extends State<HomeScreen>
                     title: 'home.habitsReminders'.tr(),
                     subtitle: 'home.habitsRemindersSubtitle'.tr(),
                     color: const Color(0xFF8B5CF6),
-                    isDark: isDark, delay: 850,
+                    isDark: isDark,
+                    delay: 850,
                     onTap: () {
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const RemindersScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const RemindersScreen(),
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(height: 24),
 
                   // STATS RÁPIDOS
-                  Text('home.yourSummary'.tr(),
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : AppColors.textPrimary))
-                      .animate().fadeIn(delay: 900.ms),
+                  Text(
+                    'home.yourSummary'.tr(),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ).animate().fadeIn(delay: 900.ms),
                   const SizedBox(height: 14),
                   Row(
                     children: [
@@ -863,7 +1463,12 @@ class _HomeScreenState extends State<HomeScreen>
                       const SizedBox(width: 12),
                       _buildStatCard('⚡', '$totalXp', 'home.totalXp'.tr(), isDark),
                       const SizedBox(width: 12),
-                      _buildStatCard('🏆', 'Nv $level', levelTitle, isDark),
+                      _buildStatCard(
+                        '🏆',
+                        '${'home.levelShort'.tr()} $level',
+                        levelTitle,
+                        isDark,
+                      ),
                     ],
                   ).animate().fadeIn(delay: 950.ms),
                   const SizedBox(height: 20),
@@ -875,38 +1480,66 @@ class _HomeScreenState extends State<HomeScreen>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: isDark
-                            ? [Colors.white.withValues(alpha: 0.06),
-                               Colors.white.withValues(alpha: 0.03)]
-                            : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)],
+                            ? [
+                                Colors.white.withValues(alpha: 0.06),
+                                Colors.white.withValues(alpha: 0.03)
+                              ]
+                            : [
+                                const Color(0xFFF5F3FF),
+                                const Color(0xFFEDE9FE)
+                              ],
                       ),
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(
-                        color: isDark ? Colors.white.withValues(alpha: 0.08)
-                            : const Color(0xFFDDD6FE)),
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : const Color(0xFFDDD6FE),
+                      ),
                     ),
                     child: Row(
                       children: [
                         Container(
-                          width: 60, height: 60,
+                          width: 60,
+                          height: 60,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: _getArchetypeGradient(authProvider.userModel?.archetype),
-                              begin: Alignment.topLeft, end: Alignment.bottomRight),
+                              colors: _getArchetypeGradient(
+                                authProvider.userModel?.archetype,
+                              ),
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                             borderRadius: BorderRadius.circular(18),
                             boxShadow: [
                               BoxShadow(
-                                color: _getArchetypeGradient(authProvider.userModel?.archetype)
-                                    .first.withValues(alpha: 0.3),
-                                blurRadius: 12, offset: const Offset(0, 4)),
+                                color: _getArchetypeGradient(
+                                  authProvider.userModel?.archetype,
+                                ).first.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
                             ],
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text('Nv', style: TextStyle(color: Colors.white60,
-                                  fontSize: 10, fontWeight: FontWeight.w600)),
-                              Text('$level', style: const TextStyle(color: Colors.white,
-                                  fontSize: 22, fontWeight: FontWeight.w800, height: 1)),
+                              Text(
+                                'home.levelShort'.tr(),
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                '$level',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -915,9 +1548,16 @@ class _HomeScreenState extends State<HomeScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(levelTitle, style: TextStyle(fontSize: 16,
+                              Text(
+                                levelTitle,
+                                style: TextStyle(
+                                  fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? Colors.white : AppColors.textPrimary)),
+                                  color: isDark
+                                      ? Colors.white
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
                               const SizedBox(height: 10),
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(6),
@@ -927,13 +1567,21 @@ class _HomeScreenState extends State<HomeScreen>
                                       ? Colors.white.withValues(alpha: 0.1)
                                       : const Color(0xFFDDD6FE),
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    _getArchetypeGradient(authProvider.userModel?.archetype).first),
+                                    _getArchetypeGradient(
+                                      authProvider.userModel?.archetype,
+                                    ).first,
+                                  ),
                                   minHeight: 10,
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text('${totalXp % xpForNext} / $xpForNext XP',
-                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                              Text(
+                                '${totalXp % xpForNext} / $xpForNext XP',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -949,7 +1597,12 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildStatCard(String emoji, String value, String label, bool isDark) {
+  Widget _buildStatCard(
+    String emoji,
+    String value,
+    String label,
+    bool isDark,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -957,17 +1610,32 @@ class _HomeScreenState extends State<HomeScreen>
           color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.grey.shade200,
+          ),
         ),
         child: Column(
           children: [
             Text(emoji, style: const TextStyle(fontSize: 22)),
             const SizedBox(height: 6),
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : AppColors.textPrimary)),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                overflow: TextOverflow.ellipsis),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
@@ -975,27 +1643,37 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildActionCard({
-    required IconData icon, required String title, required String subtitle,
-    required Color color, required bool isDark, required int delay,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required bool isDark,
+    required int delay,
     VoidCallback? onTap,
   }) {
     return GestureDetector(
       onTap: onTap ?? () {},
       child: Container(
-        width: double.infinity, padding: const EdgeInsets.all(18),
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.grey.shade200,
+          ),
         ),
         child: Row(
           children: [
             Container(
-              width: 52, height: 52,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-                borderRadius: BorderRadius.circular(16)),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Icon(icon, color: color, size: 26),
             ),
             const SizedBox(width: 16),
@@ -1003,19 +1681,37 @@ class _HomeScreenState extends State<HomeScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppColors.textPrimary)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 3),
-                  Text(subtitle, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
                 ],
               ),
             ),
             Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: isDark ? 0.15 : 0.08),
-                borderRadius: BorderRadius.circular(10)),
-              child: Icon(Icons.chevron_right_rounded, color: color, size: 20),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.chevron_right_rounded,
+                color: color,
+                size: 20,
+              ),
             ),
           ],
         ),
@@ -1025,12 +1721,18 @@ class _HomeScreenState extends State<HomeScreen>
 
   List<Color> _getArchetypeGradient(String? archetype) {
     switch (archetype) {
-      case 'explorador': return [const Color(0xFF6366F1), const Color(0xFF4338CA)];
-      case 'guerrero':   return [const Color(0xFFEF4444), const Color(0xFFDC2626)];
-      case 'social':     return [const Color(0xFFEC4899), const Color(0xFFDB2777)];
-      case 'sabio':      return [const Color(0xFF10B981), const Color(0xFF059669)];
-      case 'libre':      return [const Color(0xFFF59E0B), const Color(0xFFD97706)];
-      default:           return [AppColors.primary, AppColors.primaryDark];
+      case 'explorador':
+        return [const Color(0xFF6366F1), const Color(0xFF4338CA)];
+      case 'guerrero':
+        return [const Color(0xFFEF4444), const Color(0xFFDC2626)];
+      case 'social':
+        return [const Color(0xFFEC4899), const Color(0xFFDB2777)];
+      case 'sabio':
+        return [const Color(0xFF10B981), const Color(0xFF059669)];
+      case 'libre':
+        return [const Color(0xFFF59E0B), const Color(0xFFD97706)];
+      default:
+        return [AppColors.primary, AppColors.primaryDark];
     }
   }
 

@@ -5,29 +5,105 @@ import 'package:flutter/material.dart';
 /// Enhanced enum con toda la metadata directamente.
 enum MoodType {
   // Positivos
-  happy(emoji: '😊', label: 'Feliz', color: Color(0xFF10B981), category: 'positive'),
-  excited(emoji: '🤩', label: 'Emocionado', color: Color(0xFFF59E0B), category: 'positive'),
-  grateful(emoji: '🙏', label: 'Agradecido', color: Color(0xFF8B5CF6), category: 'positive'),
-  calm(emoji: '😌', label: 'Tranquilo', color: Color(0xFF3B82F6), category: 'positive'),
+  happy(
+    emoji: '😊',
+    label: 'Feliz',
+    labelKey: 'mood.happy',
+    color: Color(0xFF10B981),
+    category: 'positive',
+  ),
+  excited(
+    emoji: '🤩',
+    label: 'Emocionado',
+    labelKey: 'mood.excited',
+    color: Color(0xFFF59E0B),
+    category: 'positive',
+  ),
+  grateful(
+    emoji: '🙏',
+    label: 'Agradecido',
+    labelKey: 'mood.grateful',
+    color: Color(0xFF8B5CF6),
+    category: 'positive',
+  ),
+  calm(
+    emoji: '😌',
+    label: 'Tranquilo',
+    labelKey: 'mood.calm',
+    color: Color(0xFF3B82F6),
+    category: 'positive',
+  ),
+
   // Neutros
-  neutral(emoji: '😐', label: 'Normal', color: Color(0xFF6B7280), category: 'neutral'),
-  tired(emoji: '😴', label: 'Cansado', color: Color(0xFF9CA3AF), category: 'neutral'),
-  bored(emoji: '🥱', label: 'Aburrido', color: Color(0xFFD1D5DB), category: 'neutral'),
+  neutral(
+    emoji: '😐',
+    label: 'Normal',
+    labelKey: 'mood.neutral',
+    color: Color(0xFF6B7280),
+    category: 'neutral',
+  ),
+  tired(
+    emoji: '😴',
+    label: 'Cansado',
+    labelKey: 'mood.tired',
+    color: Color(0xFF9CA3AF),
+    category: 'neutral',
+  ),
+  bored(
+    emoji: '🥱',
+    label: 'Aburrido',
+    labelKey: 'mood.bored',
+    color: Color(0xFFD1D5DB),
+    category: 'neutral',
+  ),
+
   // Negativos
-  sad(emoji: '😢', label: 'Triste', color: Color(0xFF6366F1), category: 'negative'),
-  anxious(emoji: '😰', label: 'Ansioso', color: Color(0xFFEF4444), category: 'negative'),
-  angry(emoji: '😤', label: 'Enojado', color: Color(0xFFDC2626), category: 'negative'),
-  stressed(emoji: '😩', label: 'Estresado', color: Color(0xFFF97316), category: 'negative'),
-  lonely(emoji: '🫥', label: 'Solo', color: Color(0xFF8B5CF6), category: 'negative');
+  sad(
+    emoji: '😢',
+    label: 'Triste',
+    labelKey: 'mood.sad',
+    color: Color(0xFF6366F1),
+    category: 'negative',
+  ),
+  anxious(
+    emoji: '😰',
+    label: 'Ansioso',
+    labelKey: 'mood.anxious',
+    color: Color(0xFFEF4444),
+    category: 'negative',
+  ),
+  angry(
+    emoji: '😤',
+    label: 'Enojado',
+    labelKey: 'mood.angry',
+    color: Color(0xFFDC2626),
+    category: 'negative',
+  ),
+  stressed(
+    emoji: '😩',
+    label: 'Estresado',
+    labelKey: 'mood.stressed',
+    color: Color(0xFFF97316),
+    category: 'negative',
+  ),
+  lonely(
+    emoji: '🫥',
+    label: 'Solo',
+    labelKey: 'mood.lonely',
+    color: Color(0xFF8B5CF6),
+    category: 'negative',
+  );
 
   final String emoji;
   final String label;
+  final String labelKey;
   final Color color;
   final String category;
 
   const MoodType({
     required this.emoji,
     required this.label,
+    required this.labelKey,
     required this.color,
     required this.category,
   });

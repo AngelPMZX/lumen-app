@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/habit.dart';
 import '../../../domain/providers/auth_provider.dart';
@@ -47,6 +48,52 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     super.dispose();
   }
 
+  String _presetTitle(Habit habit) {
+    switch (habit.id) {
+      case 'preset_exercise':
+        return 'habits.exercise'.tr();
+      case 'preset_water':
+        return 'habits.water'.tr();
+      case 'preset_diary':
+        return 'habits.writeDiary'.tr();
+      case 'preset_meditate':
+        return 'habits.meditate'.tr();
+      case 'preset_read':
+        return 'habits.read'.tr();
+      case 'preset_sleep':
+        return 'habits.sleep'.tr();
+      case 'preset_no_social':
+        return 'habits.noSocial'.tr();
+      case 'preset_gratitude':
+        return 'habits.gratitude'.tr();
+      default:
+        return habit.title;
+    }
+  }
+
+  String? _presetDescription(Habit habit) {
+    switch (habit.id) {
+      case 'preset_exercise':
+        return 'habits.exerciseDesc'.tr();
+      case 'preset_water':
+        return 'habits.waterDesc'.tr();
+      case 'preset_diary':
+        return 'habits.writeDiaryDesc'.tr();
+      case 'preset_meditate':
+        return 'habits.meditateDesc'.tr();
+      case 'preset_read':
+        return 'habits.readDesc'.tr();
+      case 'preset_sleep':
+        return 'habits.sleepDesc'.tr();
+      case 'preset_no_social':
+        return 'habits.noSocialDesc'.tr();
+      case 'preset_gratitude':
+        return 'habits.gratitudeDesc'.tr();
+      default:
+        return habit.description;
+    }
+  }
+
   Future<void> _savePreset(Habit preset) async {
     HapticFeedback.mediumImpact();
     try {
@@ -60,14 +107,17 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       );
       await auth.saveHabit(habit);
       if (mounted) {
+        final translatedTitle = _presetTitle(preset);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 Text(preset.emoji, style: const TextStyle(fontSize: 18)),
                 const SizedBox(width: 10),
-                Text('${preset.title} agregado',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                Text(
+                  'habits.addedNamed'.tr(namedArgs: {'title': translatedTitle}),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
               ],
             ),
             backgroundColor: preset.color.withValues(alpha: 0.9),
@@ -113,7 +163,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Fondo con partículas
           AnimatedParticlesBackground(
             particleCount: 15,
             maxShootingStars: isDark ? 2 : 0,
@@ -121,11 +170,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 ? Colors.white.withValues(alpha: 0.3)
                 : const Color(0xFF10B981).withValues(alpha: 0.12),
           ),
-
           SafeArea(
             child: Column(
               children: [
-                // AppBar custom
                 Padding(
                   padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                   child: Row(
@@ -134,23 +181,23 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                         icon: const Icon(Icons.close_rounded),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
-                        child: Text('Agregar hábito',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                      Expanded(
+                        child: Text(
+                          'habits.addHabit'.tr(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                        ),
                       ),
                       const SizedBox(width: 48),
                     ],
                   ),
                 ),
-
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── Header visual ──
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(22),
@@ -179,26 +226,42 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                     color: Color(0xFF10B981), size: 32),
                               ),
                               const SizedBox(height: 14),
-                              Text('Elige un hábito',
-                                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800,
-                                      color: isDark ? Colors.white : const Color(0xFF065F46))),
+                              Text(
+                                'habits.chooseHabit'.tr(),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? Colors.white : const Color(0xFF065F46),
+                                ),
+                              ),
                               const SizedBox(height: 6),
-                              Text('Selecciona un sugerido o crea el tuyo',
-                                  style: TextStyle(fontSize: 14,
-                                      color: isDark ? Colors.white60 : const Color(0xFF047857))),
+                              Text(
+                                'habits.chooseSuggestedOrCustom'.tr(),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white60 : const Color(0xFF047857),
+                                ),
+                              ),
                             ],
                           ),
                         ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
                         const SizedBox(height: 24),
 
-                        // ── Sugeridos ──
-                        Text('Sugeridos',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white : AppColors.textPrimary)),
+                        Text(
+                          'habits.suggestedShort'.tr(),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 12),
 
                         ...List.generate(Habit.presets.length, (index) {
                           final preset = Habit.presets[index];
+                          final translatedTitle = _presetTitle(preset);
+                          final translatedDescription = _presetDescription(preset);
+
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 10),
                             child: GestureDetector(
@@ -234,13 +297,22 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(preset.title,
-                                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                                                  color: isDark ? Colors.white : AppColors.textPrimary)),
-                                          if (preset.description != null)
-                                            Text(preset.description!,
-                                                style: TextStyle(fontSize: 13,
-                                                    color: AppColors.textSecondary)),
+                                          Text(
+                                            translatedTitle,
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                              color: isDark ? Colors.white : AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          if (translatedDescription != null)
+                                            Text(
+                                              translatedDescription,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
                                         ],
                                       ),
                                     ),
@@ -261,24 +333,33 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                         }),
                         const SizedBox(height: 24),
 
-                        // ── Divider ──
                         Row(
                           children: [
-                            Expanded(child: Divider(
-                                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
+                            Expanded(
+                              child: Divider(
+                                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300,
+                              ),
+                            ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('o crea el tuyo',
-                                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w500)),
+                              child: Text(
+                                'habits.orCreateYours'.tr(),
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ),
-                            Expanded(child: Divider(
-                                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)),
+                            Expanded(
+                              child: Divider(
+                                color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 20),
 
-                        // ── Custom form ──
                         if (!_showCustomForm)
                           GestureDetector(
                             onTap: () => setState(() => _showCustomForm = true),
@@ -295,7 +376,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: AppColors.primary.withValues(alpha: isDark ? 0.2 : 0.15),
-                                  width: 1.5),
+                                  width: 1.5,
+                                ),
                               ),
                               child: Column(
                                 children: [
@@ -308,18 +390,24 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                     child: Icon(Icons.edit_rounded, color: AppColors.primary, size: 24),
                                   ),
                                   const SizedBox(height: 10),
-                                  Text('Crear hábito personalizado',
-                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                                          color: AppColors.primary)),
+                                  Text(
+                                    'habits.createCustomHabit'.tr(),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
                                   const SizedBox(height: 4),
-                                  Text('Elige emoji, color y nombre',
-                                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                  Text(
+                                    'habits.chooseEmojiColorName'.tr(),
+                                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                  ),
                                 ],
                               ),
                             ),
                           )
                         else ...[
-                          // ── Expanded custom form ──
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(20),
@@ -334,21 +422,34 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Personalizar',
-                                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
-                                        color: isDark ? Colors.white : AppColors.textPrimary)),
+                                Text(
+                                  'habits.customize'.tr(),
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white : AppColors.textPrimary,
+                                  ),
+                                ),
                                 const SizedBox(height: 16),
 
-                                // Emoji
-                                Text('Ícono', style: TextStyle(fontSize: 13,
-                                    fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                                Text(
+                                  'habits.iconLabel'.tr(),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
                                 const SizedBox(height: 8),
                                 Wrap(
                                   spacing: 8, runSpacing: 8,
                                   children: _emojiOptions.map((emoji) {
                                     final sel = _selectedEmoji == emoji;
                                     return GestureDetector(
-                                      onTap: () { HapticFeedback.lightImpact(); setState(() => _selectedEmoji = emoji); },
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        setState(() => _selectedEmoji = emoji);
+                                      },
                                       child: AnimatedContainer(
                                         duration: const Duration(milliseconds: 200),
                                         width: 44, height: 44,
@@ -365,9 +466,14 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Color
-                                Text('Color', style: TextStyle(fontSize: 13,
-                                    fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
+                                Text(
+                                  'habits.habitColor'.tr(),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
                                 const SizedBox(height: 8),
                                 Row(
                                   children: _colorOptions.map((color) {
@@ -375,14 +481,20 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                     return Padding(
                                       padding: const EdgeInsets.only(right: 10),
                                       child: GestureDetector(
-                                        onTap: () { HapticFeedback.lightImpact(); setState(() => _selectedColor = color); },
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          setState(() => _selectedColor = color);
+                                        },
                                         child: AnimatedContainer(
                                           duration: const Duration(milliseconds: 200),
                                           width: sel ? 38 : 30, height: sel ? 38 : 30,
                                           decoration: BoxDecoration(
-                                            color: color, shape: BoxShape.circle,
+                                            color: color,
+                                            shape: BoxShape.circle,
                                             border: sel ? Border.all(color: isDark ? Colors.white : Colors.white, width: 3) : null,
-                                            boxShadow: sel ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 10, spreadRadius: 1)] : [],
+                                            boxShadow: sel ? [
+                                              BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 10, spreadRadius: 1),
+                                            ] : [],
                                           ),
                                         ),
                                       ),
@@ -391,7 +503,6 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                 ),
                                 const SizedBox(height: 20),
 
-                                // Nombre
                                 TextField(
                                   controller: _titleController,
                                   onChanged: (_) => setState(() {}),
@@ -399,50 +510,53 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                   style: TextStyle(fontSize: 15,
                                       color: isDark ? Colors.white : AppColors.textPrimary),
                                   decoration: InputDecoration(
-                                    labelText: 'Nombre del hábito',
-                                    labelStyle: TextStyle(color: AppColors.textSecondary),
-                                    hintText: 'Ej: Caminar 20 minutos',
+                                    labelText: 'habits.habitName'.tr(),
+                                    labelStyle: const TextStyle(color: AppColors.textSecondary),
+                                    hintText: 'habits.nameHintCustom'.tr(),
                                     hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
                                     filled: true,
                                     fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade50,
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
-                                        borderSide: BorderSide(color: _selectedColor, width: 1.5)),
-                                    counterStyle: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: BorderSide(color: _selectedColor, width: 1.5),
+                                    ),
+                                    counterStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                                     contentPadding: const EdgeInsets.all(16),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
 
-                                // Descripción
                                 TextField(
                                   controller: _descController,
                                   maxLength: 80,
                                   style: TextStyle(fontSize: 15,
                                       color: isDark ? Colors.white : AppColors.textPrimary),
                                   decoration: InputDecoration(
-                                    labelText: 'Descripción (opcional)',
-                                    labelStyle: TextStyle(color: AppColors.textSecondary),
-                                    hintText: 'Ej: Antes de las 8am',
+                                    labelText: 'habits.habitDesc'.tr(),
+                                    labelStyle: const TextStyle(color: AppColors.textSecondary),
+                                    hintText: 'habits.descHintCustom'.tr(),
                                     hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
                                     filled: true,
                                     fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade50,
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
-                                        borderSide: BorderSide(color: _selectedColor, width: 1.5)),
-                                    counterStyle: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: BorderSide(color: _selectedColor, width: 1.5),
+                                    ),
+                                    counterStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                                     contentPadding: const EdgeInsets.all(16),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Preview
                                 Container(
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(colors: [
                                       _selectedColor.withValues(alpha: isDark ? 0.12 : 0.08),
-                                      _selectedColor.withValues(alpha: isDark ? 0.06 : 0.03)]),
+                                      _selectedColor.withValues(alpha: isDark ? 0.06 : 0.03),
+                                    ]),
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(color: _selectedColor.withValues(alpha: 0.2)),
                                   ),
@@ -452,7 +566,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                         width: 46, height: 46,
                                         decoration: BoxDecoration(
                                           color: _selectedColor.withValues(alpha: 0.2),
-                                          borderRadius: BorderRadius.circular(14)),
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
                                         child: Center(child: Text(_selectedEmoji, style: const TextStyle(fontSize: 24))),
                                       ),
                                       const SizedBox(width: 14),
@@ -461,12 +576,18 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              _titleController.text.isNotEmpty ? _titleController.text : 'Vista previa',
-                                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                                                  color: isDark ? Colors.white : AppColors.textPrimary)),
+                                              _titleController.text.isNotEmpty ? _titleController.text : 'habits.preview'.tr(),
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w700,
+                                                color: isDark ? Colors.white : AppColors.textPrimary,
+                                              ),
+                                            ),
                                             if (_descController.text.isNotEmpty)
-                                              Text(_descController.text,
-                                                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                                              Text(
+                                                _descController.text,
+                                                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                              ),
                                           ],
                                         ),
                                       ),
@@ -474,16 +595,22 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
                                           color: _selectedColor.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(8)),
-                                        child: Text('+5 XP', style: TextStyle(fontSize: 11,
-                                            fontWeight: FontWeight.w700, color: _selectedColor)),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          'habits.checkInXp'.tr(),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: _selectedColor,
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(height: 16),
 
-                                // Botón crear
                                 SizedBox(
                                   width: double.infinity, height: 52,
                                   child: FilledButton(
@@ -494,10 +621,15 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                     ),
                                     child: _isSaving
-                                        ? const SizedBox(width: 20, height: 20,
-                                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                        : const Text('Crear hábito',
-                                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                          )
+                                        : Text(
+                                            'habits.createHabit'.tr(),
+                                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                          ),
                                   ),
                                 ),
                               ],

@@ -6,6 +6,8 @@ class Habit {
   final String id;
   final String title;
   final String? description;
+  final String? titleKey;
+  final String? descriptionKey;
   final String emoji;
   final Color color;
   final List<int> activeDays; // 1=Lun..7=Dom. Vacío = todos los días
@@ -16,6 +18,8 @@ class Habit {
     required this.id,
     required this.title,
     this.description,
+    this.titleKey,
+    this.descriptionKey,
     required this.emoji,
     required this.color,
     this.activeDays = const [],
@@ -60,6 +64,8 @@ class Habit {
           id: 'preset_exercise',
           title: 'Hacer ejercicio',
           description: '30 min de actividad física',
+          titleKey: 'habits.exercise',
+          descriptionKey: 'habits.exerciseDesc',
           emoji: '💪',
           color: const Color(0xFFEF4444),
         ),
@@ -67,6 +73,8 @@ class Habit {
           id: 'preset_water',
           title: 'Tomar 2L de agua',
           description: 'Hidrátate durante el día',
+          titleKey: 'habits.water',
+          descriptionKey: 'habits.waterDesc',
           emoji: '💧',
           color: const Color(0xFF3B82F6),
         ),
@@ -74,6 +82,8 @@ class Habit {
           id: 'preset_diary',
           title: 'Escribir en el diario',
           description: 'Reflexiona sobre tu día',
+          titleKey: 'habits.writeDiary',
+          descriptionKey: 'habits.writeDiaryDesc',
           emoji: '📝',
           color: const Color(0xFF10B981),
         ),
@@ -81,6 +91,8 @@ class Habit {
           id: 'preset_meditate',
           title: 'Meditar 5 minutos',
           description: 'Un momento de calma',
+          titleKey: 'habits.meditate',
+          descriptionKey: 'habits.meditateDesc',
           emoji: '🧘',
           color: const Color(0xFF8B5CF6),
         ),
@@ -88,6 +100,8 @@ class Habit {
           id: 'preset_read',
           title: 'Leer 15 minutos',
           description: 'Alimenta tu mente',
+          titleKey: 'habits.read',
+          descriptionKey: 'habits.readDesc',
           emoji: '📖',
           color: const Color(0xFFF59E0B),
         ),
@@ -95,6 +109,8 @@ class Habit {
           id: 'preset_sleep',
           title: 'Dormir 8 horas',
           description: 'Descansa bien',
+          titleKey: 'habits.sleep',
+          descriptionKey: 'habits.sleepDesc',
           emoji: '😴',
           color: const Color(0xFF6366F1),
         ),
@@ -102,6 +118,8 @@ class Habit {
           id: 'preset_no_social',
           title: 'Sin redes 1 hora',
           description: 'Desconéctate un rato',
+          titleKey: 'habits.noSocial',
+          descriptionKey: 'habits.noSocialDesc',
           emoji: '📵',
           color: const Color(0xFFF97316),
         ),
@@ -109,6 +127,8 @@ class Habit {
           id: 'preset_gratitude',
           title: 'Practicar gratitud',
           description: '3 cosas que agradeces',
+          titleKey: 'habits.gratitude',
+          descriptionKey: 'habits.gratitudeDesc',
           emoji: '🙏',
           color: const Color(0xFFEC4899),
         ),
@@ -143,7 +163,8 @@ class HabitCheckIn {
 
   /// ID del documento en Firestore: habitId_YYYY-MM-DD
   String get docId {
-    final d = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final d =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     return '${habitId}_$d';
   }
 }

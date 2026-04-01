@@ -1,7 +1,10 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/diary_entry.dart';
+import '../../../data/models/mood_entry.dart';
 import '../../../domain/providers/auth_provider.dart';
 
 class DiaryDetailScreen extends StatelessWidget {
@@ -9,19 +12,31 @@ class DiaryDetailScreen extends StatelessWidget {
 
   const DiaryDetailScreen({super.key, required this.entry});
 
-  String _formatDate(DateTime date) {
-    final months = [
-      '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-    ];
-    final days = [
-      '', 'Lunes', 'Martes', 'Miércoles', 'Jueves',
-      'Viernes', 'Sábado', 'Domingo'
-    ];
-    final dayName = days[date.weekday];
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$dayName, ${date.day} de ${months[date.month]} · $hour:$minute';
+  String _localeString(BuildContext context) {
+    final locale = context.locale;
+    if (locale.countryCode != null && locale.countryCode!.isNotEmpty) {
+      return '${locale.languageCode}_${locale.countryCode}';
+    }
+    return locale.languageCode;
+  }
+
+  String _formatDate(BuildContext context, DateTime date) {
+    final locale = _localeString(context);
+    final isSpanish = context.locale.languageCode == 'es';
+    final pattern = isSpanish
+        ? "EEEE, d 'de' MMMM · HH:mm"
+        : "EEEE, MMMM d · HH:mm";
+
+    final formatted = DateFormat(pattern, locale).format(date);
+    return formatted.isNotEmpty
+        ? formatted[0].toUpperCase() + formatted.substring(1)
+        : formatted;
+  }
+
+  String _moodLabel(MoodType mood) {
+    final key = 'mood.${mood.name}';
+    final translated = key.tr();
+    return translated == key ? mood.label : translated;
   }
 
   Future<void> _deleteEntry(BuildContext context) async {
@@ -29,23 +44,28 @@ class DiaryDetailScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Eliminar entrada',
-            style: TextStyle(fontWeight: FontWeight.w700)),
-        content: const Text('¿Estás seguro? Esta acción no se puede deshacer.'),
+        title: Text(
+          'diary.deleteEntry'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        content: Text('diary.deleteConfirmDetail'.tr()),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancelar',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              'common.cancel'.tr(),
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFFEF4444),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child: const Text('Eliminar'),
+            child: Text('common.delete'.tr()),
           ),
         ],
       ),
@@ -62,7 +82,9 @@ class DiaryDetailScreen extends StatelessWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error al eliminar: $e'),
+              content: Text(
+                'diary.deleteError'.tr(namedArgs: {'error': e.toString()}),
+              ),
               backgroundColor: const Color(0xFFEF4444),
             ),
           );
@@ -77,15 +99,19 @@ class DiaryDetailScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Entrada del diario',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(
+          'diary.detailTitle'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded,
-                color: Color(0xFFEF4444)),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: Color(0xFFEF4444),
+            ),
             onPressed: () => _deleteEntry(context),
           ),
         ],
@@ -95,7 +121,6 @@ class DiaryDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mood header
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -108,14 +133,15 @@ class DiaryDetailScreen extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: entry.mood.color.withValues(alpha: 0.2)),
+                  color: entry.mood.color.withValues(alpha: 0.2),
+                ),
               ),
               child: Column(
                 children: [
                   Text(entry.mood.emoji, style: const TextStyle(fontSize: 48)),
                   const SizedBox(height: 8),
                   Text(
-                    entry.mood.label,
+                    _moodLabel(entry.mood),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -124,8 +150,8 @@ class DiaryDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _formatDate(entry.createdAt),
-                    style: TextStyle(
+                    _formatDate(context, entry.createdAt),
+                    style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
                     ),
@@ -134,10 +160,8 @@ class DiaryDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Texto de la entrada
             Text(
-              'Lo que escribí',
+              'diary.entryContentTitle'.tr(),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -168,12 +192,10 @@ class DiaryDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Sección de gratitud
             if (entry.gratitude != null && entry.gratitude!.isNotEmpty) ...[
               const SizedBox(height: 24),
               Text(
-                'Gratitud',
+                'diary.gratitudeTitle'.tr(),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
