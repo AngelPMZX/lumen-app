@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/diary/diary_screen.dart';
 import '../screens/routes/routes_screen.dart';
@@ -48,10 +49,10 @@ class _MainShellState extends State<MainShell> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.home_rounded, 'Home'),
-                _buildNavItem(1, Icons.book_rounded, 'Diario'),
-                _buildNavItem(2, Icons.route_rounded, 'Rutas'),
-                _buildNavItem(3, Icons.person_rounded, 'Perfil'),
+                _buildNavItem(0, Icons.home_rounded, 'nav.home'.tr()),
+                _buildNavItem(1, Icons.book_rounded, 'nav.diary'.tr()),
+                _buildNavItem(2, Icons.route_rounded, 'nav.routes'.tr()),
+                _buildNavItem(3, Icons.person_rounded, 'nav.profile'.tr()),
               ],
             ),
           ),

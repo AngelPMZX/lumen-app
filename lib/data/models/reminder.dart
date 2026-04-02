@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 /// Modelo de un recordatorio programable.
@@ -25,24 +26,29 @@ class Reminder {
   int get timeInMinutes => time.hour * 60 + time.minute;
 
   String get repeatLabel {
-    if (repeatDays.isEmpty) return 'Una sola vez';
-    if (repeatDays.length == 7) return 'Todos los días';
+    if (repeatDays.isEmpty) return 'reminders.once'.tr();
+    if (repeatDays.length == 7) return 'reminders.everyday'.tr();
     final weekdays = [1, 2, 3, 4, 5];
     final weekend = [6, 7];
     if (repeatDays.length == 5 &&
         weekdays.every((d) => repeatDays.contains(d))) {
-      return 'Lunes a Viernes';
+      return 'reminders.mondayToFriday'.tr();
     }
     if (repeatDays.length == 2 &&
         weekend.every((d) => repeatDays.contains(d))) {
-      return 'Fines de semana';
+      return 'reminders.weekendsLabel'.tr();
     }
-    final dayNames = {
-      1: 'Lun', 2: 'Mar', 3: 'Mié',
-      4: 'Jue', 5: 'Vie', 6: 'Sáb', 7: 'Dom',
+    final dayKeys = {
+      1: 'days.monShort',
+      2: 'days.tueShort',
+      3: 'days.wedShort',
+      4: 'days.thuShort',
+      5: 'days.friShort',
+      6: 'days.satShort',
+      7: 'days.sunShort',
     };
     final sorted = List<int>.from(repeatDays)..sort();
-    return sorted.map((d) => dayNames[d] ?? '').join(', ');
+    return sorted.map((d) => (dayKeys[d] ?? '').tr()).join(', ');
   }
 
   String get timeLabel {

@@ -2,9 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
-import '../../../core/constants/app_strings.dart';
 import '../../../domain/providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -44,13 +44,7 @@ class _SplashScreenState extends State<SplashScreen>
     final authProvider = context.read<AuthProvider>();
 
     if (authProvider.isLoggedIn) {
-      // ═══════════════════════════════════════
-      // FAST PATH: Usuario ya logueado
-      // Solo espera lo mínimo para cargar datos
-      // ═══════════════════════════════════════
       await authProvider.loadUserData();
-
-      // Pequeño delay para que al menos se vea el logo (800ms)
       await Future.delayed(const Duration(milliseconds: 800));
       if (!mounted) return;
 
@@ -63,10 +57,6 @@ class _SplashScreenState extends State<SplashScreen>
         }
       });
     } else {
-      // ═══════════════════════════════════════
-      // SLOW PATH: Usuario nuevo / no logueado
-      // Muestra el splash completo (4 segundos)
-      // ═══════════════════════════════════════
       await Future.delayed(const Duration(seconds: 4));
       if (!mounted) return;
 
@@ -225,7 +215,7 @@ class _SplashScreenState extends State<SplashScreen>
                 const SizedBox(height: 12),
 
                 Text(
-                  AppStrings.appTagline,
+                  'app.tagline'.tr(),
                   style: TextStyle(
                     fontSize: 17,
                     color: Colors.white.withValues(alpha: 0.7),

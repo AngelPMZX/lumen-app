@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/wellness_route.dart';
 import '../../../domain/providers/auth_provider.dart';
@@ -108,7 +109,7 @@ class _LessonScreenState extends State<LessonScreen> {
               child: const Icon(Icons.celebration_rounded, color: Color(0xFFF59E0B), size: 36),
             ),
             const SizedBox(height: 20),
-            Text('¡Lección completada!', style: TextStyle(fontSize: 22,
+            Text('routes.lessonComplete'.tr(), style: TextStyle(fontSize: 22,
                 fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textPrimary)),
             const SizedBox(height: 8),
             Text(widget.lesson.title, style: TextStyle(fontSize: 15,
@@ -137,7 +138,7 @@ class _LessonScreenState extends State<LessonScreen> {
                 style: FilledButton.styleFrom(
                   backgroundColor: widget.routeColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                child: const Text('Continuar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                child: Text('common.continue'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -154,7 +155,6 @@ class _LessonScreenState extends State<LessonScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header con progreso
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
               child: Row(
@@ -183,7 +183,6 @@ class _LessonScreenState extends State<LessonScreen> {
             ),
             const SizedBox(height: 8),
 
-            // Contenido del step
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -194,11 +193,10 @@ class _LessonScreenState extends State<LessonScreen> {
               ),
             ),
 
-            // Botón continuar
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: SizedBox(
-                width: double.infinity, height: 54,
+                width: double.infinity, height: 56,
                 child: FilledButton(
                   onPressed: _canContinue ? _nextStep : null,
                   style: FilledButton.styleFrom(
@@ -206,11 +204,18 @@ class _LessonScreenState extends State<LessonScreen> {
                     disabledBackgroundColor: widget.routeColor.withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                   child: _isSaving
-                      ? const SizedBox(width: 22, height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(
-                          _isLastStep ? 'Completar lección' : 'Continuar',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                      ? const SizedBox(width: 24, height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _isLastStep ? 'common.done'.tr() : 'common.continue'.tr(),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                            const SizedBox(width: 8),
+                            Icon(_isLastStep ? Icons.check_rounded : Icons.arrow_forward_rounded, size: 20),
+                          ],
+                        ),
                 ),
               ),
             ),
@@ -231,52 +236,36 @@ class _LessonScreenState extends State<LessonScreen> {
     }
   }
 
-  // ═══════════════════════════════════════════
-  // LECTURA
-  // ═══════════════════════════════════════════
   Widget _buildReading(bool isDark) {
     return Column(
       key: ValueKey('reading_$_currentStep'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Badge tipo
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
-            color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+            color: widget.routeColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10)),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.menu_book_rounded, color: Color(0xFF3B82F6), size: 14),
-              SizedBox(width: 6),
-              Text('Lectura', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                  color: Color(0xFF3B82F6))),
+              Icon(Icons.menu_book_rounded, color: widget.routeColor, size: 14),
+              const SizedBox(width: 6),
+              Text('routes.readingTitle'.tr(), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+                  color: widget.routeColor)),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        Text(_step.title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
+        Text(_step.title, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800,
             color: isDark ? Colors.white : AppColors.textPrimary)),
         const SizedBox(height: 16),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-          ),
-          child: Text(_step.content!, style: TextStyle(fontSize: 16, height: 1.7,
-              color: isDark ? Colors.white.withValues(alpha: 0.85) : AppColors.textPrimary)),
-        ),
+        Text(_step.content ?? '', style: TextStyle(fontSize: 16, height: 1.8,
+            color: isDark ? Colors.white.withValues(alpha: 0.85) : AppColors.textPrimary)),
       ],
     ).animate().fadeIn(duration: 400.ms);
   }
 
-  // ═══════════════════════════════════════════
-  // QUIZ
-  // ═══════════════════════════════════════════
   Widget _buildQuiz(bool isDark) {
     return Column(
       key: ValueKey('quiz_$_currentStep'),
@@ -287,12 +276,12 @@ class _LessonScreenState extends State<LessonScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10)),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.quiz_rounded, color: Color(0xFFF59E0B), size: 14),
-              SizedBox(width: 6),
-              Text('Pregunta', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+              const Icon(Icons.quiz_rounded, color: Color(0xFFF59E0B), size: 14),
+              const SizedBox(width: 6),
+              Text('routes.questionLabel'.tr(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
                   color: Color(0xFFF59E0B))),
             ],
           ),
@@ -365,7 +354,6 @@ class _LessonScreenState extends State<LessonScreen> {
           );
         }),
 
-        // Explicación
         if (_quizAnswered && _step.explanation != null) ...[
           const SizedBox(height: 12),
           Container(
@@ -398,9 +386,6 @@ class _LessonScreenState extends State<LessonScreen> {
     ).animate().fadeIn(duration: 400.ms);
   }
 
-  // ═══════════════════════════════════════════
-  // EJERCICIO
-  // ═══════════════════════════════════════════
   Widget _buildExercise(bool isDark) {
     return Column(
       key: ValueKey('exercise_$_currentStep'),
@@ -411,12 +396,12 @@ class _LessonScreenState extends State<LessonScreen> {
           decoration: BoxDecoration(
             color: const Color(0xFF10B981).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10)),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.edit_rounded, color: Color(0xFF10B981), size: 14),
-              SizedBox(width: 6),
-              Text('Ejercicio', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
+              const Icon(Icons.edit_rounded, color: Color(0xFF10B981), size: 14),
+              const SizedBox(width: 6),
+              Text('routes.exerciseLabel'.tr(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
                   color: Color(0xFF10B981))),
             ],
           ),
@@ -444,7 +429,7 @@ class _LessonScreenState extends State<LessonScreen> {
           maxLength: 500,
           style: TextStyle(fontSize: 15, color: isDark ? Colors.white : AppColors.textPrimary),
           decoration: InputDecoration(
-            hintText: _step.placeholder ?? 'Escribe tu reflexión aquí...',
+            hintText: _step.placeholder ?? 'routes.exercisePlaceholder'.tr(),
             hintStyle: TextStyle(color: isDark ? Colors.white30 : Colors.grey.shade400),
             filled: true,
             fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
@@ -456,7 +441,7 @@ class _LessonScreenState extends State<LessonScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Text('Mínimo 10 caracteres para continuar',
+        Text('routes.exerciseMinChars'.tr(),
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
       ],
     ).animate().fadeIn(duration: 400.ms);

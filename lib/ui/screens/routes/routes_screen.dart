@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/wellness_route.dart';
 import '../../../domain/providers/auth_provider.dart';
@@ -91,9 +92,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // LISTA DE RUTAS
-  // ═══════════════════════════════════════════
   Widget _buildRoutesList(bool isDark) {
     final routes = WellnessRoute.all;
 
@@ -102,12 +100,11 @@ class _RoutesScreenState extends State<RoutesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Text('Rutas de Bienestar',
+          Text('routes.title'.tr(),
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800,
                   color: isDark ? Colors.white : AppColors.textPrimary)),
           const SizedBox(height: 4),
-          Text('Elige una ruta y comienza tu viaje',
+          Text('routes.chooseRoute'.tr(),
               style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
           const SizedBox(height: 20),
 
@@ -192,16 +189,12 @@ class _RoutesScreenState extends State<RoutesScreen> {
     );
   }
 
-  // ═══════════════════════════════════════════
-  // MAPA DE LECCIONES (estilo Duolingo)
-  // ═══════════════════════════════════════════
   Widget _buildLessonMap(bool isDark) {
     final route = _selectedRoute!;
     final lessons = route.lessons;
 
     return Column(
       children: [
-        // Header de la ruta
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
           child: Row(
@@ -224,7 +217,10 @@ class _RoutesScreenState extends State<RoutesScreen> {
                     Text(route.title, style: TextStyle(fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: isDark ? Colors.white : AppColors.textPrimary)),
-                    Text('${lessons.where((l) => _completedLessons.contains(l.id)).length}/${lessons.length} lecciones',
+                    Text('routes.lessonsProgress'.tr(namedArgs: {
+                      'completed': '${lessons.where((l) => _completedLessons.contains(l.id)).length}',
+                      'total': '${lessons.length}',
+                    }),
                         style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                   ],
                 ),
@@ -234,7 +230,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
         ),
         const SizedBox(height: 8),
 
-        // Mapa vertical
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
@@ -245,14 +240,12 @@ class _RoutesScreenState extends State<RoutesScreen> {
                 final isUnlocked = _isLessonUnlocked(lesson, route);
                 final isLast = index == lessons.length - 1;
 
-                // Alternar posición (zigzag)
                 final alignment = index % 2 == 0
                     ? Alignment.centerLeft : Alignment.centerRight;
                 final offset = index % 2 == 0 ? -0.15 : 0.15;
 
                 return Column(
                   children: [
-                    // Línea conectora
                     if (index > 0)
                       Container(
                         width: 3, height: 40,
@@ -264,7 +257,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
                         ),
                       ),
 
-                    // Nodo de lección
                     FractionallySizedBox(
                       widthFactor: 0.85,
                       alignment: alignment,
@@ -298,7 +290,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
                             ),
                             child: Row(
                               children: [
-                                // Nodo circular
                                 Container(
                                   width: 50, height: 50,
                                   decoration: BoxDecoration(
@@ -325,7 +316,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 14),
-                                // Info
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,7 +331,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
                                     ],
                                   ),
                                 ),
-                                // XP badge
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
@@ -362,7 +351,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
                     ).animate().fadeIn(delay: (100 * index).ms, duration: 500.ms)
                         .slideY(begin: 0.1, end: 0),
 
-                    // Línea final
                     if (!isLast)
                       Container(
                         width: 3, height: 20,

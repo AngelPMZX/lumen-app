@@ -430,7 +430,9 @@
     "scheduleWellbeingAlerts": "Programa alertas de bienestar",
     "tapToChangeTime": "Toca para cambiar la hora",
     "updated": "Recordatorio actualizado",
-    "weekdaysShort": "Lun-Vie"
+    "weekdaysShort": "Lun-Vie",
+    "mondayToFriday": "Lunes a Viernes",
+    "weekendsLabel": "Fines de semana"
   },
   "routes": {
     "title": "Rutas de bienestar",
@@ -464,7 +466,13 @@
     "routeEmotions": "Inteligencia Emocional",
     "routeEmotionsDesc": "Comprende y gestiona tus emociones",
     "routeResilience": "Resiliencia",
-    "routeResilienceDesc": "Fortalece tu capacidad de recuperación"
+    "routeResilienceDesc": "Fortalece tu capacidad de recuperación",
+    "chooseRoute": "Elige una ruta y comienza tu viaje",
+    "lessonsProgress": "{completed}/{total} lecciones",
+    "questionLabel": "Pregunta",
+    "exerciseLabel": "Ejercicio",
+    "exercisePlaceholder": "Escribe tu reflexión aquí...",
+    "exerciseMinChars": "Mínimo 10 caracteres para continuar"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -1399,5 +1407,11 @@
         }
       }
     }
+  },
+  "nav": {
+    "home": "Inicio",
+    "diary": "Diario",
+    "routes": "Rutas",
+    "profile": "Perfil"
   }
 }
