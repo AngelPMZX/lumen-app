@@ -1099,8 +1099,16 @@ class AuthProvider extends ChangeNotifier {
   // Cerrar sesión
   // ═══════════════════════════════════════════
   Future<void> logout() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
+    try {
+      await _googleSignIn.signOut();
+    } catch (e) {
+      debugPrint('Google sign out error (ignorable): $e');
+    }
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      debugPrint('Firebase sign out error: $e');
+    }
     _userModel = null;
     _userProgress = null;
     notifyListeners();

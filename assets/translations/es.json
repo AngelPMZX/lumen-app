@@ -1227,7 +1227,11 @@
     "themeTitle": "Tema",
     "darkModeOn": "Modo oscuro activado",
     "lightModeOn": "Modo claro activado",
-    "logoutConfirm": "¿Seguro que quieres cerrar sesión? Tu progreso está guardado en la nube."
+    "logoutConfirm": "¿Seguro que quieres cerrar sesión? Tu progreso está guardado en la nube.",
+    "language": "Idioma",
+    "languageSubtitle": "Español",
+    "languageEn": "English",
+    "languageEs": "Español"
   },
   "moodHistory": {
     "title": "Historial de ánimo",

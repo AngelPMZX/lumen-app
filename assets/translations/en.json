@@ -1227,7 +1227,11 @@
     "themeTitle": "Theme",
     "darkModeOn": "Dark mode enabled",
     "lightModeOn": "Light mode enabled",
-    "logoutConfirm": "Are you sure you want to log out? Your progress is saved in the cloud."
+    "logoutConfirm": "Are you sure you want to log out? Your progress is saved in the cloud.",
+    "language": "Language",
+    "languageSubtitle": "English",
+    "languageEn": "English",
+    "languageEs": "Español"
   },
   "moodHistory": {
     "title": "Mood history",

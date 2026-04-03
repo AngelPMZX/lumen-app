@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -78,121 +79,180 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _getArchetypeName(String? archetype) {
     switch (archetype) {
       case 'explorador':
-        return _tr(
-          'archetype.explorerName',
-          fallback: 'Explorador Introspectivo',
-        );
+        return _tr('archetype.explorerName', fallback: 'Explorador Introspectivo');
       case 'guerrero':
-        return _tr(
-          'archetype.warriorName',
-          fallback: 'Guerrero Resiliente',
-        );
+        return _tr('archetype.warriorName', fallback: 'Guerrero Resiliente');
       case 'social':
-        return _tr(
-          'archetype.socialName',
-          fallback: 'Alma Social',
-        );
+        return _tr('archetype.socialName', fallback: 'Alma Social');
       case 'sabio':
-        return _tr(
-          'archetype.sageName',
-          fallback: 'Sabio Tranquilo',
-        );
+        return _tr('archetype.sageName', fallback: 'Sabio Tranquilo');
       case 'libre':
-        return _tr(
-          'archetype.freeSpiritName',
-          fallback: 'Espíritu Libre',
-        );
+        return _tr('archetype.freeSpiritName', fallback: 'Espíritu Libre');
       default:
         return _tr('profile.noArchetype', fallback: 'Sin arquetipo');
     }
   }
 
   String _getLevelTitle(int level) {
-    if (level <= 3) {
-      return _tr(
-        'userProgress.levelTitles.emotionalNovice',
-        fallback: 'Novato Emocional',
-      );
-    }
-    if (level <= 7) {
-      return _tr(
-        'userProgress.levelTitles.consciousApprentice',
-        fallback: 'Aprendiz Consciente',
-      );
-    }
-    if (level <= 12) {
-      return _tr(
-        'userProgress.levelTitles.innerExplorer',
-        fallback: 'Explorador Interior',
-      );
-    }
-    if (level <= 18) {
-      return _tr(
-        'userProgress.levelTitles.resilientWarrior',
-        fallback: 'Guerrero Resiliente',
-      );
-    }
-    return _tr(
-      'userProgress.levelTitles.zenMaster',
-      fallback: 'Maestro Zen',
-    );
+    if (level <= 3) return _tr('userProgress.levelTitles.emotionalNovice', fallback: 'Novato Emocional');
+    if (level <= 7) return _tr('userProgress.levelTitles.consciousApprentice', fallback: 'Aprendiz Consciente');
+    if (level <= 12) return _tr('userProgress.levelTitles.innerExplorer', fallback: 'Explorador Interior');
+    if (level <= 18) return _tr('userProgress.levelTitles.resilientWarrior', fallback: 'Guerrero Resiliente');
+    return _tr('userProgress.levelTitles.zenMaster', fallback: 'Maestro Zen');
   }
 
   Future<void> _logout() async {
-    final confirm = await showDialog<bool>(
+  final auth = context.read<AuthProvider>();
+  
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        _tr('auth.logoutConfirmTitle', fallback: 'Cerrar sesión'),
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+      content: Text(
+        _tr('profileScreen.logoutConfirm',
+            fallback: '¿Seguro que quieres cerrar sesión? Tu progreso está guardado en la nube.'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(_tr('common.cancel', fallback: 'Cancelar'),
+              style: const TextStyle(color: AppColors.textSecondary)),
+        ),
+        FilledButton(
+          onPressed: () async {
+            Navigator.of(ctx).pop(); // Cerrar dialog primero
+            await auth.logout();
+            if (mounted) {
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                AppRoutes.splash,
+                (route) => false,
+              );
+            }
+          },
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFFEF4444),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: Text(_tr('auth.logout', fallback: 'Cerrar sesión')),
+        ),
+      ],
+    ),
+  );
+}
+
+  void _changeLanguage() {
+    final currentLocale = context.locale;
+    final isSpanish = currentLocale.languageCode == 'es';
+
+    HapticFeedback.lightImpact();
+
+    showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          _tr('auth.logoutConfirmTitle', fallback: 'Cerrar sesión'),
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        content: Text(
-          _tr(
-            'profileScreen.logoutConfirm',
-            fallback:
-                '¿Seguro que quieres cerrar sesión? Tu progreso está guardado en la nube.',
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            _tr('profileScreen.language', fallback: 'Idioma'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              _tr('common.cancel', fallback: 'Cancelar'),
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildLanguageOption(
+                ctx,
+                flag: '🇲🇽',
+                name: 'Español',
+                isSelected: isSpanish,
+                onTap: () {
+                  context.setLocale(const Locale('es'));
+                  Navigator.pop(ctx);
+                  setState(() {});
+                },
               ),
-            ),
-            child: Text(_tr('auth.logout', fallback: 'Cerrar sesión')),
+              const SizedBox(height: 10),
+              _buildLanguageOption(
+                ctx,
+                flag: '🇺🇸',
+                name: 'English',
+                isSelected: !isSpanish,
+                onTap: () {
+                  context.setLocale(const Locale('en'));
+                  Navigator.pop(ctx);
+                  setState(() {});
+                },
+              ),
+            ],
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLanguageOption(
+    BuildContext ctx, {
+    required String flag,
+    required String name,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF6366F1).withValues(alpha: isDark ? 0.15 : 0.08)
+                : isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF6366F1).withValues(alpha: 0.4)
+                  : isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.grey.shade200,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Text(flag, style: const TextStyle(fontSize: 24)),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected
+                        ? const Color(0xFF6366F1)
+                        : isDark
+                            ? Colors.white
+                            : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                const Icon(Icons.check_circle_rounded, color: Color(0xFF6366F1), size: 22),
+            ],
+          ),
+        ),
       ),
     );
-
-    if (confirm == true && mounted) {
-      await context.read<AuthProvider>().logout();
-      if (mounted) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          AppRoutes.login,
-          (route) => false,
-        );
-      }
-    }
   }
 
   String _achievementTitle(Achievement achievement) {
-    return _tr(
-      'achievementData.${achievement.id}.title',
-      fallback: achievement.title,
-    );
+    return _tr('achievementData.${achievement.id}.title', fallback: achievement.title);
   }
 
   @override
@@ -209,17 +269,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final xpForNext = (level * 100);
 
     final unlockedCount = Achievement.all
-        .where(
-          (a) => a.isUnlocked(
-            currentStreak: streak,
-            longestStreak: bestStreak,
-            totalXp: totalXp,
-            level: level,
-            diaryEntries: _diaryCount,
-            habitsCompleted: _habitsCount,
-            moodCheckIns: _moodCount,
-          ),
-        )
+        .where((a) => a.isUnlocked(
+              currentStreak: streak,
+              longestStreak: bestStreak,
+              totalXp: totalXp,
+              level: level,
+              diaryEntries: _diaryCount,
+              habitsCompleted: _habitsCount,
+              moodCheckIns: _moodCount,
+            ))
         .length;
 
     return Scaffold(
@@ -237,6 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
               child: Column(
                 children: [
+                  // Profile card
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
@@ -251,105 +310,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       borderRadius: BorderRadius.circular(28),
                       border: Border.all(
-                        color: gradient.first.withValues(
-                          alpha: isDark ? 0.25 : 0.15,
-                        ),
+                        color: gradient.first.withValues(alpha: isDark ? 0.25 : 0.15),
                       ),
                     ),
                     child: Column(
                       children: [
                         Container(
-                          width: 80,
-                          height: 80,
+                          width: 80, height: 80,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(colors: gradient),
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
                                 color: gradient.first.withValues(alpha: 0.4),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
+                                blurRadius: 16, offset: const Offset(0, 6),
                               ),
                             ],
                           ),
                           child: Center(
                             child: Text(
-                              auth.userName.isNotEmpty
-                                  ? auth.userName[0].toUpperCase()
-                                  : 'U',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 34,
-                                fontWeight: FontWeight.w800,
-                              ),
+                              auth.userName.isNotEmpty ? auth.userName[0].toUpperCase() : 'U',
+                              style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w800),
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          auth.userName,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white : AppColors.textPrimary,
-                          ),
-                        ),
+                        Text(auth.userName,
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800,
+                                color: isDark ? Colors.white : AppColors.textPrimary)),
                         if (auth.userModel?.username != null) ...[
                           const SizedBox(height: 2),
-                          Text(
-                            '@${auth.userModel!.username}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
+                          Text('@${auth.userModel!.username}',
+                              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
                         ],
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(
                             color: gradient.first.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(
-                            _getArchetypeName(auth.userModel?.archetype),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: gradient.first,
-                            ),
-                          ),
+                          child: Text(_getArchetypeName(auth.userModel?.archetype),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: gradient.first)),
                         ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            Text(
-                              'Nv $level',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: gradient.first,
-                              ),
-                            ),
+                            Text('Nv $level', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: gradient.first)),
                             const SizedBox(width: 8),
-                            Text(
-                              levelTitle,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
+                            Text(levelTitle, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                             const Spacer(),
-                            Text(
-                              '${totalXp % xpForNext}/$xpForNext XP',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
+                            Text('${totalXp % xpForNext}/$xpForNext XP',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -357,12 +369,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(6),
                           child: LinearProgressIndicator(
                             value: (totalXp % xpForNext) / xpForNext,
-                            backgroundColor: isDark
-                                ? Colors.white.withValues(alpha: 0.1)
-                                : gradient.first.withValues(alpha: 0.15),
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              gradient.first,
-                            ),
+                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : gradient.first.withValues(alpha: 0.15),
+                            valueColor: AlwaysStoppedAnimation<Color>(gradient.first),
                             minHeight: 8,
                           ),
                         ),
@@ -370,86 +378,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 20),
+
                   if (_isLoading)
                     const Padding(
                       padding: EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        height: 4,
-                        child: LinearProgressIndicator(),
-                      ),
+                      child: SizedBox(height: 4, child: LinearProgressIndicator()),
                     ),
+
+                  // Stats row
                   Row(
                     children: [
-                      _buildStatTile(
-                        '🔥',
-                        '$streak',
-                        _tr(
-                          'profileScreen.currentStreakStat',
-                          fallback: 'Racha\nactual',
-                        ),
-                        isDark,
-                      ),
+                      _buildStatTile('🔥', '$streak', _tr('profileScreen.currentStreakStat', fallback: 'Racha\nactual'), isDark),
                       const SizedBox(width: 10),
-                      _buildStatTile(
-                        '🏆',
-                        '$bestStreak',
-                        _tr(
-                          'profileScreen.bestStreakStat',
-                          fallback: 'Mejor\nracha',
-                        ),
-                        isDark,
-                      ),
+                      _buildStatTile('🏆', '$bestStreak', _tr('profileScreen.bestStreakStat', fallback: 'Mejor\nracha'), isDark),
                       const SizedBox(width: 10),
-                      _buildStatTile(
-                        '⚡',
-                        '$totalXp',
-                        _tr(
-                          'profileScreen.totalXpStat',
-                          fallback: 'XP\ntotal',
-                        ),
-                        isDark,
-                      ),
+                      _buildStatTile('⚡', '$totalXp', _tr('profileScreen.totalXpStat', fallback: 'XP\ntotal'), isDark),
                       const SizedBox(width: 10),
-                      _buildStatTile(
-                        '📝',
-                        '$_diaryCount',
-                        _tr(
-                          'profileScreen.diaryEntriesStat',
-                          fallback: 'Entradas\ndiario',
-                        ),
-                        isDark,
-                      ),
+                      _buildStatTile('📝', '$_diaryCount', _tr('profileScreen.diaryEntriesStat', fallback: 'Entradas\ndiario'), isDark),
                     ],
                   ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
                   const SizedBox(height: 20),
+
+                  // Achievements card
                   GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AchievementsScreen(
-                          currentStreak: streak,
-                          longestStreak: bestStreak,
-                          totalXp: totalXp,
-                          level: level,
-                          diaryEntries: _diaryCount,
-                          habitsCompleted: _habitsCount,
-                          moodCheckIns: _moodCount,
-                        ),
-                      ),
-                    ),
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => AchievementsScreen(
+                              currentStreak: streak, longestStreak: bestStreak, totalXp: totalXp,
+                              level: level, diaryEntries: _diaryCount, habitsCompleted: _habitsCount, moodCheckIns: _moodCount))),
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.06)
-                            : AppColors.surface,
+                        color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : Colors.grey.shade200,
-                        ),
+                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,60 +419,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Row(
                             children: [
                               Container(
-                                width: 40,
-                                height: 40,
+                                width: 40, height: 40,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF59E0B)
-                                      .withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.emoji_events_rounded,
-                                  color: Color(0xFFF59E0B),
-                                  size: 20,
-                                ),
+                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12)),
+                                child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFF59E0B), size: 20),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      _tr('profile.medals', fallback: 'Medallas'),
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: isDark
-                                            ? Colors.white
-                                            : AppColors.textPrimary,
-                                      ),
-                                    ),
-                                    Text(
-                                      _tr(
-                                        'profileScreen.medalsUnlocked',
-                                        fallback:
-                                            '$unlockedCount de ${Achievement.all.length} desbloqueadas',
-                                        namedArgs: {
-                                          'unlocked':
-                                              unlockedCount.toString(),
-                                          'total':
-                                              Achievement.all.length
-                                                  .toString(),
-                                        },
-                                      ),
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
+                                    Text(_tr('profile.medals', fallback: 'Medallas'),
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
+                                            color: isDark ? Colors.white : AppColors.textPrimary)),
+                                    Text(_tr('profileScreen.medalsUnlocked',
+                                            fallback: '$unlockedCount de ${Achievement.all.length} desbloqueadas',
+                                            namedArgs: {'unlocked': '$unlockedCount', 'total': '${Achievement.all.length}'}),
+                                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                                   ],
                                 ),
                               ),
-                              const Icon(
-                                Icons.chevron_right_rounded,
-                                color: AppColors.textSecondary,
-                              ),
+                              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
                             ],
                           ),
                           const SizedBox(height: 14),
@@ -518,48 +448,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             spacing: 8,
                             children: Achievement.all.take(8).map((a) {
                               final unlocked = a.isUnlocked(
-                                currentStreak: streak,
-                                longestStreak: bestStreak,
-                                totalXp: totalXp,
-                                level: level,
-                                diaryEntries: _diaryCount,
-                                habitsCompleted: _habitsCount,
-                                moodCheckIns: _moodCount,
-                              );
+                                currentStreak: streak, longestStreak: bestStreak, totalXp: totalXp,
+                                level: level, diaryEntries: _diaryCount, habitsCompleted: _habitsCount, moodCheckIns: _moodCount);
                               return AnimatedOpacity(
                                 duration: const Duration(milliseconds: 300),
                                 opacity: unlocked ? 1.0 : 0.3,
                                 child: Tooltip(
                                   message: _achievementTitle(a),
                                   child: Container(
-                                    width: 36,
-                                    height: 36,
+                                    width: 36, height: 36,
                                     decoration: BoxDecoration(
-                                      color: unlocked
-                                          ? a.color.withValues(alpha: 0.15)
-                                          : isDark
-                                              ? Colors.white.withValues(
-                                                  alpha: 0.05,
-                                                )
-                                              : Colors.grey.shade100,
-                                      borderRadius:
-                                          BorderRadius.circular(10),
-                                      border: unlocked
-                                          ? Border.all(
-                                              color: a.color.withValues(
-                                                alpha: 0.3,
-                                              ),
-                                            )
-                                          : null,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        unlocked ? a.emoji : '🔒',
-                                        style: TextStyle(
-                                          fontSize: unlocked ? 18 : 14,
-                                        ),
-                                      ),
-                                    ),
+                                      color: unlocked ? a.color.withValues(alpha: 0.15)
+                                          : isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: unlocked ? Border.all(color: a.color.withValues(alpha: 0.3)) : null),
+                                    child: Center(child: Text(unlocked ? a.emoji : '🔒',
+                                        style: TextStyle(fontSize: unlocked ? 18 : 14))),
                                   ),
                                 ),
                               );
@@ -570,121 +474,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
                   const SizedBox(height: 16),
+
+                  // Edit profile
                   _buildMenuCard(
                     icon: Icons.person_rounded,
-                    title: _tr(
-                      'profile.editProfile',
-                      fallback: 'Editar perfil',
-                    ),
-                    subtitle: _tr(
-                      'profileScreen.editProfileSubtitle',
-                      fallback: 'Nombre, usuario, arquetipo',
-                    ),
-                    color: gradient.first,
-                    isDark: isDark,
+                    title: _tr('profile.editProfile', fallback: 'Editar perfil'),
+                    subtitle: _tr('profileScreen.editProfileSubtitle', fallback: 'Nombre, usuario, arquetipo'),
+                    color: gradient.first, isDark: isDark,
                     onTap: () async {
-                      final result = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const EditProfileScreen(),
-                        ),
-                      );
+                      final result = await Navigator.push<bool>(context,
+                          MaterialPageRoute(builder: (_) => const EditProfileScreen()));
                       if (result == true) setState(() {});
                     },
                   ).animate().fadeIn(delay: 400.ms),
                   const SizedBox(height: 10),
+
+                  // Mood history
                   _buildMenuCard(
                     icon: Icons.bar_chart_rounded,
-                    title: _tr(
-                      'profile.moodHistory',
-                      fallback: 'Historial de ánimo',
-                    ),
-                    subtitle: _tr(
-                      'profileScreen.moodHistorySubtitle',
-                      fallback: 'Tu resumen emocional',
-                    ),
-                    color: const Color(0xFFEC4899),
-                    isDark: isDark,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const MoodHistoryScreen(),
-                      ),
-                    ),
+                    title: _tr('profile.moodHistory', fallback: 'Historial de ánimo'),
+                    subtitle: _tr('profileScreen.moodHistorySubtitle', fallback: 'Tu resumen emocional'),
+                    color: const Color(0xFFEC4899), isDark: isDark,
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const MoodHistoryScreen())),
                   ).animate().fadeIn(delay: 450.ms),
                   const SizedBox(height: 10),
+
+                  // Theme
                   _buildMenuCard(
                     icon: Icons.dark_mode_rounded,
-                    title: _tr(
-                      'profileScreen.themeTitle',
-                      fallback: 'Tema',
-                    ),
-                    subtitle: _tr(
-                      isDark
-                          ? 'profileScreen.darkModeOn'
-                          : 'profileScreen.lightModeOn',
-                      fallback: isDark
-                          ? 'Modo oscuro activado'
-                          : 'Modo claro activado',
-                    ),
-                    color: const Color(0xFF6366F1),
-                    isDark: isDark,
+                    title: _tr('profileScreen.themeTitle', fallback: 'Tema'),
+                    subtitle: _tr(isDark ? 'profileScreen.darkModeOn' : 'profileScreen.lightModeOn',
+                        fallback: isDark ? 'Modo oscuro activado' : 'Modo claro activado'),
+                    color: const Color(0xFF6366F1), isDark: isDark,
                     trailing: Switch.adaptive(
                       value: isDark,
-                      onChanged: (_) =>
-                          context.read<ThemeProvider>().toggleTheme(),
+                      onChanged: (_) => context.read<ThemeProvider>().toggleTheme(),
                       activeColor: const Color(0xFF6366F1),
                     ),
                   ).animate().fadeIn(delay: 500.ms),
                   const SizedBox(height: 10),
+
+                  // Language selector
+                  _buildMenuCard(
+                    icon: Icons.language_rounded,
+                    title: _tr('profileScreen.language', fallback: 'Idioma'),
+                    subtitle: context.locale.languageCode == 'es'
+                        ? '🇲🇽 Español'
+                        : '🇺🇸 English',
+                    color: const Color(0xFF3B82F6),
+                    isDark: isDark,
+                    onTap: _changeLanguage,
+                  ).animate().fadeIn(delay: 520.ms),
+                  const SizedBox(height: 10),
+
+                  // About
                   _buildMenuCard(
                     icon: Icons.info_outline_rounded,
-                    title: _tr(
-                      'profile.about',
-                      fallback: 'Acerca de Lumen',
-                    ),
-                    subtitle: _tr(
-                      'profile.version',
-                      fallback: 'Versión 1.0.0',
-                      namedArgs: {'version': '1.0.0'},
-                    ),
-                    color: AppColors.textSecondary,
-                    isDark: isDark,
+                    title: _tr('profile.about', fallback: 'Acerca de Lumen'),
+                    subtitle: _tr('profile.version', fallback: 'Versión 1.0.0', namedArgs: {'version': '1.0.0'}),
+                    color: AppColors.textSecondary, isDark: isDark,
                     onTap: () {},
                   ).animate().fadeIn(delay: 550.ms),
                   const SizedBox(height: 24),
-                  GestureDetector(
-                    onTap: _logout,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444)
-                            .withValues(alpha: isDark ? 0.08 : 0.05),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: const Color(0xFFEF4444)
-                              .withValues(alpha: isDark ? 0.15 : 0.1),
+
+                  // Logout button — using Material+InkWell for reliable tap
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _logout,
+                      borderRadius: BorderRadius.circular(18),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEF4444).withValues(alpha: isDark ? 0.08 : 0.05),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: const Color(0xFFEF4444).withValues(alpha: isDark ? 0.15 : 0.1)),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.logout_rounded,
-                            color: Color(0xFFEF4444),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            _tr('auth.logout', fallback: 'Cerrar sesión'),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFFEF4444),
-                            ),
-                          ),
-                        ],
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
+                            const SizedBox(width: 10),
+                            Text(_tr('auth.logout', fallback: 'Cerrar sesión'),
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
+                          ],
+                        ),
                       ),
                     ),
                   ).animate().fadeIn(delay: 600.ms),
@@ -702,38 +579,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : AppColors.surface,
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.grey.shade200,
-          ),
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
         ),
         child: Column(
           children: [
             Text(emoji, style: const TextStyle(fontSize: 20)),
             const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : AppColors.textPrimary,
-              ),
-            ),
+            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : AppColors.textPrimary)),
             const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                color: AppColors.textSecondary,
-                height: 1.3,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, height: 1.3),
+                textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -754,25 +613,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : AppColors.surface,
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.grey.shade200,
-          ),
+            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
         ),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 44, height: 44,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: isDark ? 0.15 : 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
+                borderRadius: BorderRadius.circular(12)),
               child: Icon(icon, color: color, size: 22),
             ),
             const SizedBox(width: 14),
@@ -780,30 +632,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white : AppColors.textPrimary)),
+                  Text(subtitle, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                 ],
               ),
             ),
-            trailing ??
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textSecondary,
-                  size: 20,
-                ),
+            trailing ?? const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 20),
           ],
         ),
       ),
