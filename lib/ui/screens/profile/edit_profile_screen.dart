@@ -114,9 +114,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final auth = context.read<AuthProvider>();
       final (success, error) = await auth.updateUserProfile(
         name: _nameController.text.trim(),
-        username: _usernameController.text.trim().isNotEmpty
-            ? _usernameController.text.trim()
-            : null,
       );
 
       if (mounted) {
@@ -446,6 +443,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               const SizedBox(height: 12),
                               TextField(
                                 controller: _usernameController,
+                                enabled: false,
                                 style: TextStyle(
                                   fontSize: 15,
                                   color: isDark

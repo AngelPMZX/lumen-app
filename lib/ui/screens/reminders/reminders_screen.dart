@@ -253,8 +253,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
   }
 
   Future<void> _navigateToAddHabit() async {
+    final existingTitles = _habits.map((h) => h.title).toSet();
     final result = await Navigator.push<bool>(
-      context, MaterialPageRoute(builder: (_) => const AddHabitScreen()));
+      context, MaterialPageRoute(builder: (_) => AddHabitScreen(existingHabitTitles: existingTitles)));
     if (result == true) _loadAll();
   }
 

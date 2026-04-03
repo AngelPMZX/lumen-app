@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/diary/diary_screen.dart';
 import '../screens/routes/routes_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../widgets/celebration_dialog.dart';
+import '../../domain/providers/auth_provider.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -15,6 +18,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  bool _isShowingCelebration = false;
 
   final _screens = const [
     HomeScreen(),
@@ -26,6 +30,10 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Escuchar cambios en el provider para detectar celebraciones
+    final authProvider = context.watch<AuthProvider>();
+    _checkPendingCelebrations(authProvider);
 
     return Scaffold(
       body: IndexedStack(
@@ -59,6 +67,23 @@ class _MainShellState extends State<MainShell> {
         ),
       ),
     );
+  }
+
+  void _checkPendingCelebrations(AuthProvider authProvider) {
+    if (_isShowingCelebration) return;
+    if (authProvider.pendingCelebrations.isEmpty) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      if (_isShowingCelebration) return;
+
+      final events = authProvider.consumeCelebrations();
+      if (events.isEmpty) return;
+
+      _isShowingCelebration = true;
+      await CelebrationDialog.showCelebrations(context, events);
+      _isShowingCelebration = false;
+    });
   }
 
   Widget _buildNavItem(int index, IconData icon, String label) {

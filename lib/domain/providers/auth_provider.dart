@@ -8,6 +8,7 @@ import '../../data/models/mood_entry.dart';
 import '../../data/models/diary_entry.dart';
 import '../../data/models/reminder.dart';
 import '../../data/models/habit.dart';
+import '../../domain/services/achievement_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -28,6 +29,22 @@ class AuthProvider extends ChangeNotifier {
 
   UserProgress? _userProgress;
   UserProgress? get userProgress => _userProgress;
+
+  // Cola de celebraciones pendientes
+  List<CelebrationEvent> _pendingCelebrations = [];
+  List<CelebrationEvent> get pendingCelebrations => _pendingCelebrations;
+
+  /// Consume (y limpia) las celebraciones pendientes
+  List<CelebrationEvent> consumeCelebrations() {
+    final events = List<CelebrationEvent>.from(_pendingCelebrations);
+    _pendingCelebrations = [];
+    return events;
+  }
+ 
+  // Contadores para verificación de achievements
+  int _diaryEntryCount = 0;
+  int _habitsCompletedCount = 0;
+  int _moodCheckInCount = 0;
 
   /// Helper para verificar si el perfil está completo
   bool get isProfileComplete => _userModel?.profileComplete ?? false;
@@ -61,6 +78,25 @@ class AuthProvider extends ChangeNotifier {
         _userModel = UserModel.fromMap(doc.data()!);
       }
       await _loadUserProgress();
+       try {
+        final diarySnap = await _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('diary').count().get();
+        _diaryEntryCount = diarySnap.count ?? 0;
+ 
+        final habitsSnap = await _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('habit_checkins')
+            .where('completed', isEqualTo: true).count().get();
+        _habitsCompletedCount = habitsSnap.count ?? 0;
+ 
+        final moodsSnap = await _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('moods').count().get();
+        _moodCheckInCount = moodsSnap.count ?? 0;
+      } catch (e) {
+        debugPrint('Error loading counters: $e');
+      }
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading user data: $e');
@@ -108,10 +144,11 @@ class AuthProvider extends ChangeNotifier {
             .set(entry.toMap());
 
         // Sumar XP solo la primera vez
-        if (_userProgress != null) {
+         if (_userProgress != null) {
+          final oldProgress = _userProgress!; // ← AGREGAR esta línea
           final newXp = _userProgress!.totalXp + entry.mood.xpReward;
           final newLevel = (newXp ~/ 100) + 1;
-
+ 
           final updatedProgress = UserProgress(
             currentStreak: _userProgress!.currentStreak,
             longestStreak: _userProgress!.longestStreak,
@@ -128,6 +165,8 @@ class AuthProvider extends ChangeNotifier {
               .set(updatedProgress.toMap());
 
           _userProgress = updatedProgress;
+           _moodCheckInCount++;
+          _checkCelebrations(oldProgress, updatedProgress);
         }
       } else {
         // Ya registró hoy: solo actualizar el mood, SIN sumar XP
@@ -251,6 +290,20 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+   /// Verifica si hay logros nuevos después de una acción
+  void _checkCelebrations(UserProgress? before, UserProgress after) {
+    final events = AchievementService.checkForCelebrations(
+      progressBefore: before,
+      progressAfter: after,
+      diaryEntries: _diaryEntryCount,
+      habitsCompleted: _habitsCompletedCount,
+      moodCheckIns: _moodCheckInCount,
+    );
+    if (events.isNotEmpty) {
+      _pendingCelebrations.addAll(events);
+    }
+  }
+
   // ═══════════════════════════════════════════
   // Registrar check-in con server timestamp (anti-trampa)
   // ═══════════════════════════════════════════
@@ -262,7 +315,7 @@ class AuthProvider extends ChangeNotifier {
       if (_userProgress!.hasCheckedInToday(serverTime)) {
         return false; // Ya hizo check-in hoy
       }
-
+      final oldProgress = _userProgress!; 
       final updatedProgress = _userProgress!.calculateStreak(serverTime);
 
       await _firestore
@@ -273,6 +326,7 @@ class AuthProvider extends ChangeNotifier {
           .set(updatedProgress.toMap());
 
       _userProgress = updatedProgress;
+       _checkCelebrations(oldProgress, updatedProgress);
       notifyListeners();
       return true;
     } catch (e) {
@@ -574,6 +628,7 @@ class AuthProvider extends ChangeNotifier {
 
       // Sumar XP: 20 por entrada + 5 extra si tiene gratitud
       if (_userProgress != null) {
+        final oldProgress = _userProgress!;
         int xpGain = 20;
         if (entry.gratitude != null && entry.gratitude!.isNotEmpty) {
           xpGain += 5;
@@ -588,6 +643,7 @@ class AuthProvider extends ChangeNotifier {
           lastCheckIn: _userProgress!.lastCheckIn,
           totalXp: newXp,
           level: newLevel,
+          
         );
 
         await _firestore
@@ -598,6 +654,8 @@ class AuthProvider extends ChangeNotifier {
             .set(updatedProgress.toMap());
 
         _userProgress = updatedProgress;
+         _diaryEntryCount++;                               // ← AGREGAR
+        _checkCelebrations(oldProgress, updatedProgress); 
       }
 
       notifyListeners();
@@ -847,6 +905,7 @@ class AuthProvider extends ChangeNotifier {
  
       // Solo dar XP la primera vez del día (doc no existía antes)
       if (isFirstTime && _userProgress != null) {
+        final oldProgress = _userProgress!;
         final newXp = _userProgress!.totalXp + 5;
         final newLevel = (newXp ~/ 100) + 1;
         final updatedProgress = UserProgress(
@@ -863,6 +922,8 @@ class AuthProvider extends ChangeNotifier {
             .doc('current')
             .set(updatedProgress.toMap());
         _userProgress = updatedProgress;
+        _habitsCompletedCount++;                            
+        _checkCelebrations(oldProgress, updatedProgress);
       }
  
       notifyListeners();
@@ -1007,6 +1068,7 @@ class AuthProvider extends ChangeNotifier {
 
       // Sumar XP
       if (_userProgress != null) {
+         final oldProgress = _userProgress!;
         final newXp = _userProgress!.totalXp + xpReward;
         final newLevel = (newXp ~/ 100) + 1;
         final updatedProgress = UserProgress(
@@ -1022,7 +1084,8 @@ class AuthProvider extends ChangeNotifier {
             .collection('progress')
             .doc('current')
             .set(updatedProgress.toMap());
-        _userProgress = updatedProgress;
+         _userProgress = updatedProgress;
+        _checkCelebrations(oldProgress, updatedProgress);
       }
 
       notifyListeners();

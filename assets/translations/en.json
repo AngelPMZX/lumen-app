@@ -358,7 +358,8 @@
     "orCreateYours": "or create your own",
     "preview": "Preview",
     "suggestedShort": "Suggested",
-    "swipeToDelete": "Swipe left to delete"
+    "swipeToDelete": "Swipe left to delete",
+    "alreadyAdded": "Already added"
   },
   "hobbies": {
     "reading": "Reading",
@@ -1413,5 +1414,16 @@
     "diary": "Diary",
     "routes": "Routes",
     "profile": "Profile"
+  },
+  "celebration": {
+    "achievementUnlocked": "Achievement Unlocked!",
+    "levelUp": "Level Up!",
+    "newLevel": "Level {level}",
+    "levelUpDesc": "You are now {title}!",
+    "streakMilestone": "Amazing Streak!",
+    "streakDays": "{count} days in a row!",
+    "streakKeepGoing": "Your dedication is paying off. Keep going!",
+    "awesome": "Awesome!",
+    "continueBtn": "Continue"
   }
 }

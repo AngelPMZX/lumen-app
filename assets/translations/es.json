@@ -358,7 +358,8 @@
     "orCreateYours": "o crea el tuyo",
     "preview": "Vista previa",
     "suggestedShort": "Sugeridos",
-    "swipeToDelete": "Desliza a la izquierda para eliminar"
+    "swipeToDelete": "Desliza a la izquierda para eliminar",
+    "alreadyAdded": "Ya agregado"
   },
   "hobbies": {
     "reading": "Lectura",
@@ -1413,5 +1414,16 @@
     "diary": "Diario",
     "routes": "Rutas",
     "profile": "Perfil"
+  },
+  "celebration": {
+    "achievementUnlocked": "¡Logro desbloqueado!",
+    "levelUp": "¡Subiste de nivel!",
+    "newLevel": "Nivel {level}",
+    "levelUpDesc": "¡Ahora eres {title}!",
+    "streakMilestone": "¡Racha increíble!",
+    "streakDays": "¡{count} días seguidos!",
+    "streakKeepGoing": "Tu dedicación está dando frutos. ¡Sigue así!",
+    "awesome": "¡Genial!",
+    "continueBtn": "Continuar"
   }
 }

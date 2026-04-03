@@ -49,15 +49,21 @@ class DailyProgressRing extends StatelessWidget {
                 isDark: isDark,
               ),
               child: Center(
-                child: Text(
-                  '$completedCount/3',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
-                  ),
-                ),
-              ),
+  child: completedCount == 3
+      ? Icon(
+          Icons.check_rounded,
+          size: 28,
+          color: isDark ? Colors.white : AppColors.textPrimary,
+        )
+      : Text(
+          '$completedCount/3',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          ),
+        ),
+),
             ),
           ),
           const SizedBox(width: 20),
