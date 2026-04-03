@@ -1095,6 +1095,32 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Verifica si el usuario completó alguna lección hoy
+Future<bool> hasCompletedLessonToday() async {
+  if (firebaseUser == null) return false;
+  try {
+    final today = DateTime.now();
+    final startOfDay = DateTime(today.year, today.month, today.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(firebaseUser!.uid)
+        .collection('completed_lessons')
+        .where('completedAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+        .where('completedAt',
+            isLessThan: Timestamp.fromDate(endOfDay))
+        .limit(1)
+        .get();
+
+    return snapshot.docs.isNotEmpty;
+  } catch (e) {
+    debugPrint('Error checking today lesson: $e');
+    return false;
+  }
+}
+
   // ═══════════════════════════════════════════
   // Cerrar sesión
   // ═══════════════════════════════════════════

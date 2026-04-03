@@ -175,13 +175,19 @@ class _HomeScreenState extends State<HomeScreen>
       debugPrint('Error checking diary: $e');
     }
 
-    try {
-      final authProvider = context.read<AuthProvider>();
-      final completed = await authProvider.getCompletedLessons();
-      if (mounted) setState(() => _completedLessons = completed);
-    } catch (e) {
-      debugPrint('Error loading completed lessons: $e');
-    }
+   try {
+  final authProvider = context.read<AuthProvider>();
+  final completed = await authProvider.getCompletedLessons();
+  final hasLesson = await authProvider.hasCompletedLessonToday();
+  if (mounted) {
+    setState(() {
+      _completedLessons = completed;
+      _hasLessonToday = hasLesson;
+    });
+  }
+} catch (e) {
+  debugPrint('Error loading completed lessons: $e');
+}
   }
 
   Future<void> _openNextLesson() async {
