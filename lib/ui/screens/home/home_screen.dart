@@ -18,6 +18,7 @@ import '../../widgets/daily_progress_ring.dart';
 import '../reminders/reminders_screen.dart';
 import '../routes/lesson_screen.dart';
 import '../diary/new_diary_entry_screen.dart';
+import '../../../domain/services/routes_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen>
   bool _hasDiaryToday = false;
   Set<String> _completedLessons = {};
   bool _hasLessonToday = false;
+  List<WellnessRoute> _dynamicRoutes = [];
 
   static const Map<String, String> _quoteTextKeys = {
     'La paz viene de adentro. No la busques afuera.':
@@ -175,6 +177,17 @@ class _HomeScreenState extends State<HomeScreen>
       debugPrint('Error checking diary: $e');
     }
 
+     try {
+      final locale = context.locale.languageCode;
+      // Si no puedes acceder a EasyLocalization así, usa esta alternativa:
+      // final locale = EasyLocalization.of(context)?.locale.languageCode ?? 'es';
+      final routes = await RoutesService().getRoutes(locale);
+      if (mounted) setState(() => _dynamicRoutes = routes);
+    } catch (e) {
+      debugPrint('Error loading dynamic routes: $e');
+      if (mounted) setState(() => _dynamicRoutes = WellnessRoute.all);
+    }
+
    try {
   final authProvider = context.read<AuthProvider>();
   final completed = await authProvider.getCompletedLessons();
@@ -191,7 +204,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _openNextLesson() async {
-    for (final route in WellnessRoute.all) {
+    final routes = _dynamicRoutes.isNotEmpty ? _dynamicRoutes : WellnessRoute.all;
+    for (final route in routes) {
       for (int i = 0; i < route.lessons.length; i++) {
         final lesson = route.lessons[i];
         if (!_completedLessons.contains(lesson.id)) {
@@ -241,8 +255,9 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  (String, String, Color)? get _nextLessonInfo {
-    for (final route in WellnessRoute.all) {
+   (String, String, Color)? get _nextLessonInfo {
+    final routes = _dynamicRoutes.isNotEmpty ? _dynamicRoutes : WellnessRoute.all;
+    for (final route in routes) {
       for (int i = 0; i < route.lessons.length; i++) {
         final lesson = route.lessons[i];
         if (!_completedLessons.contains(lesson.id)) {
@@ -543,33 +558,9 @@ class _HomeScreenState extends State<HomeScreen>
     return translated == key ? challenge.category : translated;
   }
 
-  String _routeTitle(WellnessRoute route) {
-    try {
-      final key = (route as dynamic).titleKey as String?;
-      if (key != null) {
-        final translated = key.tr();
-        if (translated != key) return translated;
-      }
-    } catch (_) {}
+  String _routeTitle(WellnessRoute route) => route.title;
 
-    final key = 'wellnessRoutes.${route.id}.title';
-    final translated = key.tr();
-    return translated == key ? route.title : translated;
-  }
-
-  String _lessonTitle(WellnessRoute route, Lesson lesson) {
-    try {
-      final key = (lesson as dynamic).titleKey as String?;
-      if (key != null) {
-        final translated = key.tr();
-        if (translated != key) return translated;
-      }
-    } catch (_) {}
-
-    final key = 'wellnessRoutes.${route.id}.lessons.${lesson.id}.title';
-    final translated = key.tr();
-    return translated == key ? lesson.title : translated;
-  }
+  String _lessonTitle(WellnessRoute route, Lesson lesson) => lesson.title;
 
   String _quoteText(Quote quote) {
     try {
