@@ -30,23 +30,31 @@ class AuthProvider extends ChangeNotifier {
   UserProgress? _userProgress;
   UserProgress? get userProgress => _userProgress;
 
-  // Cola de celebraciones pendientes
+  // ── Celebration queue ──────────────────────────────────────────────────────
   List<CelebrationEvent> _pendingCelebrations = [];
   List<CelebrationEvent> get pendingCelebrations => _pendingCelebrations;
 
-  /// Consume (y limpia) las celebraciones pendientes
   List<CelebrationEvent> consumeCelebrations() {
     final events = List<CelebrationEvent>.from(_pendingCelebrations);
     _pendingCelebrations = [];
     return events;
   }
- 
-  // Contadores para verificación de achievements
+
+  // ── Counters ───────────────────────────────────────────────────────────────
   int _diaryEntryCount = 0;
   int _habitsCompletedCount = 0;
   int _moodCheckInCount = 0;
 
-  /// Helper para verificar si el perfil está completo
+  // ── FIX: Set de achievements ya celebrados (fuente de verdad = Firestore) ──
+  Set<String> _celebratedAchievementIds = {};
+
+  // ── Diary refresh signal ───────────────────────────────────────────────────
+  // Cada vez que se guarda una entrada (desde Home o desde Diary),
+  // este contador sube. DiaryScreen lo escucha para refrescarse.
+  int _diaryVersion = 0;
+  int get diaryVersion => _diaryVersion;
+
+  // ─────────────────────────────────────────────────────────────────────────
   bool get isProfileComplete => _userModel?.profileComplete ?? false;
 
   String get userName {
@@ -64,9 +72,9 @@ class AuthProvider extends ChangeNotifier {
     return '';
   }
 
-  // ═══════════════════════════════════════════
-  // Cargar datos del usuario desde Firestore
-  // ═══════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOAD USER DATA
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<void> loadUserData() async {
     if (firebaseUser == null) return;
     try {
@@ -78,18 +86,20 @@ class AuthProvider extends ChangeNotifier {
         _userModel = UserModel.fromMap(doc.data()!);
       }
       await _loadUserProgress();
-       try {
+
+      // Cargar contadores
+      try {
         final diarySnap = await _firestore
             .collection('users').doc(firebaseUser!.uid)
             .collection('diary').count().get();
         _diaryEntryCount = diarySnap.count ?? 0;
- 
+
         final habitsSnap = await _firestore
             .collection('users').doc(firebaseUser!.uid)
             .collection('habit_checkins')
             .where('completed', isEqualTo: true).count().get();
         _habitsCompletedCount = habitsSnap.count ?? 0;
- 
+
         final moodsSnap = await _firestore
             .collection('users').doc(firebaseUser!.uid)
             .collection('moods').count().get();
@@ -97,58 +107,115 @@ class AuthProvider extends ChangeNotifier {
       } catch (e) {
         debugPrint('Error loading counters: $e');
       }
+
+      // FIX: Cargar achievements ya celebrados desde Firestore
+      await _loadCelebratedAchievements();
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading user data: $e');
     }
   }
 
-    /// Guarda una entrada de ánimo en Firestore y suma XP
-  // ═══════════════════════════════════════════
-  // REEMPLAZAR el método saveMoodEntry() existente
-  // en auth_provider.dart con este:
-  // ═══════════════════════════════════════════
+  /// Carga el set de IDs de achievements que ya fueron celebrados
+  Future<void> _loadCelebratedAchievements() async {
+    if (firebaseUser == null) return;
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('progress')
+          .doc('celebrated_achievements')
+          .get();
 
-  /// Guarda una entrada de ánimo en Firestore.
-  /// Solo suma XP la PRIMERA vez del día. Cambios posteriores
-  /// actualizan el mood sin dar XP adicional.
+      if (doc.exists) {
+        final data = doc.data()!;
+        final ids = List<String>.from(data['ids'] ?? []);
+        _celebratedAchievementIds = ids.toSet();
+      } else {
+        _celebratedAchievementIds = {};
+      }
+    } catch (e) {
+      debugPrint('Error loading celebrated achievements: $e');
+      _celebratedAchievementIds = {};
+    }
+  }
+
+  /// Persiste los IDs celebrados en Firestore para que no se repitan
+  Future<void> _saveCelebratedAchievements() async {
+    if (firebaseUser == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('progress')
+          .doc('celebrated_achievements')
+          .set({'ids': _celebratedAchievementIds.toList()});
+    } catch (e) {
+      debugPrint('Error saving celebrated achievements: $e');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CHECK CELEBRATIONS — ahora usa el set para evitar repetidos
+  // ═══════════════════════════════════════════════════════════════════════════
+  Future<void> _checkCelebrations(
+      UserProgress? before, UserProgress after) async {
+    final events = AchievementService.checkForCelebrations(
+      progressBefore: before,
+      progressAfter: after,
+      diaryEntries: _diaryEntryCount,
+      habitsCompleted: _habitsCompletedCount,
+      moodCheckIns: _moodCheckInCount,
+      celebratedAchievementIds: _celebratedAchievementIds, // ← FIX
+    );
+
+    if (events.isEmpty) return;
+
+    // Marcar los achievements nuevos como celebrados y persistirlos
+    bool newAchievementsCelebrated = false;
+    for (final event in events) {
+      if (event.type == CelebrationEventType.achievement &&
+          event.achievementId != null) {
+        _celebratedAchievementIds.add(event.achievementId!);
+        newAchievementsCelebrated = true;
+      }
+    }
+    if (newAchievementsCelebrated) {
+      await _saveCelebratedAchievements(); // Guardar en Firestore
+    }
+
+    _pendingCelebrations.addAll(events);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SAVE MOOD ENTRY
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<bool> saveMoodEntry(MoodEntry entry) async {
     if (firebaseUser == null) return false;
-
     try {
-      // Verificar si ya hay un mood registrado hoy
       final today = DateTime.now();
       final startOfDay = DateTime(today.year, today.month, today.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
 
       final existingMoods = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('moods')
+          .collection('users').doc(firebaseUser!.uid).collection('moods')
           .where('timestamp',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('timestamp',
-              isLessThan: Timestamp.fromDate(endOfDay))
-          .limit(1)
-          .get();
+          .where('timestamp', isLessThan: Timestamp.fromDate(endOfDay))
+          .limit(1).get();
 
       final isFirstMoodToday = existingMoods.docs.isEmpty;
 
       if (isFirstMoodToday) {
-        // Primera vez hoy: guardar nuevo + sumar XP
         await _firestore
-            .collection('users')
-            .doc(firebaseUser!.uid)
-            .collection('moods')
-            .doc(entry.id)
-            .set(entry.toMap());
+            .collection('users').doc(firebaseUser!.uid).collection('moods')
+            .doc(entry.id).set(entry.toMap());
 
-        // Sumar XP solo la primera vez
-         if (_userProgress != null) {
-          final oldProgress = _userProgress!; // ← AGREGAR esta línea
+        if (_userProgress != null) {
+          final oldProgress = _userProgress!;
           final newXp = _userProgress!.totalXp + entry.mood.xpReward;
           final newLevel = (newXp ~/ 100) + 1;
- 
           final updatedProgress = UserProgress(
             currentStreak: _userProgress!.currentStreak,
             longestStreak: _userProgress!.longestStreak,
@@ -156,70 +223,50 @@ class AuthProvider extends ChangeNotifier {
             totalXp: newXp,
             level: newLevel,
           );
-
           await _firestore
-              .collection('users')
-              .doc(firebaseUser!.uid)
-              .collection('progress')
-              .doc('current')
+              .collection('users').doc(firebaseUser!.uid)
+              .collection('progress').doc('current')
               .set(updatedProgress.toMap());
-
           _userProgress = updatedProgress;
-           _moodCheckInCount++;
-          _checkCelebrations(oldProgress, updatedProgress);
+          _moodCheckInCount++;
+          await _checkCelebrations(oldProgress, updatedProgress);
         }
       } else {
-        // Ya registró hoy: solo actualizar el mood, SIN sumar XP
         final existingDocId = existingMoods.docs.first.id;
         await _firestore
-            .collection('users')
-            .doc(firebaseUser!.uid)
-            .collection('moods')
+            .collection('users').doc(firebaseUser!.uid).collection('moods')
             .doc(existingDocId)
-            .update({
-          'mood': entry.mood.key,
-          'intensity': entry.intensity,
-          'note': entry.note,
-        });
+            .update({'mood': entry.mood.key, 'intensity': entry.intensity, 'note': entry.note});
       }
 
       notifyListeners();
-      return isFirstMoodToday; // true = ganó XP, false = solo actualizó
+      return isFirstMoodToday;
     } catch (e) {
       debugPrint('Error saving mood entry: $e');
       rethrow;
     }
   }
 
-  /// Obtiene los moods de la semana actual para la gráfica
   Future<Map<int, MoodType>> getWeeklyMoods() async {
     if (firebaseUser == null) return {};
-
     try {
       final now = DateTime.now();
-      // Inicio de la semana (lunes)
       final monday = now.subtract(Duration(days: now.weekday - 1));
       final startOfWeek = DateTime(monday.year, monday.month, monday.day);
       final endOfWeek = startOfWeek.add(const Duration(days: 7));
 
       final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('moods')
+          .collection('users').doc(firebaseUser!.uid).collection('moods')
           .where('timestamp',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfWeek))
-          .where('timestamp',
-              isLessThan: Timestamp.fromDate(endOfWeek))
-          .orderBy('timestamp')
-          .get();
+          .where('timestamp', isLessThan: Timestamp.fromDate(endOfWeek))
+          .orderBy('timestamp').get();
 
       final Map<int, MoodType> weeklyMoods = {};
       for (final doc in snapshot.docs) {
         final entry = MoodEntry.fromMap(doc.data());
-        final weekday = entry.timestamp.weekday; // 1 = Monday
-        weeklyMoods[weekday] = entry.mood; // Último mood del día gana
+        weeklyMoods[entry.timestamp.weekday] = entry.mood;
       }
-
       return weeklyMoods;
     } catch (e) {
       debugPrint('Error loading weekly moods: $e');
@@ -227,31 +274,23 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Obtiene el mood registrado HOY (si existe).
-  /// Se usa para restaurar la selección al recargar la app.
   Future<MoodType?> getTodayMood() async {
     if (firebaseUser == null) return null;
- 
     try {
       final today = DateTime.now();
       final startOfDay = DateTime(today.year, today.month, today.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
- 
+
       final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('moods')
+          .collection('users').doc(firebaseUser!.uid).collection('moods')
           .where('timestamp',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('timestamp',
-              isLessThan: Timestamp.fromDate(endOfDay))
+          .where('timestamp', isLessThan: Timestamp.fromDate(endOfDay))
           .orderBy('timestamp', descending: true)
-          .limit(1)
-          .get();
- 
+          .limit(1).get();
+
       if (snapshot.docs.isNotEmpty) {
-        final entry = MoodEntry.fromMap(snapshot.docs.first.data());
-        return entry.mood;
+        return MoodEntry.fromMap(snapshot.docs.first.data()).mood;
       }
     } catch (e) {
       debugPrint('Error getting today mood: $e');
@@ -259,29 +298,22 @@ class AuthProvider extends ChangeNotifier {
     return null;
   }
 
-
-  // ═══════════════════════════════════════════
-  // Cargar progreso (racha, XP, nivel)
-  // ═══════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LOAD USER PROGRESS
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<void> _loadUserProgress() async {
     if (firebaseUser == null) return;
     try {
       final doc = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('progress')
-          .doc('current')
-          .get();
-
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('progress').doc('current').get();
       if (doc.exists) {
         _userProgress = UserProgress.fromMap(doc.data()!);
       } else {
         _userProgress = UserProgress();
         await _firestore
-            .collection('users')
-            .doc(firebaseUser!.uid)
-            .collection('progress')
-            .doc('current')
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('progress').doc('current')
             .set(_userProgress!.toMap());
       }
     } catch (e) {
@@ -290,43 +322,25 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-   /// Verifica si hay logros nuevos después de una acción
-  void _checkCelebrations(UserProgress? before, UserProgress after) {
-    final events = AchievementService.checkForCelebrations(
-      progressBefore: before,
-      progressAfter: after,
-      diaryEntries: _diaryEntryCount,
-      habitsCompleted: _habitsCompletedCount,
-      moodCheckIns: _moodCheckInCount,
-    );
-    if (events.isNotEmpty) {
-      _pendingCelebrations.addAll(events);
-    }
-  }
-
-  // ═══════════════════════════════════════════
-  // Registrar check-in con server timestamp (anti-trampa)
-  // ═══════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RECORD CHECK-IN (streak)
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<bool> recordCheckIn() async {
     if (firebaseUser == null || _userProgress == null) return false;
     try {
       final serverTime = await _getServerTimestamp();
+      if (_userProgress!.hasCheckedInToday(serverTime)) return false;
 
-      if (_userProgress!.hasCheckedInToday(serverTime)) {
-        return false; // Ya hizo check-in hoy
-      }
-      final oldProgress = _userProgress!; 
+      final oldProgress = _userProgress!;
       final updatedProgress = _userProgress!.calculateStreak(serverTime);
 
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('progress')
-          .doc('current')
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('progress').doc('current')
           .set(updatedProgress.toMap());
 
       _userProgress = updatedProgress;
-       _checkCelebrations(oldProgress, updatedProgress);
+      await _checkCelebrations(oldProgress, updatedProgress);
       notifyListeners();
       return true;
     } catch (e) {
@@ -335,23 +349,18 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Obtiene el timestamp del servidor de Firebase (anti-trampa)
   Future<DateTime> _getServerTimestamp() async {
-    final ref = _firestore
-        .collection('_server_time')
-        .doc(firebaseUser!.uid);
-
+    final ref = _firestore.collection('_server_time').doc(firebaseUser!.uid);
     await ref.set({'timestamp': FieldValue.serverTimestamp()});
     final snap = await ref.get();
     final Timestamp ts = snap.data()!['timestamp'];
     await ref.delete();
-
     return ts.toDate();
   }
 
-  // ═══════════════════════════════════════════
-  // Registro con email y contraseña
-  // ═══════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AUTH — register, login, google, logout
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<bool> registerWithEmail({
     required String email,
     required String password,
@@ -363,32 +372,20 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
 
       final credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+          email: email, password: password);
       await credential.user?.updateDisplayName(name);
 
-      final userModel = UserModel(
-        uid: credential.user!.uid,
-        name: name,
-        email: email,
-      );
-
-      // FIX: usar toFirestoreMap() para .set() — usa serverTimestamp
+      final userModel =
+          UserModel(uid: credential.user!.uid, name: name, email: email);
       await _firestore
-          .collection('users')
-          .doc(credential.user!.uid)
+          .collection('users').doc(credential.user!.uid)
           .set(userModel.toFirestoreMap());
-
       _userModel = userModel;
 
-      // Crear progreso inicial
       _userProgress = UserProgress();
       await _firestore
-          .collection('users')
-          .doc(credential.user!.uid)
-          .collection('progress')
-          .doc('current')
+          .collection('users').doc(credential.user!.uid)
+          .collection('progress').doc('current')
           .set(_userProgress!.toMap());
 
       _isLoading = false;
@@ -407,23 +404,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ═══════════════════════════════════════════
-  // Login con email y contraseña
-  // ═══════════════════════════════════════════
-  Future<bool> loginWithEmail({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> loginWithEmail(
+      {required String email, required String password}) async {
     try {
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
-
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
       await loadUserData();
       _isLoading = false;
       notifyListeners();
@@ -441,9 +428,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ═══════════════════════════════════════════
-  // Login con Google
-  // ═══════════════════════════════════════════
   Future<bool> loginWithGoogle() async {
     try {
       _isLoading = true;
@@ -456,39 +440,26 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return false;
       }
-
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
+          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
       final userCredential = await _auth.signInWithCredential(credential);
 
       final doc = await _firestore
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .get();
-
+          .collection('users').doc(userCredential.user!.uid).get();
       if (!doc.exists) {
         final userModel = UserModel(
-          uid: userCredential.user!.uid,
-          name: userCredential.user!.displayName ?? 'Usuario',
-          email: userCredential.user!.email ?? '',
-        );
-        // FIX: usar toFirestoreMap() para .set()
+            uid: userCredential.user!.uid,
+            name: userCredential.user!.displayName ?? 'Usuario',
+            email: userCredential.user!.email ?? '');
         await _firestore
-            .collection('users')
-            .doc(userCredential.user!.uid)
+            .collection('users').doc(userCredential.user!.uid)
             .set(userModel.toFirestoreMap());
         _userModel = userModel;
-
         _userProgress = UserProgress();
         await _firestore
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .collection('progress')
-            .doc('current')
+            .collection('users').doc(userCredential.user!.uid)
+            .collection('progress').doc('current')
             .set(_userProgress!.toMap());
       } else {
         _userModel = UserModel.fromMap(doc.data()!);
@@ -506,27 +477,31 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ═══════════════════════════════════════════
-  // Verificar si un username ya existe
-  // ═══════════════════════════════════════════
+  Future<void> logout() async {
+    try { await _googleSignIn.signOut(); } catch (e) { debugPrint('Google sign out: $e'); }
+    try { await _auth.signOut(); } catch (e) { debugPrint('Firebase sign out: $e'); }
+    _userModel = null;
+    _userProgress = null;
+    _celebratedAchievementIds = {};
+    _diaryVersion = 0;
+    notifyListeners();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UPDATE USER PROFILE
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<bool> isUsernameTaken(String username) async {
     try {
       final query = await _firestore
           .collection('users')
           .where('username', isEqualTo: username.toLowerCase())
-          .limit(1)
-          .get();
+          .limit(1).get();
       return query.docs.isNotEmpty;
     } catch (e) {
-      debugPrint('Error checking username: $e');
       return true;
     }
   }
 
-  // ═══════════════════════════════════════════
-  // Actualizar perfil con validación y error handling
-  // Retorna (éxito, mensajeError)
-  // ═══════════════════════════════════════════
   Future<(bool, String?)> updateUserProfile({
     String? name,
     String? username,
@@ -537,10 +512,7 @@ class AuthProvider extends ChangeNotifier {
     String? archetype,
     bool markComplete = false,
   }) async {
-    if (firebaseUser == null) {
-      return (false, 'No hay sesión activa');
-    }
-
+    if (firebaseUser == null) return (false, 'No hay sesión activa');
     try {
       _isLoading = true;
       notifyListeners();
@@ -561,103 +533,66 @@ class AuthProvider extends ChangeNotifier {
         final currentHobbies = hobbies ?? _userModel?.hobbies ?? [];
         final currentMusic = musicGenres ?? _userModel?.musicGenres ?? [];
 
-        if (currentGender == null || currentGender.isEmpty) {
-          _isLoading = false;
-          notifyListeners();
-          return (false, 'El género es obligatorio');
-        }
-        if (currentAge == null) {
-          _isLoading = false;
-          notifyListeners();
-          return (false, 'La edad es obligatoria');
-        }
-        if (currentUsername == null || currentUsername.isEmpty) {
-          _isLoading = false;
-          notifyListeners();
-          return (false, 'El nombre de usuario es obligatorio');
-        }
-        if (currentHobbies.length < 3) {
-          _isLoading = false;
-          notifyListeners();
-          return (false, 'Selecciona al menos 3 hobbies');
-        }
-        if (currentMusic.length < 2) {
-          _isLoading = false;
-          notifyListeners();
-          return (false, 'Selecciona al menos 2 géneros musicales');
-        }
+        if (currentGender == null || currentGender.isEmpty) { _isLoading = false; notifyListeners(); return (false, 'El género es obligatorio'); }
+        if (currentAge == null) { _isLoading = false; notifyListeners(); return (false, 'La edad es obligatoria'); }
+        if (currentUsername == null || currentUsername.isEmpty) { _isLoading = false; notifyListeners(); return (false, 'El nombre de usuario es obligatorio'); }
+        if (currentHobbies.length < 3) { _isLoading = false; notifyListeners(); return (false, 'Selecciona al menos 3 hobbies'); }
+        if (currentMusic.length < 2) { _isLoading = false; notifyListeners(); return (false, 'Selecciona al menos 2 géneros musicales'); }
 
         updates['profileComplete'] = true;
       }
 
-      await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .update(updates);
-
+      await _firestore.collection('users').doc(firebaseUser!.uid).update(updates);
       await loadUserData();
-
       _isLoading = false;
       notifyListeners();
       return (true, null);
     } on FirebaseException catch (e) {
       _isLoading = false;
       notifyListeners();
-      debugPrint('Firestore error: $e');
       return (false, 'Error al guardar. Verifica tu conexión.');
     } catch (e) {
       _isLoading = false;
       notifyListeners();
-      debugPrint('Error updating profile: $e');
       return (false, 'Ocurrió un error inesperado.');
     }
   }
 
-
-  /// Guarda una entrada del diario y suma XP
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DIARY — FIX: bump _diaryVersion para que DiaryScreen se refresque
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<void> saveDiaryEntry(DiaryEntry entry) async {
     if (firebaseUser == null) return;
-
     try {
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('diary')
-          .doc(entry.id)
-          .set(entry.toMap());
+          .collection('users').doc(firebaseUser!.uid).collection('diary')
+          .doc(entry.id).set(entry.toMap());
 
-      // Sumar XP: 20 por entrada + 5 extra si tiene gratitud
       if (_userProgress != null) {
         final oldProgress = _userProgress!;
         int xpGain = 20;
-        if (entry.gratitude != null && entry.gratitude!.isNotEmpty) {
-          xpGain += 5;
-        }
+        if (entry.gratitude != null && entry.gratitude!.isNotEmpty) xpGain += 5;
 
         final newXp = _userProgress!.totalXp + xpGain;
         final newLevel = (newXp ~/ 100) + 1;
-
         final updatedProgress = UserProgress(
           currentStreak: _userProgress!.currentStreak,
           longestStreak: _userProgress!.longestStreak,
           lastCheckIn: _userProgress!.lastCheckIn,
           totalXp: newXp,
           level: newLevel,
-          
         );
-
         await _firestore
-            .collection('users')
-            .doc(firebaseUser!.uid)
-            .collection('progress')
-            .doc('current')
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('progress').doc('current')
             .set(updatedProgress.toMap());
-
         _userProgress = updatedProgress;
-         _diaryEntryCount++;                               // ← AGREGAR
-        _checkCelebrations(oldProgress, updatedProgress); 
+        _diaryEntryCount++;
+        await _checkCelebrations(oldProgress, updatedProgress);
       }
 
+      // FIX Bug 1: señal para que DiaryScreen recargue sus entradas
+      _diaryVersion++;
       notifyListeners();
     } catch (e) {
       debugPrint('Error saving diary entry: $e');
@@ -665,55 +600,38 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Obtiene las entradas del diario ordenadas por fecha (más reciente primero)
   Future<List<DiaryEntry>> getDiaryEntries({int limit = 50}) async {
     if (firebaseUser == null) return [];
-
     try {
       final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('diary')
+          .collection('users').doc(firebaseUser!.uid).collection('diary')
           .orderBy('createdAt', descending: true)
-          .limit(limit)
-          .get();
-
-      return snapshot.docs
-          .map((doc) => DiaryEntry.fromMap(doc.data()))
-          .toList();
+          .limit(limit).get();
+      return snapshot.docs.map((doc) => DiaryEntry.fromMap(doc.data())).toList();
     } catch (e) {
       debugPrint('Error loading diary entries: $e');
       return [];
     }
   }
 
-  /// Obtiene un mapa de fecha → mood para el calendario heatmap
   Future<Map<DateTime, MoodType>> getDiaryCalendarMoods(
       DateTime start, DateTime end) async {
     if (firebaseUser == null) return {};
-
     try {
       final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('diary')
+          .collection('users').doc(firebaseUser!.uid).collection('diary')
           .where('createdAt',
               isGreaterThanOrEqualTo: Timestamp.fromDate(start))
           .where('createdAt', isLessThan: Timestamp.fromDate(end))
-          .orderBy('createdAt')
-          .get();
+          .orderBy('createdAt').get();
 
       final Map<DateTime, MoodType> moods = {};
       for (final doc in snapshot.docs) {
         final entry = DiaryEntry.fromMap(doc.data());
-        final normalized = DateTime(
-          entry.createdAt.year,
-          entry.createdAt.month,
-          entry.createdAt.day,
-        );
-        moods[normalized] = entry.mood; // Último mood del día gana
+        final normalized =
+            DateTime(entry.createdAt.year, entry.createdAt.month, entry.createdAt.day);
+        moods[normalized] = entry.mood;
       }
-
       return moods;
     } catch (e) {
       debugPrint('Error loading diary calendar moods: $e');
@@ -721,18 +639,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Elimina una entrada del diario
   Future<void> deleteDiaryEntry(String entryId) async {
     if (firebaseUser == null) return;
-
     try {
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('diary')
-          .doc(entryId)
-          .delete();
-
+          .collection('users').doc(firebaseUser!.uid).collection('diary')
+          .doc(entryId).delete();
+      _diaryVersion++; // También refrescar al borrar
       notifyListeners();
     } catch (e) {
       debugPrint('Error deleting diary entry: $e');
@@ -740,170 +653,122 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ── RECORDATORIOS (fix: orderBy single field) ──
- 
+  Future<bool> hasDiaryEntryToday() async {
+    if (firebaseUser == null) return false;
+    try {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+      final snapshot = await _firestore
+          .collection('users').doc(firebaseUser!.uid).collection('diary')
+          .where('createdAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('createdAt', isLessThan: Timestamp.fromDate(endOfDay))
+          .limit(1).get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REMINDERS
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<void> saveReminder(Reminder reminder) async {
     if (firebaseUser == null) return;
     try {
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('reminders')
-          .doc(reminder.id)
-          .set(reminder.toMap());
+          .collection('users').doc(firebaseUser!.uid).collection('reminders')
+          .doc(reminder.id).set(reminder.toMap());
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error saving reminder: $e');
-      rethrow;
-    }
+    } catch (e) { rethrow; }
   }
- 
+
   Future<List<Reminder>> getReminders() async {
     if (firebaseUser == null) return [];
     try {
-      // FIX: usar timeInMinutes en vez de orderBy doble (hour + minute)
       final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('reminders')
-          .orderBy('timeInMinutes')
-          .get();
-      return snapshot.docs
-          .map((doc) => Reminder.fromMap(doc.data()))
-          .toList();
+          .collection('users').doc(firebaseUser!.uid).collection('reminders')
+          .orderBy('timeInMinutes').get();
+      return snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
     } catch (e) {
-      debugPrint('Error loading reminders: $e');
-      // Fallback sin orderBy si el índice no existe aún
       try {
         final snapshot = await _firestore
-            .collection('users')
-            .doc(firebaseUser!.uid)
-            .collection('reminders')
-            .get();
-        final list = snapshot.docs
-            .map((doc) => Reminder.fromMap(doc.data()))
-            .toList();
+            .collection('users').doc(firebaseUser!.uid).collection('reminders').get();
+        final list = snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
         list.sort((a, b) => a.timeInMinutes.compareTo(b.timeInMinutes));
         return list;
-      } catch (e2) {
-        debugPrint('Fallback also failed: $e2');
-        return [];
-      }
+      } catch (e2) { return []; }
     }
   }
- 
+
   Future<void> toggleReminder(String reminderId, bool isEnabled) async {
     if (firebaseUser == null) return;
     try {
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('reminders')
-          .doc(reminderId)
-          .update({'isEnabled': isEnabled});
+          .collection('users').doc(firebaseUser!.uid).collection('reminders')
+          .doc(reminderId).update({'isEnabled': isEnabled});
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error toggling reminder: $e');
-      rethrow;
-    }
+    } catch (e) { rethrow; }
   }
- 
+
   Future<void> deleteReminder(String reminderId) async {
     if (firebaseUser == null) return;
     try {
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('reminders')
-          .doc(reminderId)
-          .delete();
+          .collection('users').doc(firebaseUser!.uid).collection('reminders')
+          .doc(reminderId).delete();
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error deleting reminder: $e');
-      rethrow;
-    }
+    } catch (e) { rethrow; }
   }
- 
-  // ── HÁBITOS ──
- 
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HABITS
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<void> saveHabit(Habit habit) async {
     if (firebaseUser == null) return;
     try {
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('habits')
-          .doc(habit.id)
-          .set(habit.toMap());
+          .collection('users').doc(firebaseUser!.uid).collection('habits')
+          .doc(habit.id).set(habit.toMap());
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error saving habit: $e');
-      rethrow;
-    }
+    } catch (e) { rethrow; }
   }
- 
+
   Future<List<Habit>> getHabits() async {
     if (firebaseUser == null) return [];
     try {
       final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('habits')
-          .orderBy('createdAt')
-          .get();
-      return snapshot.docs
-          .map((doc) => Habit.fromMap(doc.data()))
-          .toList();
-    } catch (e) {
-      debugPrint('Error loading habits: $e');
-      return [];
-    }
+          .collection('users').doc(firebaseUser!.uid).collection('habits')
+          .orderBy('createdAt').get();
+      return snapshot.docs.map((doc) => Habit.fromMap(doc.data())).toList();
+    } catch (e) { return []; }
   }
- 
+
   Future<void> deleteHabit(String habitId) async {
     if (firebaseUser == null) return;
     try {
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('habits')
-          .doc(habitId)
-          .delete();
+          .collection('users').doc(firebaseUser!.uid).collection('habits')
+          .doc(habitId).delete();
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error deleting habit: $e');
-      rethrow;
-    }
+    } catch (e) { rethrow; }
   }
- 
-   /// Check-in de un hábito para hoy.
-  /// Solo da XP la PRIMERA vez que se marca en el día.
-  /// Retorna true si dio XP, false si solo restauró.
+
   Future<bool> checkInHabit(String habitId) async {
     if (firebaseUser == null) return false;
     try {
       final today = DateTime.now();
       final checkIn = HabitCheckIn(habitId: habitId, date: today);
- 
-      // Verificar si ya existía un check-in hoy para este hábito
       final existingDoc = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('habit_checkins')
-          .doc(checkIn.docId)
-          .get();
- 
+          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins')
+          .doc(checkIn.docId).get();
       final isFirstTime = !existingDoc.exists;
- 
-      // Guardar/restaurar el check-in (siempre con completed: true)
+
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('habit_checkins')
-          .doc(checkIn.docId)
-          .set(checkIn.toMap());
- 
-      // Solo dar XP la primera vez del día (doc no existía antes)
+          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins')
+          .doc(checkIn.docId).set(checkIn.toMap());
+
       if (isFirstTime && _userProgress != null) {
         final oldProgress = _userProgress!;
         final newXp = _userProgress!.totalXp + 5;
@@ -916,159 +781,77 @@ class AuthProvider extends ChangeNotifier {
           level: newLevel,
         );
         await _firestore
-            .collection('users')
-            .doc(firebaseUser!.uid)
-            .collection('progress')
-            .doc('current')
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('progress').doc('current')
             .set(updatedProgress.toMap());
         _userProgress = updatedProgress;
-        _habitsCompletedCount++;                            
-        _checkCelebrations(oldProgress, updatedProgress);
+        _habitsCompletedCount++;
+        await _checkCelebrations(oldProgress, updatedProgress);
       }
- 
+
       notifyListeners();
       return isFirstTime;
-    } catch (e) {
-      debugPrint('Error checking in habit: $e');
-      rethrow;
-    }
+    } catch (e) { rethrow; }
   }
- 
-  /// Deshacer check-in de un hábito para hoy.
-  /// NO elimina el documento — solo lo marca como completed: false.
-  /// Así al volver a marcar, el doc ya existe y no da XP de nuevo.
+
   Future<void> uncheckHabit(String habitId) async {
     if (firebaseUser == null) return;
     try {
       final today = DateTime.now();
       final checkIn = HabitCheckIn(habitId: habitId, date: today);
- 
-      // En vez de eliminar, marcar como no completado
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('habit_checkins')
-          .doc(checkIn.docId)
-          .update({'completed': false});
- 
+          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins')
+          .doc(checkIn.docId).update({'completed': false});
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error unchecking habit: $e');
-      rethrow;
-    }
+    } catch (e) { rethrow; }
   }
- 
-  /// Obtiene los IDs de hábitos completados hoy.
-  /// Solo cuenta los que tienen completed: true.
+
   Future<Set<String>> getTodayHabitCheckIns() async {
     if (firebaseUser == null) return {};
     try {
       final today = DateTime.now();
       final dateStr =
           '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
- 
       final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('habit_checkins')
-          .get();
- 
+          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins').get();
       return snapshot.docs
           .where((doc) => doc.id.endsWith(dateStr))
-          .where((doc) {
-            final data = doc.data();
-            // Solo contar los que están completed: true
-            return data['completed'] == true;
-          })
-          .map((doc) {
-            final data = doc.data();
-            return data['habitId'] as String? ?? '';
-          })
+          .where((doc) => doc.data()['completed'] == true)
+          .map((doc) => doc.data()['habitId'] as String? ?? '')
           .where((id) => id.isNotEmpty)
           .toSet();
-    } catch (e) {
-      debugPrint('Error loading today checkins: $e');
-      return {};
-    }
+    } catch (e) { return {}; }
   }
 
-  /// Verifica si el usuario ya escribió en el diario hoy
-  /// (para el progress ring del Home)
-  Future<bool> hasDiaryEntryToday() async {
-    if (firebaseUser == null) return false;
-
-    try {
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      final endOfDay = startOfDay.add(const Duration(days: 1));
-
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('diary')
-          .where('createdAt',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-          .where('createdAt',
-              isLessThan: Timestamp.fromDate(endOfDay))
-          .limit(1)
-          .get();
-
-      return snapshot.docs.isNotEmpty;
-    } catch (e) {
-      debugPrint('Error checking today diary: $e');
-      return false;
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════
-  // AGREGAR ESTOS MÉTODOS al auth_provider.dart
-  // (dentro de la clase AuthProvider, antes del cierre })
-  // ═══════════════════════════════════════════════════════
-
-  /// Obtiene los IDs de lecciones completadas
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LESSONS
+  // ═══════════════════════════════════════════════════════════════════════════
   Future<Set<String>> getCompletedLessons() async {
     if (firebaseUser == null) return {};
     try {
       final snapshot = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('completed_lessons')
-          .get();
+          .collection('users').doc(firebaseUser!.uid).collection('completed_lessons').get();
       return snapshot.docs.map((doc) => doc.id).toSet();
-    } catch (e) {
-      debugPrint('Error loading completed lessons: $e');
-      return {};
-    }
+    } catch (e) { return {}; }
   }
 
-  /// Completa una lección y suma XP
   Future<void> completeLesson(String lessonId, int xpReward) async {
     if (firebaseUser == null) return;
     try {
-      // Verificar si ya la completó antes
       final existing = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('completed_lessons')
-          .doc(lessonId)
-          .get();
+          .collection('users').doc(firebaseUser!.uid).collection('completed_lessons')
+          .doc(lessonId).get();
+      if (existing.exists) return;
 
-      if (existing.exists) return; // Ya la completó, no dar XP de nuevo
-
-      // Marcar como completada
       await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .collection('completed_lessons')
-          .doc(lessonId)
-          .set({
+          .collection('users').doc(firebaseUser!.uid).collection('completed_lessons')
+          .doc(lessonId).set({
         'completedAt': FieldValue.serverTimestamp(),
         'xpEarned': xpReward,
       });
 
-      // Sumar XP
       if (_userProgress != null) {
-         final oldProgress = _userProgress!;
+        final oldProgress = _userProgress!;
         final newXp = _userProgress!.totalXp + xpReward;
         final newLevel = (newXp ~/ 100) + 1;
         final updatedProgress = UserProgress(
@@ -1079,67 +862,36 @@ class AuthProvider extends ChangeNotifier {
           level: newLevel,
         );
         await _firestore
-            .collection('users')
-            .doc(firebaseUser!.uid)
-            .collection('progress')
-            .doc('current')
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('progress').doc('current')
             .set(updatedProgress.toMap());
-         _userProgress = updatedProgress;
-        _checkCelebrations(oldProgress, updatedProgress);
+        _userProgress = updatedProgress;
+        await _checkCelebrations(oldProgress, updatedProgress);
       }
 
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error completing lesson: $e');
-      rethrow;
-    }
+    } catch (e) { rethrow; }
   }
 
-  /// Verifica si el usuario completó alguna lección hoy
-Future<bool> hasCompletedLessonToday() async {
-  if (firebaseUser == null) return false;
-  try {
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(firebaseUser!.uid)
-        .collection('completed_lessons')
-        .where('completedAt',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('completedAt',
-            isLessThan: Timestamp.fromDate(endOfDay))
-        .limit(1)
-        .get();
-
-    return snapshot.docs.isNotEmpty;
-  } catch (e) {
-    debugPrint('Error checking today lesson: $e');
-    return false;
-  }
-}
-
-  // ═══════════════════════════════════════════
-  // Cerrar sesión
-  // ═══════════════════════════════════════════
-  Future<void> logout() async {
+  Future<bool> hasCompletedLessonToday() async {
+    if (firebaseUser == null) return false;
     try {
-      await _googleSignIn.signOut();
-    } catch (e) {
-      debugPrint('Google sign out error (ignorable): $e');
-    }
-    try {
-      await _auth.signOut();
-    } catch (e) {
-      debugPrint('Firebase sign out error: $e');
-    }
-    _userModel = null;
-    _userProgress = null;
-    notifyListeners();
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+      final snapshot = await _firestore
+          .collection('users').doc(firebaseUser!.uid).collection('completed_lessons')
+          .where('completedAt',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+          .where('completedAt', isLessThan: Timestamp.fromDate(endOfDay))
+          .limit(1).get();
+      return snapshot.docs.isNotEmpty;
+    } catch (e) { return false; }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
   void clearError() {
     _errorMessage = null;
     notifyListeners();
@@ -1147,22 +899,14 @@ Future<bool> hasCompletedLessonToday() async {
 
   String _getErrorMessage(String code) {
     switch (code) {
-      case 'email-already-in-use':
-        return 'Este correo ya está registrado';
-      case 'invalid-email':
-        return 'Correo electrónico inválido';
-      case 'weak-password':
-        return 'La contraseña es muy débil (mínimo 6 caracteres)';
-      case 'user-not-found':
-        return 'No existe una cuenta con este correo';
-      case 'wrong-password':
-        return 'Contraseña incorrecta';
-      case 'invalid-credential':
-        return 'Credenciales inválidas. Verifica tu correo y contraseña';
-      case 'too-many-requests':
-        return 'Demasiados intentos. Espera un momento';
-      default:
-        return 'Ocurrió un error. Intenta de nuevo.';
+      case 'email-already-in-use': return 'Este correo ya está registrado';
+      case 'invalid-email': return 'Correo electrónico inválido';
+      case 'weak-password': return 'La contraseña es muy débil (mínimo 6 caracteres)';
+      case 'user-not-found': return 'No existe una cuenta con este correo';
+      case 'wrong-password': return 'Contraseña incorrecta';
+      case 'invalid-credential': return 'Credenciales inválidas. Verifica tu correo y contraseña';
+      case 'too-many-requests': return 'Demasiados intentos. Espera un momento';
+      default: return 'Ocurrió un error. Intenta de nuevo.';
     }
   }
 }

@@ -473,7 +473,9 @@
     "questionLabel": "Question",
     "exerciseLabel": "Exercise",
     "exercisePlaceholder": "Write your reflection here...",
-    "exerciseMinChars": "Minimum 10 characters to continue"
+    "exerciseMinChars": "Minimum 10 characters to continue",
+    "xpEarned": "earned in this lesson",
+    "backToMap": "Back to map"
   },
   "profile": {
     "title": "My Profile",
@@ -504,7 +506,8 @@
     "version": "Version {version}",
     "deleteAccount": "Delete account",
     "deleteAccountConfirm": "This action is permanent. Are you sure?",
-    "settings": "Settings"
+    "settings": "Settings",
+    "noArchetype": "No archetype"
   },
   "medals": {
     "firstStep": "First Step",
@@ -610,11 +613,17 @@
     },
     "mindfulWalk": {
       "title": "Mindful walk",
-      "description": "Walk for 5 minutes paying attention to each step"
+      "description": "Walk for 5 minutes paying attention to each step",
+      "step1": "Go to a quiet space. If you cannot go outside, walk slowly around your home.",
+      "step2": "With each step, feel the ground beneath your feet. Notice your body weight.",
+      "step3": "Observe 3 things around you. A color, a sound, a texture."
     },
     "digitalDetox": {
       "title": "Digital detox",
-      "description": "Spend 15 minutes without looking at your phone"
+      "description": "Spend 15 minutes without looking at your phone",
+      "step1": "Put your phone on airplane mode or face-down in another room.",
+      "step2": "Choose a screen-free activity: reading, drawing, walking, cooking.",
+      "step3": "When finished, notice how you feel. More calm? More energized?"
     },
     "quickDiary": {
       "title": "Quick diary",
@@ -622,40 +631,75 @@
     },
     "bodyScan": {
       "title": "Body scan",
-      "description": "Scan your body from head to toe noticing tension"
+      "description": "Scan your body from head to toe noticing tension",
+      "step1": "Close your eyes. Bring attention to your feet. Is there tension or warmth?",
+      "step2": "Move up slowly: legs, abdomen, chest. Breathe deeply into each area.",
+      "step3": "Continue to shoulders, neck and face. Release any tension you notice.",
+      "step4": "Finish with 3 deep breaths. Open your eyes slowly."
     },
     "actOfKindness": {
       "title": "Act of kindness",
-      "description": "Do something kind for someone today without expecting anything"
+      "description": "Do something kind for someone today without expecting anything",
+      "step1": "Think of someone close: family, friend, colleague, or even a stranger.",
+      "step2": "Choose a small but genuine act: a message, a helping hand, a smile.",
+      "step3": "Do it without expecting anything in return. The value is in giving, not receiving."
     },
     "stretching": {
       "title": "Stretching",
-      "description": "Stretch your body for 5 minutes when you wake up"
+      "description": "Stretch your body for 5 minutes when you wake up",
+      "step1": "Standing or sitting, stretch your arms overhead. Hold for 10 seconds.",
+      "step2": "Gently tilt your head to each side. Feel the stretch in your neck.",
+      "step3": "Stretch your legs: reach for your feet or extend one leg at a time."
     },
     "shortMeditation": {
       "title": "Short meditation",
-      "description": "Sit in silence and observe your thoughts"
+      "description": "Sit in silence and observe your thoughts",
+      "step1": "Sit comfortably. Close your eyes. Take 3 deep breaths.",
+      "step2": "Observe your thoughts without judging them. They are clouds passing by.",
+      "step3": "When your mind wanders, gently bring it back to your breathing."
     },
     "healingMusic": {
       "title": "Healing music",
-      "description": "Listen mindfully to a song that makes you happy"
+      "description": "Listen mindfully to a song that makes you happy",
+      "step1": "Play a song you love or that calms you. Use headphones if you can.",
+      "step2": "Close your eyes and listen closely: the melody, the rhythm, the lyrics."
     },
     "positiveAffirmation": {
       "title": "Positive affirmation",
-      "description": "Repeat 3 times: \"I deserve peace and happiness\""
+      "description": "Repeat 3 times: \"I deserve peace and happiness\"",
+      "step1": "Stand in front of a mirror or sit with your eyes closed.",
+      "step2": "Take a deep breath and say aloud: \"I deserve peace and happiness\".",
+      "step3": "Repeat it 3 more times. With each time, feel yourself believing it more deeply."
     },
     "observeNature": {
       "title": "Observe nature",
-      "description": "Go outside and observe something natural for 3 minutes"
+      "description": "Go outside and observe something natural for 3 minutes",
+      "step1": "Step outside or go to a window. Choose a natural element: tree, sky, plant.",
+      "step2": "Observe it in silence for 3 minutes. Notice its colors, movement, and textures."
     },
     "silentForgiveness": {
       "title": "Silent forgiveness",
-      "description": "Think about something bothering you and practice letting it go"
+      "description": "Think about something bothering you and practice letting it go",
+      "step1": "Think of something or someone that has upset you. Do not judge it, just observe.",
+      "step2": "Breathe deeply and say internally: \"I release you. I release myself\".",
+      "step3": "Remember: forgiving is not approving. It is releasing the weight so it does not hurt you."
     },
     "limitComplaints": {
       "title": "Limit complaints",
-      "description": "Try to spend 2 hours without complaining about anything"
+      "description": "Try to spend 2 hours without complaining about anything",
+      "step1": "For the next 2 hours, every time you want to complain, pause.",
+      "step2": "Ask yourself: Can I do something about this? If yes, act. If no, let it go.",
+      "step3": "When done, write 1 positive thing you noticed during the challenge."
     }
+  },
+  "challenge": {
+    "completed": "Challenge completed!",
+    "awesome": "Awesome!",
+    "nextStep": "Next step →",
+    "finish": "Finish",
+    "didIt": "✓ I did it!",
+    "later": "I'll do it later",
+    "challengeDone": "✓ Completed"
   },
   "userProgress": {
     "levelTitles": {
@@ -926,7 +970,7 @@
       "author": "Lumen"
     },
     "17": {
-      "text": "Do not compare your chapter 1 to someone else’s chapter 20.",
+      "text": "Do not compare your chapter 1 to someone else's chapter 20.",
       "author": "Lumen"
     },
     "18": {
@@ -1050,7 +1094,7 @@
         "author": "Lumen"
       },
       "16": {
-        "text": "Do not compare your chapter 1 to someone else’s chapter 20.",
+        "text": "Do not compare your chapter 1 to someone else's chapter 20.",
         "author": "Lumen"
       },
       "17": {
@@ -1429,5 +1473,72 @@
     "streakKeepGoing": "Your dedication is paying off. Keep going!",
     "awesome": "Awesome!",
     "continueBtn": "Continue"
+  },
+  "breathing": {
+    "scienceTitle": "Why breathe consciously?",
+    "scienceSource": "Source: Stanford Medicine · Harvard T.H. Chan",
+    "startSession": "Start session",
+    "configTitle": "Set up your session",
+    "techniqueLabel": "Technique",
+    "durationLabel": "Duration",
+    "soundLabel": "Ambient sound",
+    "startButton": "Start • {min} min",
+    "sessionComplete": "Session completed",
+    "sessionSubtitle": "{min} minutes of {technique}",
+    "xpLabel": "for taking care of your mind",
+    "backHome": "Back to home",
+    "anotherSession": "Do another session",
+    "paused": "Paused",
+    "science": {
+      "vagus": {
+        "title": "Activates the vagus nerve",
+        "desc": "Slow exhalation stimulates the vagus nerve and reduces cortisol by up to 20% within minutes."
+      },
+      "hrv": {
+        "title": "Improves heart rate variability",
+        "desc": "Controlled breathing increases heart rate variability (HRV), a key marker of stress resilience."
+      },
+      "amygdala": {
+        "title": "Calms the amygdala",
+        "desc": "Stanford studies (2023) show that 5 min of rhythmic breathing reduces amygdala activity — the brain's fear center."
+      },
+      "sleep": {
+        "title": "Improves sleep",
+        "desc": "The 4-7-8 technique can induce sleep in less than 1 minute by deactivating the sympathetic nervous system."
+      }
+    },
+    "box": {
+      "name": "Box Breathing",
+      "description": "4 - 4 - 4 - 4",
+      "benefit": "Reduces cortisol and activates the vagus nerve"
+    },
+    "calm478": {
+      "name": "Calm 4-7-8",
+      "description": "4 - 7 - 8",
+      "benefit": "Activates the parasympathetic system in 60 seconds"
+    },
+    "flow": {
+      "name": "Gentle Flow",
+      "description": "4 - 8",
+      "benefit": "Ideal for beginners, reduces heart rate"
+    },
+    "phase": {
+      "inhale": "Inhale",
+      "hold": "Hold",
+      "exhale": "Exhale"
+    },
+    "sound": {
+      "none": "No sound",
+      "rain": "Rain",
+      "forest": "Forest",
+      "ocean": "Ocean",
+      "white": "White noise"
+    },
+    "motivational": {
+      "0": "Your nervous system thanks you 🙏",
+      "1": "Every conscious breath is an act of self-care ✨",
+      "2": "You just reduced your cortisol. That is how powerful you are 💪",
+      "3": "Calm is not the absence of chaos — it is mastery of the breath 🌊"
+    }
   }
 }

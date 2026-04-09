@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// Retos diarios que rotan automáticamente.
-/// Cada reto tiene una categoría, duración estimada y XP reward.
+/// Tipo de acción que ejecuta el reto al tocarlo
+enum ChallengeActionType {
+  breathing,    // → BreathingScreen
+  diary,        // → NewDiaryEntryScreen
+  timedGuide,   // Dialog con guía paso a paso + timer
+  infoComplete, // Dialog informativo + botón "Lo hice"
+}
+
 class DailyChallenge {
   final String title;
   final String description;
@@ -13,6 +19,10 @@ class DailyChallenge {
   final int xpReward;
   final String duration;
   final String category;
+  final ChallengeActionType actionType;
+
+  /// Claves de los pasos guiados (para timedGuide e infoComplete)
+  final List<String> stepKeys;
 
   const DailyChallenge({
     required this.title,
@@ -25,9 +35,10 @@ class DailyChallenge {
     required this.xpReward,
     required this.duration,
     required this.category,
+    required this.actionType,
+    this.stepKeys = const [],
   });
 
-  /// Obtiene el reto del día basado en la fecha
   static DailyChallenge getToday() {
     final now = DateTime.now();
     final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays;
@@ -47,6 +58,7 @@ class DailyChallenge {
       xpReward: 15,
       duration: '3 min',
       category: 'Calma',
+      actionType: ChallengeActionType.breathing,
     ),
     DailyChallenge(
       title: 'Gratitud express',
@@ -59,6 +71,7 @@ class DailyChallenge {
       xpReward: 15,
       duration: '2 min',
       category: 'Gratitud',
+      actionType: ChallengeActionType.diary,
     ),
     DailyChallenge(
       title: 'Caminata consciente',
@@ -71,6 +84,12 @@ class DailyChallenge {
       xpReward: 20,
       duration: '5 min',
       category: 'Mindfulness',
+      actionType: ChallengeActionType.timedGuide,
+      stepKeys: [
+        'dailyChallenges.mindfulWalk.step1',
+        'dailyChallenges.mindfulWalk.step2',
+        'dailyChallenges.mindfulWalk.step3',
+      ],
     ),
     DailyChallenge(
       title: 'Desconexión digital',
@@ -83,6 +102,12 @@ class DailyChallenge {
       xpReward: 25,
       duration: '15 min',
       category: 'Bienestar',
+      actionType: ChallengeActionType.infoComplete,
+      stepKeys: [
+        'dailyChallenges.digitalDetox.step1',
+        'dailyChallenges.digitalDetox.step2',
+        'dailyChallenges.digitalDetox.step3',
+      ],
     ),
     DailyChallenge(
       title: 'Diario rápido',
@@ -95,6 +120,7 @@ class DailyChallenge {
       xpReward: 15,
       duration: '3 min',
       category: 'Reflexión',
+      actionType: ChallengeActionType.diary,
     ),
     DailyChallenge(
       title: 'Body scan',
@@ -107,6 +133,13 @@ class DailyChallenge {
       xpReward: 20,
       duration: '5 min',
       category: 'Mindfulness',
+      actionType: ChallengeActionType.timedGuide,
+      stepKeys: [
+        'dailyChallenges.bodyScan.step1',
+        'dailyChallenges.bodyScan.step2',
+        'dailyChallenges.bodyScan.step3',
+        'dailyChallenges.bodyScan.step4',
+      ],
     ),
     DailyChallenge(
       title: 'Acto de bondad',
@@ -119,6 +152,12 @@ class DailyChallenge {
       xpReward: 20,
       duration: 'Sin límite',
       category: 'Social',
+      actionType: ChallengeActionType.infoComplete,
+      stepKeys: [
+        'dailyChallenges.actOfKindness.step1',
+        'dailyChallenges.actOfKindness.step2',
+        'dailyChallenges.actOfKindness.step3',
+      ],
     ),
     DailyChallenge(
       title: 'Estiramiento',
@@ -131,6 +170,12 @@ class DailyChallenge {
       xpReward: 15,
       duration: '5 min',
       category: 'Cuerpo',
+      actionType: ChallengeActionType.timedGuide,
+      stepKeys: [
+        'dailyChallenges.stretching.step1',
+        'dailyChallenges.stretching.step2',
+        'dailyChallenges.stretching.step3',
+      ],
     ),
     DailyChallenge(
       title: 'Meditación breve',
@@ -143,11 +188,16 @@ class DailyChallenge {
       xpReward: 20,
       duration: '5 min',
       category: 'Calma',
+      actionType: ChallengeActionType.timedGuide,
+      stepKeys: [
+        'dailyChallenges.shortMeditation.step1',
+        'dailyChallenges.shortMeditation.step2',
+        'dailyChallenges.shortMeditation.step3',
+      ],
     ),
     DailyChallenge(
       title: 'Música sanadora',
-      description:
-          'Escucha una canción que te haga feliz, con atención plena',
+      description: 'Escucha una canción que te haga feliz, con atención plena',
       titleKey: 'dailyChallenges.healingMusic.title',
       descriptionKey: 'dailyChallenges.healingMusic.description',
       categoryKey: 'dailyChallenges.categories.wellbeing',
@@ -156,6 +206,11 @@ class DailyChallenge {
       xpReward: 10,
       duration: '4 min',
       category: 'Bienestar',
+      actionType: ChallengeActionType.infoComplete,
+      stepKeys: [
+        'dailyChallenges.healingMusic.step1',
+        'dailyChallenges.healingMusic.step2',
+      ],
     ),
     DailyChallenge(
       title: 'Afirmación positiva',
@@ -168,11 +223,16 @@ class DailyChallenge {
       xpReward: 10,
       duration: '1 min',
       category: 'Autoestima',
+      actionType: ChallengeActionType.timedGuide,
+      stepKeys: [
+        'dailyChallenges.positiveAffirmation.step1',
+        'dailyChallenges.positiveAffirmation.step2',
+        'dailyChallenges.positiveAffirmation.step3',
+      ],
     ),
     DailyChallenge(
       title: 'Observa la naturaleza',
-      description:
-          'Sal y observa algo natural por 3 minutos (cielo, árbol, etc.)',
+      description: 'Sal y observa algo natural por 3 minutos (cielo, árbol, etc.)',
       titleKey: 'dailyChallenges.observeNature.title',
       descriptionKey: 'dailyChallenges.observeNature.description',
       categoryKey: 'dailyChallenges.categories.mindfulness',
@@ -181,6 +241,11 @@ class DailyChallenge {
       xpReward: 15,
       duration: '3 min',
       category: 'Mindfulness',
+      actionType: ChallengeActionType.infoComplete,
+      stepKeys: [
+        'dailyChallenges.observeNature.step1',
+        'dailyChallenges.observeNature.step2',
+      ],
     ),
     DailyChallenge(
       title: 'Perdón silencioso',
@@ -193,6 +258,12 @@ class DailyChallenge {
       xpReward: 20,
       duration: '5 min',
       category: 'Reflexión',
+      actionType: ChallengeActionType.timedGuide,
+      stepKeys: [
+        'dailyChallenges.silentForgiveness.step1',
+        'dailyChallenges.silentForgiveness.step2',
+        'dailyChallenges.silentForgiveness.step3',
+      ],
     ),
     DailyChallenge(
       title: 'Limita las quejas',
@@ -205,6 +276,12 @@ class DailyChallenge {
       xpReward: 30,
       duration: '2 hrs',
       category: 'Bienestar',
+      actionType: ChallengeActionType.infoComplete,
+      stepKeys: [
+        'dailyChallenges.limitComplaints.step1',
+        'dailyChallenges.limitComplaints.step2',
+        'dailyChallenges.limitComplaints.step3',
+      ],
     ),
   ];
 }

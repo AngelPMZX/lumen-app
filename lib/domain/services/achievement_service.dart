@@ -1,19 +1,19 @@
 import '../../data/models/achievement.dart';
 import '../../data/models/user_progress.dart';
 
-/// Tipos de eventos celebrables
+// ─── Celebration event types ──────────────────────────────────────────────────
 enum CelebrationEventType {
   achievement,
   levelUp,
   streakMilestone,
 }
 
-/// Un evento que merece celebración (dialog con confetti)
+/// Un evento que merece celebración
 class CelebrationEvent {
   final CelebrationEventType type;
-  final String? achievementId; // solo para achievements
-  final int? newLevel; // solo para level up
-  final int? streakDays; // solo para streak milestone
+  final String? achievementId;
+  final int? newLevel;
+  final int? streakDays;
 
   const CelebrationEvent({
     required this.type,
@@ -23,23 +23,28 @@ class CelebrationEvent {
   });
 }
 
-/// Servicio que detecta logros nuevos comparando estado antes/después
+/// Servicio que detecta logros nuevos comparando estado antes/después.
+/// Usa un Set de IDs ya celebrados para evitar duplicados entre sesiones.
 class AchievementService {
-  /// Milestones de racha que celebramos
   static const streakMilestones = [7, 14, 30, 50, 100];
 
   /// Compara el estado antes y después de una acción y retorna
-  /// los eventos que merecen celebración
+  /// los eventos que merecen celebración.
+  ///
+  /// [celebratedAchievementIds] — IDs de logros que ya fueron celebrados
+  /// en sesiones anteriores (leídos de Firestore). Solo se celebra un
+  /// achievement si su ID NO está en este set.
   static List<CelebrationEvent> checkForCelebrations({
     required UserProgress? progressBefore,
     required UserProgress progressAfter,
     required int diaryEntries,
     required int habitsCompleted,
     required int moodCheckIns,
+    required Set<String> celebratedAchievementIds,
   }) {
     final events = <CelebrationEvent>[];
 
-    // 1. Verificar subida de nivel
+    // ── 1. Level up ──────────────────────────────────────────────────────────
     final levelBefore = progressBefore?.level ?? 1;
     final levelAfter = progressAfter.level;
     if (levelAfter > levelBefore) {
@@ -49,7 +54,7 @@ class AchievementService {
       ));
     }
 
-    // 2. Verificar streak milestones
+    // ── 2. Streak milestones ─────────────────────────────────────────────────
     final streakBefore = progressBefore?.currentStreak ?? 0;
     final streakAfter = progressAfter.currentStreak;
     for (final milestone in streakMilestones) {
@@ -58,24 +63,17 @@ class AchievementService {
           type: CelebrationEventType.streakMilestone,
           streakDays: milestone,
         ));
-        break; // Solo un milestone a la vez
+        break;
       }
     }
 
-    // 3. Verificar achievements nuevos
-    final allAchievements = Achievement.all;
-
-    for (final achievement in allAchievements) {
-      final wasUnlockedBefore = progressBefore != null &&
-          achievement.isUnlocked(
-            currentStreak: progressBefore.currentStreak,
-            longestStreak: progressBefore.longestStreak,
-            totalXp: progressBefore.totalXp,
-            level: progressBefore.level,
-            diaryEntries: diaryEntries > 0 ? diaryEntries - 1 : 0,
-            habitsCompleted: habitsCompleted > 0 ? habitsCompleted - 1 : 0,
-            moodCheckIns: moodCheckIns > 0 ? moodCheckIns - 1 : 0,
-          );
+    // ── 3. Achievements ──────────────────────────────────────────────────────
+    // Solo celebramos achievements que:
+    //   a) Están desbloqueados CON el estado actual
+    //   b) NO están en el set de ya celebrados (fuente de verdad en Firestore)
+    for (final achievement in Achievement.all) {
+      // Saltar si ya fue celebrado antes
+      if (celebratedAchievementIds.contains(achievement.id)) continue;
 
       final isUnlockedNow = achievement.isUnlocked(
         currentStreak: progressAfter.currentStreak,
@@ -87,7 +85,7 @@ class AchievementService {
         moodCheckIns: moodCheckIns,
       );
 
-      if (isUnlockedNow && !wasUnlockedBefore) {
+      if (isUnlockedNow) {
         events.add(CelebrationEvent(
           type: CelebrationEventType.achievement,
           achievementId: achievement.id,

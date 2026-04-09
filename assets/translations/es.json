@@ -473,7 +473,9 @@
     "questionLabel": "Pregunta",
     "exerciseLabel": "Ejercicio",
     "exercisePlaceholder": "Escribe tu reflexión aquí...",
-    "exerciseMinChars": "Mínimo 10 caracteres para continuar"
+    "exerciseMinChars": "Mínimo 10 caracteres para continuar",
+    "xpEarned": "ganados en esta lección",
+    "backToMap": "Volver al mapa"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -504,7 +506,8 @@
     "version": "Versión {version}",
     "deleteAccount": "Eliminar cuenta",
     "deleteAccountConfirm": "Esta acción es permanente. ¿Estás seguro?",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "noArchetype": "Sin arquetipo"
   },
   "medals": {
     "firstStep": "Primer Paso",
@@ -610,11 +613,17 @@
     },
     "mindfulWalk": {
       "title": "Caminata consciente",
-      "description": "Camina 5 minutos prestando atención a cada paso"
+      "description": "Camina 5 minutos prestando atención a cada paso",
+      "step1": "Sal a un espacio tranquilo. Si no puedes salir, camina despacio en casa.",
+      "step2": "Con cada paso, siente el suelo bajo tus pies. Nota el peso de tu cuerpo.",
+      "step3": "Observa 3 cosas a tu alrededor. Un color, un sonido, una textura."
     },
     "digitalDetox": {
       "title": "Desconexión digital",
-      "description": "Pasa 15 minutos sin mirar tu teléfono"
+      "description": "Pasa 15 minutos sin mirar tu teléfono",
+      "step1": "Pon tu teléfono en modo avión o boca abajo en otra habitación.",
+      "step2": "Elige una actividad sin pantallas: leer, dibujar, caminar, cocinar.",
+      "step3": "Al terminar, nota cómo te sientes. ¿Más tranquilo? ¿Con más energía?"
     },
     "quickDiary": {
       "title": "Diario rápido",
@@ -622,40 +631,75 @@
     },
     "bodyScan": {
       "title": "Body scan",
-      "description": "Escanea tu cuerpo de pies a cabeza notando tensiones"
+      "description": "Escanea tu cuerpo de pies a cabeza notando tensiones",
+      "step1": "Cierra los ojos. Lleva tu atención a los pies. ¿Hay tensión o calor?",
+      "step2": "Sube lentamente: piernas, abdomen, pecho. Respira profundo en cada zona.",
+      "step3": "Continúa por hombros, cuello y cara. Suelta cualquier tensión que notes.",
+      "step4": "Termina con 3 respiraciones profundas. Abre los ojos lentamente."
     },
     "actOfKindness": {
       "title": "Acto de bondad",
-      "description": "Haz algo amable por alguien hoy, sin esperar nada"
+      "description": "Haz algo amable por alguien hoy, sin esperar nada",
+      "step1": "Piensa en alguien cercano: familiar, amigo, compañero o incluso un extraño.",
+      "step2": "Elige un acto pequeño pero genuino: un mensaje, una ayuda, una sonrisa.",
+      "step3": "Hazlo sin esperar nada a cambio. El valor está en el dar, no en el recibir."
     },
     "stretching": {
       "title": "Estiramiento",
-      "description": "Estira tu cuerpo durante 5 minutos al despertar"
+      "description": "Estira tu cuerpo durante 5 minutos al despertar",
+      "step1": "De pie o sentado, estira los brazos hacia arriba. Sostén 10 segundos.",
+      "step2": "Inclina la cabeza suavemente a cada lado. Siente el estiramiento en el cuello.",
+      "step3": "Estira las piernas: toca tus pies o extiende una pierna a la vez."
     },
     "shortMeditation": {
       "title": "Meditación breve",
-      "description": "Siéntate en silencio y observa tus pensamientos"
+      "description": "Siéntate en silencio y observa tus pensamientos",
+      "step1": "Siéntate cómodamente. Cierra los ojos. Toma 3 respiraciones profundas.",
+      "step2": "Observa tus pensamientos sin juzgarlos. Son nubes que pasan. No te aferres.",
+      "step3": "Cuando tu mente se distraiga, vuelve suavemente a tu respiración."
     },
     "healingMusic": {
       "title": "Música sanadora",
-      "description": "Escucha una canción que te haga feliz, con atención plena"
+      "description": "Escucha una canción que te haga feliz, con atención plena",
+      "step1": "Pon una canción que te guste o que te calme. Usa audífonos si puedes.",
+      "step2": "Cierra los ojos y escucha con atención: la melodía, el ritmo, la letra."
     },
     "positiveAffirmation": {
       "title": "Afirmación positiva",
-      "description": "Repite 3 veces: \"Merezco paz y felicidad\""
+      "description": "Repite 3 veces: \"Merezco paz y felicidad\"",
+      "step1": "Párate frente a un espejo o siéntate con los ojos cerrados.",
+      "step2": "Respira profundo y di en voz alta: \"Merezco paz y felicidad\".",
+      "step3": "Repítelo 3 veces más. Con cada vez, siente que lo crees más profundamente."
     },
     "observeNature": {
       "title": "Observa la naturaleza",
-      "description": "Sal y observa algo natural por 3 minutos (cielo, árbol, etc.)"
+      "description": "Sal y observa algo natural por 3 minutos (cielo, árbol, etc.)",
+      "step1": "Sal afuera o acércate a una ventana. Elige un elemento natural: árbol, cielo, planta.",
+      "step2": "Obsérvalo en silencio por 3 minutos. Nota sus colores, movimientos y texturas."
     },
     "silentForgiveness": {
       "title": "Perdón silencioso",
-      "description": "Piensa en algo que te molesta y practícalo dejando ir"
+      "description": "Piensa en algo que te molesta y practícalo dejando ir",
+      "step1": "Piensa en algo o alguien que te haya molestado. No lo juzgues, solo obsérvalo.",
+      "step2": "Respira profundo y di internamente: \"Te libero. Me libero\".",
+      "step3": "Recuerda: perdonar no es aprobar. Es soltar el peso para que no te lastime a ti."
     },
     "limitComplaints": {
       "title": "Limita las quejas",
-      "description": "Intenta pasar 2 horas sin quejarte de nada"
+      "description": "Intenta pasar 2 horas sin quejarte de nada",
+      "step1": "Durante las próximas 2 horas, cada vez que quieras quejarte, haz una pausa.",
+      "step2": "¿Puedo hacer algo al respecto? Si sí, actúa. Si no, suéltalo.",
+      "step3": "Al terminar, escribe 1 cosa positiva que notaste durante el reto."
     }
+  },
+  "challenge": {
+    "completed": "¡Reto completado!",
+    "awesome": "¡Genial!",
+    "nextStep": "Siguiente paso →",
+    "finish": "Terminar",
+    "didIt": "✓ ¡Lo hice!",
+    "later": "Lo haré después",
+    "challengeDone": "✓ Completado"
   },
   "userProgress": {
     "levelTitles": {
@@ -1429,5 +1473,72 @@
     "streakKeepGoing": "Tu dedicación está dando frutos. ¡Sigue así!",
     "awesome": "¡Genial!",
     "continueBtn": "Continuar"
+  },
+  "breathing": {
+    "scienceTitle": "¿Por qué respirar conscientemente?",
+    "scienceSource": "Fuente: Stanford Medicine · Harvard T.H. Chan",
+    "startSession": "Comenzar sesión",
+    "configTitle": "Configura tu sesión",
+    "techniqueLabel": "Técnica",
+    "durationLabel": "Duración",
+    "soundLabel": "Sonido ambiental",
+    "startButton": "Iniciar • {min} min",
+    "sessionComplete": "Sesión completada",
+    "sessionSubtitle": "{min} minutos de {technique}",
+    "xpLabel": "por cuidar tu mente",
+    "backHome": "Volver al inicio",
+    "anotherSession": "Hacer otra sesión",
+    "paused": "Pausado",
+    "science": {
+      "vagus": {
+        "title": "Activa el nervio vago",
+        "desc": "La exhalación lenta estimula el nervio vago y reduce el cortisol hasta un 20% en minutos."
+      },
+      "hrv": {
+        "title": "Mejora la variabilidad cardíaca",
+        "desc": "La respiración controlada aumenta la variabilidad cardíaca (HRV), marcador clave de resiliencia al estrés."
+      },
+      "amygdala": {
+        "title": "Calma la amígdala",
+        "desc": "Estudios de Stanford (2023) muestran que 5 min de respiración rítmica reducen la actividad de la amígdala — el centro del miedo."
+      },
+      "sleep": {
+        "title": "Mejora el sueño",
+        "desc": "La técnica 4-7-8 puede inducir el sueño en menos de 1 minuto al desactivar el sistema nervioso simpático."
+      }
+    },
+    "box": {
+      "name": "Respiración Caja",
+      "description": "4 - 4 - 4 - 4",
+      "benefit": "Reduce el cortisol y activa el nervio vago"
+    },
+    "calm478": {
+      "name": "Calma 4-7-8",
+      "description": "4 - 7 - 8",
+      "benefit": "Activa el sistema parasimpático en 60 segundos"
+    },
+    "flow": {
+      "name": "Flujo Suave",
+      "description": "4 - 8",
+      "benefit": "Ideal para principiantes, reduce la frecuencia cardíaca"
+    },
+    "phase": {
+      "inhale": "Inhala",
+      "hold": "Sostén",
+      "exhale": "Exhala"
+    },
+    "sound": {
+      "none": "Sin sonido",
+      "rain": "Lluvia",
+      "forest": "Bosque",
+      "ocean": "Océano",
+      "white": "Ruido blanco"
+    },
+    "motivational": {
+      "0": "Tu sistema nervioso te lo agradece 🙏",
+      "1": "Cada respiración consciente es un acto de autocuidado ✨",
+      "2": "Acabas de reducir tu cortisol. Así de poderoso eres 💪",
+      "3": "La calma no es ausencia de caos — es dominio del aliento 🌊"
+    }
   }
 }

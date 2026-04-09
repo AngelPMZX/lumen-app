@@ -26,10 +26,30 @@ class _DiaryScreenState extends State<DiaryScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
 
+  // FIX: guardamos la última versión vista para detectar cambios
+  int _lastKnownDiaryVersion = -1;
+
   @override
   void initState() {
     super.initState();
     _loadEntries();
+  }
+
+  /// didChangeDependencies se llama cada vez que el provider notifica.
+  /// Solo recargamos si diaryVersion realmente cambió — evita recargas
+  /// innecesarias por otros notifyListeners del AuthProvider.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final currentVersion =
+        context.watch<AuthProvider>().diaryVersion;
+    if (currentVersion != _lastKnownDiaryVersion) {
+      _lastKnownDiaryVersion = currentVersion;
+      // No recargar en la primera llamada (initState ya lo hace)
+      if (currentVersion > 0) {
+        _loadEntries();
+      }
+    }
   }
 
   Future<void> _loadEntries() async {
@@ -218,7 +238,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                           },
                           calendarStyle: CalendarStyle(
                             todayDecoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.3),
+                              color:
+                                  AppColors.primary.withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
                             selectedDecoration: const BoxDecoration(
@@ -309,8 +330,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                           ),
                           calendarBuilders: CalendarBuilders(
                             markerBuilder: (context, date, events) {
-                              final normalizedDate =
-                                  DateTime(date.year, date.month, date.day);
+                              final normalizedDate = DateTime(
+                                  date.year, date.month, date.day);
                               final mood = _calendarMoods[normalizedDate];
                               if (mood != null) {
                                 return Positioned(
@@ -341,26 +362,28 @@ class _DiaryScreenState extends State<DiaryScreen> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? Colors.white
-                              : AppColors.textPrimary,
+                          color:
+                              isDark ? Colors.white : AppColors.textPrimary,
                         ),
                       ),
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
                   _entries.isEmpty
-                      ? SliverToBoxAdapter(child: _buildEmptyState(isDark))
+                      ? SliverToBoxAdapter(
+                          child: _buildEmptyState(isDark))
                       : SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 20),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
                                 final entry = _entries[index];
                                 return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child:
-                                      _buildEntryCard(entry, isDark, index),
+                                  padding:
+                                      const EdgeInsets.only(bottom: 12),
+                                  child: _buildEntryCard(
+                                      entry, isDark, index),
                                 );
                               },
                               childCount: _entries.length,
@@ -514,8 +537,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B)
-                      .withValues(alpha: 0.12),
+                  color:
+                      const Color(0xFFF59E0B).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -542,7 +565,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
           ],
         ),
       ),
-    ).animate().fadeIn(delay: (100 * index).ms, duration: 400.ms)
+    )
+        .animate()
+        .fadeIn(delay: (100 * index).ms, duration: 400.ms)
         .slideX(begin: -0.05, end: 0);
   }
 }
