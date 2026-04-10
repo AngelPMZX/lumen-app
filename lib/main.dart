@@ -7,6 +7,7 @@ import 'firebase_options.dart';
 import 'app.dart';
 import 'domain/providers/auth_provider.dart';
 import 'domain/providers/theme_provider.dart';
+import 'domain/providers/garden_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,7 @@ void main() async {
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => GardenProvider()),
         ],
         child: const LumenApp(),
       ),

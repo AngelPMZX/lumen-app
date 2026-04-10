@@ -10,17 +10,21 @@ import '../../../data/models/mood_entry.dart';
 import '../../../data/models/quote_service.dart';
 import '../../../data/models/daily_challenge.dart';
 import '../../../data/models/wellness_route.dart';
+import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/theme_provider.dart';
+import '../../../domain/providers/garden_provider.dart';
 import '../../widgets/animated_particles_background.dart';
 import '../../widgets/weekly_mood_chart.dart';
 import '../../widgets/daily_progress_ring.dart';
+import '../../widgets/challenge_dialog.dart';
+import '../../widgets/reward_dialog.dart';
 import '../reminders/reminders_screen.dart';
 import '../routes/lesson_screen.dart';
 import '../diary/new_diary_entry_screen.dart';
-import '../../../domain/services/routes_service.dart';
 import '../breathing/breathing_screen.dart';
-import '../../widgets/challenge_dialog.dart';
+import '../garden/garden_screen.dart';
+import '../../../domain/services/routes_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -43,68 +47,37 @@ class _HomeScreenState extends State<HomeScreen>
   bool _challengeCompletedToday = false;
 
   static const Map<String, String> _quoteTextKeys = {
-    'La paz viene de adentro. No la busques afuera.':
-        'quoteService.localQuotes.0.text',
-    'No tienes que controlarlo todo. A veces solo necesitas soltar.':
-        'quoteService.localQuotes.1.text',
-    'Cada día es una nueva oportunidad para ser más amable contigo mismo.':
-        'quoteService.localQuotes.2.text',
-    'La vulnerabilidad no es debilidad. Es la mayor medida de coraje.':
-        'quoteService.localQuotes.3.text',
-    'Tu mente es un jardín. Tus pensamientos son las semillas.':
-        'quoteService.localQuotes.4.text',
-    'No es la carga la que te destruye, es cómo la cargas.':
-        'quoteService.localQuotes.5.text',
-    'Respira. Estás exactamente donde necesitas estar.':
-        'quoteService.localQuotes.6.text',
-    'Hoy mereces tu propia amabilidad tanto como cualquier otra persona.':
-        'quoteService.localQuotes.7.text',
-    'El autocuidado no es egoísmo. No puedes servir de una taza vacía.':
-        'quoteService.localQuotes.8.text',
-    'Las emociones son como olas. Obsérvalas ir y venir.':
-        'quoteService.localQuotes.9.text',
-    'Un paso pequeño hoy es un gran salto para tu bienestar.':
-        'quoteService.localQuotes.10.text',
-    'No tienes que ser perfecto para merecer amor y aceptación.':
-        'quoteService.localQuotes.11.text',
-    'La gratitud transforma lo que tienes en suficiente.':
-        'quoteService.localQuotes.12.text',
-    'Tu valor no disminuye por la incapacidad de alguien de ver tu luz.':
-        'quoteService.localQuotes.13.text',
-    'Está bien no estar bien. Lo que importa es no quedarte ahí.':
-        'quoteService.localQuotes.14.text',
-    'La calma es un superpoder en un mundo lleno de ruido.':
-        'quoteService.localQuotes.15.text',
-    'No compares tu capítulo 1 con el capítulo 20 de alguien más.':
-        'quoteService.localQuotes.16.text',
-    'Sé paciente contigo mismo. El crecimiento toma tiempo.':
-        'quoteService.localQuotes.17.text',
-    'La mejor relación que puedes tener es la que tienes contigo mismo.':
-        'quoteService.localQuotes.18.text',
-    'Hoy elige la compasión. Empieza contigo.':
-        'quoteService.localQuotes.19.text',
-    'El descanso no es rendirse. Es prepararse para seguir.':
-        'quoteService.localQuotes.20.text',
-    'No necesitas una razón para merecer paz interior.':
-        'quoteService.localQuotes.21.text',
-    'Cada respiración es una oportunidad para empezar de nuevo.':
-        'quoteService.localQuotes.22.text',
-    'Tu salud mental es una prioridad, no un lujo.':
-        'quoteService.localQuotes.23.text',
-    'Las pequeñas victorias de hoy son los grandes logros de mañana.':
-        'quoteService.localQuotes.24.text',
-    'Permítete sentir. Las emociones no son tu enemigo.':
-        'quoteService.localQuotes.25.text',
-    'Lo que nutre tu alma nunca es una pérdida de tiempo.':
-        'quoteService.localQuotes.26.text',
-    'No eres tus pensamientos. Eres quien los observa.':
-        'quoteService.localQuotes.27.text',
-    'Hoy es un buen día para cuidar de ti.':
-        'quoteService.localQuotes.28.text',
-    'La verdadera fortaleza se muestra en los momentos de vulnerabilidad.':
-        'quoteService.localQuotes.29.text',
-    'Tu viaje importa. Cada paso cuenta.':
-        'quoteService.localQuotes.30.text',
+    'La paz viene de adentro. No la busques afuera.': 'quoteService.localQuotes.0.text',
+    'No tienes que controlarlo todo. A veces solo necesitas soltar.': 'quoteService.localQuotes.1.text',
+    'Cada día es una nueva oportunidad para ser más amable contigo mismo.': 'quoteService.localQuotes.2.text',
+    'La vulnerabilidad no es debilidad. Es la mayor medida de coraje.': 'quoteService.localQuotes.3.text',
+    'Tu mente es un jardín. Tus pensamientos son las semillas.': 'quoteService.localQuotes.4.text',
+    'No es la carga la que te destruye, es cómo la cargas.': 'quoteService.localQuotes.5.text',
+    'Respira. Estás exactamente donde necesitas estar.': 'quoteService.localQuotes.6.text',
+    'Hoy mereces tu propia amabilidad tanto como cualquier otra persona.': 'quoteService.localQuotes.7.text',
+    'El autocuidado no es egoísmo. No puedes servir de una taza vacía.': 'quoteService.localQuotes.8.text',
+    'Las emociones son como olas. Obsérvalas ir y venir.': 'quoteService.localQuotes.9.text',
+    'Un paso pequeño hoy es un gran salto para tu bienestar.': 'quoteService.localQuotes.10.text',
+    'No tienes que ser perfecto para merecer amor y aceptación.': 'quoteService.localQuotes.11.text',
+    'La gratitud transforma lo que tienes en suficiente.': 'quoteService.localQuotes.12.text',
+    'Tu valor no disminuye por la incapacidad de alguien de ver tu luz.': 'quoteService.localQuotes.13.text',
+    'Está bien no estar bien. Lo que importa es no quedarte ahí.': 'quoteService.localQuotes.14.text',
+    'La calma es un superpoder en un mundo lleno de ruido.': 'quoteService.localQuotes.15.text',
+    'No compares tu capítulo 1 con el capítulo 20 de alguien más.': 'quoteService.localQuotes.16.text',
+    'Sé paciente contigo mismo. El crecimiento toma tiempo.': 'quoteService.localQuotes.17.text',
+    'La mejor relación que puedes tener es la que tienes contigo mismo.': 'quoteService.localQuotes.18.text',
+    'Hoy elige la compasión. Empieza contigo.': 'quoteService.localQuotes.19.text',
+    'El descanso no es rendirse. Es prepararse para seguir.': 'quoteService.localQuotes.20.text',
+    'No necesitas una razón para merecer paz interior.': 'quoteService.localQuotes.21.text',
+    'Cada respiración es una oportunidad para empezar de nuevo.': 'quoteService.localQuotes.22.text',
+    'Tu salud mental es una prioridad, no un lujo.': 'quoteService.localQuotes.23.text',
+    'Las pequeñas victorias de hoy son los grandes logros de mañana.': 'quoteService.localQuotes.24.text',
+    'Permítete sentir. Las emociones no son tu enemigo.': 'quoteService.localQuotes.25.text',
+    'Lo que nutre tu alma nunca es una pérdida de tiempo.': 'quoteService.localQuotes.26.text',
+    'No eres tus pensamientos. Eres quien los observa.': 'quoteService.localQuotes.27.text',
+    'Hoy es un buen día para cuidar de ti.': 'quoteService.localQuotes.28.text',
+    'La verdadera fortaleza se muestra en los momentos de vulnerabilidad.': 'quoteService.localQuotes.29.text',
+    'Tu viaje importa. Cada paso cuenta.': 'quoteService.localQuotes.30.text',
   };
 
   @override
@@ -118,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkProfileComplete();
       _loadData();
+      context.read<GardenProvider>().loadGarden();
     });
   }
 
@@ -129,8 +103,7 @@ class _HomeScreenState extends State<HomeScreen>
         return;
       }
       if (!authProvider.isProfileComplete) {
-        if (mounted)
-          Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+        if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
         return;
       }
     } catch (e) {
@@ -181,6 +154,21 @@ class _HomeScreenState extends State<HomeScreen>
     } catch (e) { debugPrint('Error loading completed lessons: $e'); }
   }
 
+  // ── Garden reward ─────────────────────────────────────────────────────────
+
+  Future<void> _grantGardenReward(RewardSource source) async {
+    if (!mounted) return;
+    try {
+      final garden = context.read<GardenProvider>();
+      final reward = await garden.grantReward(source);
+      if (mounted) await RewardDialog.show(context, reward);
+    } catch (e) {
+      debugPrint('Error granting garden reward: $e');
+    }
+  }
+
+  // ── Lessons ───────────────────────────────────────────────────────────────
+
   Future<void> _openNextLesson() async {
     final routes = _dynamicRoutes.isNotEmpty ? _dynamicRoutes : WellnessRoute.all;
     for (final route in routes) {
@@ -198,27 +186,29 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             );
-            if (result == true) { _loadData(); setState(() => _hasLessonToday = true); }
+            if (result == true) {
+              _loadData();
+              setState(() => _hasLessonToday = true);
+              await _grantGardenReward(RewardSource.lessonCompleted);
+            }
             return;
           }
         }
       }
     }
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(children: [
-            const Text('🎉', style: TextStyle(fontSize: 20)),
-            const SizedBox(width: 10),
-            Text('home.allLessonsComplete'.tr(),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          ]),
-          backgroundColor: const Color(0xFF10B981),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(children: [
+          const Text('🎉', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 10),
+          Text('home.allLessonsComplete'.tr(),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        ]),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        margin: const EdgeInsets.all(16),
+      ));
     }
   }
 
@@ -237,6 +227,8 @@ class _HomeScreenState extends State<HomeScreen>
     return null;
   }
 
+  // ── Mood ──────────────────────────────────────────────────────────────────
+
   Future<void> _onMoodSelected(MoodType mood) async {
     HapticFeedback.mediumImpact();
 
@@ -245,21 +237,15 @@ class _HomeScreenState extends State<HomeScreen>
         context: context,
         builder: (ctx) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('home.moodChangeTitle'.tr(),
-              style: const TextStyle(fontWeight: FontWeight.w700)),
+          title: Text('home.moodChangeTitle'.tr(), style: const TextStyle(fontWeight: FontWeight.w700)),
           content: RichText(
             text: TextSpan(
-              style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                  fontSize: 15),
+              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 15),
               children: [
                 TextSpan(text: 'home.moodChangeFrom'.tr()),
-                TextSpan(
-                    text: '${_selectedMood!.emoji} ${_moodLabel(_selectedMood!)}',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                TextSpan(text: '${_selectedMood!.emoji} ${_moodLabel(_selectedMood!)}', style: const TextStyle(fontWeight: FontWeight.w700)),
                 TextSpan(text: 'home.moodChangeTo'.tr()),
-                TextSpan(text: '${mood.emoji} ${_moodLabel(mood)}',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                TextSpan(text: '${mood.emoji} ${_moodLabel(mood)}', style: const TextStyle(fontWeight: FontWeight.w700)),
                 const TextSpan(text: '?'),
               ],
             ),
@@ -267,15 +253,11 @@ class _HomeScreenState extends State<HomeScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('common.cancel'.tr(),
-                  style: TextStyle(color: AppColors.textSecondary)),
+              child: Text('common.cancel'.tr(), style: TextStyle(color: AppColors.textSecondary)),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(
-                  backgroundColor: mood.color,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12))),
+              style: FilledButton.styleFrom(backgroundColor: mood.color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               child: Text('home.moodChange'.tr()),
             ),
           ],
@@ -289,8 +271,7 @@ class _HomeScreenState extends State<HomeScreen>
     await auth.recordCheckIn();
 
     if (auth.firebaseUser != null) {
-      final entry = MoodEntry(
-          id: DateTime.now().millisecondsSinceEpoch.toString(), mood: mood);
+      final entry = MoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), mood: mood);
       try {
         final isFirstToday = await auth.saveMoodEntry(entry);
         setState(() => _weeklyMoods[DateTime.now().weekday] = mood);
@@ -301,30 +282,23 @@ class _HomeScreenState extends State<HomeScreen>
               content: Row(children: [
                 Text(mood.emoji, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    isFirstToday
-                        ? 'home.moodRegistered'.tr(namedArgs: {
-                            'mood': _moodLabel(mood),
-                            'xp': '${mood.xpReward}'
-                          })
-                        : 'home.moodUpdated'
-                            .tr(namedArgs: {'mood': _moodLabel(mood)}),
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                if (isFirstToday)
-                  const Icon(Icons.bolt_rounded,
-                      color: Color(0xFFFBBF24), size: 20),
+                Expanded(child: Text(
+                  isFirstToday
+                      ? 'home.moodRegistered'.tr(namedArgs: {'mood': _moodLabel(mood), 'xp': '${mood.xpReward}'})
+                      : 'home.moodUpdated'.tr(namedArgs: {'mood': _moodLabel(mood)}),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                )),
+                if (isFirstToday) const Icon(Icons.bolt_rounded, color: Color(0xFFFBBF24), size: 20),
               ]),
               backgroundColor: mood.color.withOpacity(0.9),
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               margin: const EdgeInsets.all(16),
               duration: const Duration(seconds: 2),
             ));
+        }
+        if (isFirstToday && mounted) {
+          await _grantGardenReward(RewardSource.moodCheckIn);
         }
       } catch (e) { debugPrint('Error saving mood: $e'); }
     }
@@ -355,40 +329,27 @@ class _HomeScreenState extends State<HomeScreen>
   String _levelTitleText(int level, String fallback, dynamic progress) {
     try {
       final key = (progress as dynamic).levelTitleKey as String?;
-      if (key != null) {
-        final t = key.tr();
-        if (t != key) return t;
-      }
+      if (key != null) { final t = key.tr(); if (t != key) return t; }
     } catch (_) {}
     final derivedKey = _levelTitleKey(level);
     final t = derivedKey.tr();
     return t == derivedKey ? fallback : t;
   }
 
-
   String _challengeTitle(DailyChallenge c) {
-  if (c.titleKey != null) {
-    final t = c.titleKey!.tr();
-    if (t != c.titleKey) return t;
+    if (c.titleKey != null) { final t = c.titleKey!.tr(); if (t != c.titleKey) return t; }
+    return c.title;
   }
-  return c.title;
-}
 
-String _challengeDescription(DailyChallenge c) {
-  if (c.descriptionKey != null) {
-    final t = c.descriptionKey!.tr();
-    if (t != c.descriptionKey) return t;
+  String _challengeDescription(DailyChallenge c) {
+    if (c.descriptionKey != null) { final t = c.descriptionKey!.tr(); if (t != c.descriptionKey) return t; }
+    return c.description;
   }
-  return c.description;
-}
 
-String _challengeCategory(DailyChallenge c) {
-  if (c.categoryKey != null) {
-    final t = c.categoryKey!.tr();
-    if (t != c.categoryKey) return t;
+  String _challengeCategory(DailyChallenge c) {
+    if (c.categoryKey != null) { final t = c.categoryKey!.tr(); if (t != c.categoryKey) return t; }
+    return c.category;
   }
-  return c.category;
-}
 
   String _routeTitle(WellnessRoute route) => route.title;
   String _lessonTitle(WellnessRoute route, Lesson lesson) => lesson.title;
@@ -436,6 +397,7 @@ String _challengeCategory(DailyChallenge c) {
   // ══════════════════════════════════════════════════════════════════════════
   // BUILD
   // ══════════════════════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -455,7 +417,6 @@ String _challengeCategory(DailyChallenge c) {
     return Scaffold(
       body: Stack(
         children: [
-          // Background
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -482,38 +443,31 @@ String _challengeCategory(DailyChallenge c) {
                       Container(
                         width: 52, height: 52,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                              colors: _getArchetypeGradient(authProvider.userModel?.archetype)),
+                          gradient: LinearGradient(colors: _getArchetypeGradient(authProvider.userModel?.archetype)),
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [BoxShadow(
-                            color: _getArchetypeGradient(authProvider.userModel?.archetype)
-                                .first.withOpacity(0.3),
+                            color: _getArchetypeGradient(authProvider.userModel?.archetype).first.withOpacity(0.3),
                             blurRadius: 12, offset: const Offset(0, 4),
                           )],
                         ),
                         child: Center(
                           child: Text(
-                            authProvider.userName.isNotEmpty
-                                ? authProvider.userName[0].toUpperCase() : 'U',
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                            authProvider.userName.isNotEmpty ? authProvider.userName[0].toUpperCase() : 'U',
+                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(greeting, style: TextStyle(
-                              fontSize: 14, color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500)),
+                          Text(greeting, style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                           Text(
-                            authProvider.userName.isNotEmpty
-                                ? authProvider.userName : 'home.user'.tr(),
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : AppColors.textPrimary),
+                            authProvider.userName.isNotEmpty ? authProvider.userName : 'home.user'.tr(),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textPrimary),
                           ),
                         ]),
                       ),
+
                       // XP badge
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -524,11 +478,41 @@ String _challengeCategory(DailyChallenge c) {
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(Icons.bolt_rounded, color: AppColors.streak, size: 16),
                           const SizedBox(width: 2),
-                          Text('$totalXp', style: const TextStyle(
-                              color: AppColors.streak, fontSize: 13, fontWeight: FontWeight.w800)),
+                          Text('$totalXp', style: const TextStyle(color: AppColors.streak, fontSize: 13, fontWeight: FontWeight.w800)),
                         ]),
                       ),
                       const SizedBox(width: 8),
+
+                      // Jardín button
+                      GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GardenScreen())),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: 42, height: 42,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white.withOpacity(0.1) : AppColors.surfaceVariant,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Consumer<GardenProvider>(
+                            builder: (_, garden, __) => Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                const Text('🌱', style: TextStyle(fontSize: 18)),
+                                if (garden.seeds > 0)
+                                  Positioned(
+                                    top: 6, right: 6,
+                                    child: Container(
+                                      width: 8, height: 8,
+                                      decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
                       // Theme toggle
                       GestureDetector(
                         onTap: () { HapticFeedback.lightImpact(); themeProvider.toggleTheme(); },
@@ -536,9 +520,7 @@ String _challengeCategory(DailyChallenge c) {
                           duration: const Duration(milliseconds: 300),
                           width: 42, height: 42,
                           decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withOpacity(0.1)
-                                : AppColors.surfaceVariant,
+                            color: isDark ? Colors.white.withOpacity(0.1) : AppColors.surfaceVariant,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: AnimatedSwitcher(
@@ -561,95 +543,61 @@ String _challengeCategory(DailyChallenge c) {
                   const SizedBox(height: 20),
 
                   // ── FRASE DEL DÍA ─────────────────────────────────────────
-                  // FIX: colores más suaves en modo claro, elimina el amarillo saturado
                   if (_quote != null || _isLoadingQuote)
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                          begin: Alignment.topLeft, end: Alignment.bottomRight,
                           colors: isDark
-                              ? [
-                                  Colors.white.withOpacity(0.07),
-                                  Colors.white.withOpacity(0.03),
-                                ]
-                              : [
-                                  // FIX: crema suave en lugar del amarillo intenso
-                                  const Color(0xFFFFFBF0),
-                                  const Color(0xFFFFF8E7),
-                                ],
+                              ? [Colors.white.withOpacity(0.07), Colors.white.withOpacity(0.03)]
+                              : [const Color(0xFFFFFBF0), const Color(0xFFFFF8E7)],
                         ),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.08)
-                              : const Color(0xFFE8D5A3).withOpacity(0.6), // borde más sutil
+                          color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE8D5A3).withOpacity(0.6),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isDark
-                                ? Colors.black.withOpacity(0.1)
-                                : const Color(0xFFD4A853).withOpacity(0.08),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        boxShadow: [BoxShadow(
+                          color: isDark ? Colors.black.withOpacity(0.1) : const Color(0xFFD4A853).withOpacity(0.08),
+                          blurRadius: 12, offset: const Offset(0, 4),
+                        )],
                       ),
                       child: _isLoadingQuote
-                          ? const Center(child: SizedBox(
-                              width: 20, height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2)))
+                          ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
                           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(children: [
                                 Container(
                                   width: 32, height: 32,
                                   decoration: BoxDecoration(
-                                    color: isDark
-                                        ? AppColors.streak.withOpacity(0.15)
-                                        : const Color(0xFFD4A853).withOpacity(0.15),
+                                    color: isDark ? AppColors.streak.withOpacity(0.15) : const Color(0xFFD4A853).withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(Icons.format_quote_rounded,
-                                      color: isDark
-                                          ? AppColors.streak
-                                          : const Color(0xFFB8860B), // dorado oscuro
-                                      size: 16),
+                                      color: isDark ? AppColors.streak : const Color(0xFFB8860B), size: 16),
                                 ),
                                 const SizedBox(width: 10),
                                 Text('home.quoteOfDay'.tr(), style: TextStyle(
                                   fontSize: 12, fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? Colors.white70
-                                      : const Color(0xFF8B6914), // marrón dorado suave
+                                  color: isDark ? Colors.white70 : const Color(0xFF8B6914),
                                 )),
                               ]),
                               const SizedBox(height: 12),
                               Text('"${_quoteText(_quote!)}"', style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w600,
-                                fontStyle: FontStyle.italic,
-                                color: isDark
-                                    ? Colors.white
-                                    : const Color(0xFF4A3728), // marrón cálido
-                                height: 1.5,
+                                fontSize: 15, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic,
+                                color: isDark ? Colors.white : const Color(0xFF4A3728), height: 1.5,
                               )),
                               const SizedBox(height: 6),
                               Text('— ${_quoteAuthor(_quote!)}', style: TextStyle(
                                 fontSize: 13,
-                                color: isDark
-                                    ? Colors.white54
-                                    : const Color(0xFF8B6914),
+                                color: isDark ? Colors.white54 : const Color(0xFF8B6914),
                                 fontWeight: FontWeight.w500,
                               )),
                               if (_quote!.source == 'ZenQuotes.io') ...[
                                 const SizedBox(height: 8),
                                 Text(
                                   'home.poweredBy'.tr(namedArgs: {'source': _quote!.source}),
-                                  style: TextStyle(fontSize: 10,
-                                      color: isDark
-                                          ? Colors.white24
-                                          : const Color(0xFFB8860B).withOpacity(0.4)),
+                                  style: TextStyle(fontSize: 10, color: isDark ? Colors.white24 : const Color(0xFFB8860B).withOpacity(0.4)),
                                 ),
                               ],
                             ]),
@@ -673,14 +621,12 @@ String _challengeCategory(DailyChallenge c) {
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF6C63FF), Color(0xFF5A4FCF), Color(0xFF4A3AB5)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                          begin: Alignment.topLeft, end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [BoxShadow(
                           color: AppColors.primary.withOpacity(0.15 + _streakGlow.value * 0.1),
-                          blurRadius: 16 + _streakGlow.value * 8,
-                          offset: const Offset(0, 6),
+                          blurRadius: 16 + _streakGlow.value * 8, offset: const Offset(0, 6),
                         )],
                       ),
                       child: Column(children: [
@@ -695,58 +641,42 @@ String _challengeCategory(DailyChallenge c) {
                                 blurRadius: 16, spreadRadius: 2,
                               )],
                             ),
-                            child: const Icon(Icons.local_fire_department_rounded,
-                                color: AppColors.streak, size: 32),
+                            child: const Icon(Icons.local_fire_department_rounded, color: AppColors.streak, size: 32),
                           ),
                           const SizedBox(width: 16),
                           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text(
-                              streak == 1
-                                  ? 'home.streakDay'.tr()
-                                  : 'home.streakDays'.tr(namedArgs: {'count': '$streak'}),
-                              style: const TextStyle(color: Colors.white, fontSize: 30,
-                                  fontWeight: FontWeight.w800, height: 1),
+                              streak == 1 ? 'home.streakDay'.tr() : 'home.streakDays'.tr(namedArgs: {'count': '$streak'}),
+                              style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800, height: 1),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               streak > 0 ? 'home.streakKeepGoing'.tr() : 'home.streakDoCheckin'.tr(),
-                              style: const TextStyle(color: Colors.white70, fontSize: 14,
-                                  fontWeight: FontWeight.w500),
+                              style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
                             ),
                           ]),
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
                             child: Column(children: [
-                              const Icon(Icons.emoji_events_rounded,
-                                  color: Color(0xFFFBBF24), size: 18),
+                              const Icon(Icons.emoji_events_rounded, color: Color(0xFFFBBF24), size: 18),
                               const SizedBox(height: 2),
-                              Text('$bestStreak', style: const TextStyle(
-                                  color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                              Text('home.streakBest'.tr(), style: const TextStyle(
-                                  color: Colors.white60, fontSize: 10)),
+                              Text('$bestStreak', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                              Text('home.streakBest'.tr(), style: const TextStyle(color: Colors.white60, fontSize: 10)),
                             ]),
                           ),
                         ]),
                         const SizedBox(height: 18),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: List.generate(7, (index) {
                               final days = [
-                                'days.monShort'.tr(), 'days.tueShort'.tr(),
-                                'days.wedShort'.tr(), 'days.thuShort'.tr(),
-                                'days.friShort'.tr(), 'days.satShort'.tr(),
-                                'days.sunShort'.tr(),
+                                'days.monShort'.tr(), 'days.tueShort'.tr(), 'days.wedShort'.tr(),
+                                'days.thuShort'.tr(), 'days.friShort'.tr(), 'days.satShort'.tr(), 'days.sunShort'.tr(),
                               ];
                               final today = DateTime.now().weekday - 1;
                               final isToday = index == today;
@@ -754,8 +684,7 @@ String _challengeCategory(DailyChallenge c) {
                               final wasActive = isPast && streak > (today - index);
                               return Column(children: [
                                 Text(days[index], style: TextStyle(
-                                    color: isToday ? Colors.white : Colors.white54,
-                                    fontSize: 11,
+                                    color: isToday ? Colors.white : Colors.white54, fontSize: 11,
                                     fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
                                 const SizedBox(height: 6),
                                 AnimatedContainer(
@@ -763,16 +692,10 @@ String _challengeCategory(DailyChallenge c) {
                                   width: 30, height: 30,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: isToday
-                                        ? AppColors.streak
-                                        : wasActive
-                                            ? AppColors.streak.withOpacity(0.4)
-                                            : Colors.white.withOpacity(0.08),
+                                    color: isToday ? AppColors.streak : wasActive ? AppColors.streak.withOpacity(0.4) : Colors.white.withOpacity(0.08),
                                   ),
                                   child: Icon(
-                                    isToday
-                                        ? Icons.local_fire_department_rounded
-                                        : wasActive ? Icons.check_rounded : Icons.circle_outlined,
+                                    isToday ? Icons.local_fire_department_rounded : wasActive ? Icons.check_rounded : Icons.circle_outlined,
                                     color: isToday || wasActive ? Colors.white : Colors.white24,
                                     size: isToday ? 16 : wasActive ? 14 : 6,
                                   ),
@@ -803,9 +726,7 @@ String _challengeCategory(DailyChallenge c) {
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(Icons.refresh_rounded, size: 14, color: AppColors.textSecondary),
                             const SizedBox(width: 4),
-                            Text('home.moodChange'.tr(), style: TextStyle(
-                                fontSize: 12, color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w600)),
+                            Text('home.moodChange'.tr(), style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
                           ]),
                         ),
                       ),
@@ -818,18 +739,11 @@ String _challengeCategory(DailyChallenge c) {
                     decoration: BoxDecoration(
                       color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.08)
-                              : Colors.grey.shade200),
-                      boxShadow: isDark ? null : [BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 8, offset: const Offset(0, 2),
-                      )],
+                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+                      boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
                     ),
                     child: Wrap(
-                      spacing: 6, runSpacing: 10,
-                      alignment: WrapAlignment.center,
+                      spacing: 6, runSpacing: 10, alignment: WrapAlignment.center,
                       children: MoodType.values.map((mood) {
                         final isSelected = _selectedMood == mood;
                         return GestureDetector(
@@ -839,16 +753,12 @@ String _challengeCategory(DailyChallenge c) {
                             width: 72,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
-                              color: isSelected
-                                  ? mood.color.withOpacity(0.15) : Colors.transparent,
+                              color: isSelected ? mood.color.withOpacity(0.15) : Colors.transparent,
                               borderRadius: BorderRadius.circular(16),
-                              border: isSelected
-                                  ? Border.all(color: mood.color.withOpacity(0.5), width: 2)
-                                  : null,
+                              border: isSelected ? Border.all(color: mood.color.withOpacity(0.5), width: 2) : null,
                             ),
                             child: Column(children: [
-                              Text(mood.emoji,
-                                  style: TextStyle(fontSize: isSelected ? 30 : 26)),
+                              Text(mood.emoji, style: TextStyle(fontSize: isSelected ? 30 : 26)),
                               const SizedBox(height: 4),
                               Text(_moodLabel(mood), style: TextStyle(
                                 fontSize: 10,
@@ -864,129 +774,109 @@ String _challengeCategory(DailyChallenge c) {
                   const SizedBox(height: 20),
 
                   // ── GRÁFICA SEMANAL ───────────────────────────────────────
-                  WeeklyMoodChart(weeklyMoods: _weeklyMoods)
-                      .animate().fadeIn(delay: 550.ms, duration: 600.ms),
+                  WeeklyMoodChart(weeklyMoods: _weeklyMoods).animate().fadeIn(delay: 550.ms, duration: 600.ms),
                   const SizedBox(height: 20),
 
                   // ── RETO DIARIO ───────────────────────────────────────────
-GestureDetector(
-  onTap: _challengeCompletedToday ? null : () async {
-    final completed = await ChallengeAction.execute(context, challenge);
-    if (completed && mounted) {
-      setState(() => _challengeCompletedToday = true);
-      // Dar XP
-      try {
-        final auth = context.read<AuthProvider>();
-        await auth.completeLesson(
-          'challenge_${DateTime.now().day}_${DateTime.now().month}',
-          challenge.xpReward,
-        );
-      } catch (e) { debugPrint('Error awarding challenge XP: $e'); }
-    }
-  },
-  child: AnimatedContainer(
-    duration: const Duration(milliseconds: 300),
-    width: double.infinity,
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(colors: [
-        _challengeCompletedToday
-            ? const Color(0xFF10B981).withOpacity(isDark ? 0.2 : 0.1)
-            : challenge.color.withOpacity(isDark ? 0.15 : 0.08),
-        _challengeCompletedToday
-            ? const Color(0xFF10B981).withOpacity(isDark ? 0.1 : 0.05)
-            : challenge.color.withOpacity(isDark ? 0.08 : 0.03),
-      ]),
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(
-        color: _challengeCompletedToday
-            ? const Color(0xFF10B981).withOpacity(0.4)
-            : challenge.color.withOpacity(isDark ? 0.2 : 0.15),
-      ),
-      boxShadow: [BoxShadow(
-        color: (_challengeCompletedToday
-            ? const Color(0xFF10B981)
-            : challenge.color).withOpacity(isDark ? 0.1 : 0.06),
-        blurRadius: 12, offset: const Offset(0, 4),
-      )],
-    ),
-    child: Row(children: [
-      Container(
-        width: 52, height: 52,
-        decoration: BoxDecoration(
-          color: (_challengeCompletedToday
-              ? const Color(0xFF10B981)
-              : challenge.color).withOpacity(0.15),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: _challengeCompletedToday
-            ? const Icon(Icons.check_circle_rounded,
-                color: Color(0xFF10B981), size: 26)
-            : Icon(challenge.icon, color: challenge.color, size: 26),
-      ),
-      const SizedBox(width: 16),
-      Expanded(child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: (_challengeCompletedToday
-                    ? const Color(0xFF10B981)
-                    : challenge.color).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                _challengeCompletedToday
-                    ? 'challenge.challengeDone'.tr()
-                    : 'home.challengeLabel'.tr(
-                        namedArgs: {'category': _challengeCategory(challenge)}),
-                style: TextStyle(
-                  fontSize: 10, fontWeight: FontWeight.w700,
-                  color: _challengeCompletedToday
-                      ? const Color(0xFF10B981) : challenge.color,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (!_challengeCompletedToday)
-              Text(challenge.duration,
-                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-          ]),
-          const SizedBox(height: 6),
-          Text(_challengeTitle(challenge), style: TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : AppColors.textPrimary)),
-          const SizedBox(height: 2),
-          Text(
-            _challengeCompletedToday
-                ? '+${challenge.xpReward} XP ganados 🎉'
-                : _challengeDescription(challenge),
-            style: TextStyle(
-              fontSize: 13,
-              color: _challengeCompletedToday
-                  ? const Color(0xFF10B981)
-                  : AppColors.textSecondary,
-              fontWeight: _challengeCompletedToday
-                  ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
-        ],
-      )),
-      if (!_challengeCompletedToday)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: challenge.color.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text('+${challenge.xpReward}', style: TextStyle(
-              fontSize: 12, fontWeight: FontWeight.w800, color: challenge.color)),
-        ),
-    ]),
-  ),
-).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                  GestureDetector(
+                    onTap: _challengeCompletedToday ? null : () async {
+                      final completed = await ChallengeAction.execute(context, challenge);
+                      if (completed && mounted) {
+                        setState(() => _challengeCompletedToday = true);
+                        try {
+                          final auth = context.read<AuthProvider>();
+                          await auth.completeLesson(
+                            'challenge_${DateTime.now().day}_${DateTime.now().month}',
+                            challenge.xpReward,
+                          );
+                        } catch (e) { debugPrint('Error awarding challenge XP: $e'); }
+                      }
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [
+                          _challengeCompletedToday
+                              ? const Color(0xFF10B981).withOpacity(isDark ? 0.2 : 0.1)
+                              : challenge.color.withOpacity(isDark ? 0.15 : 0.08),
+                          _challengeCompletedToday
+                              ? const Color(0xFF10B981).withOpacity(isDark ? 0.1 : 0.05)
+                              : challenge.color.withOpacity(isDark ? 0.08 : 0.03),
+                        ]),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: _challengeCompletedToday
+                              ? const Color(0xFF10B981).withOpacity(0.4)
+                              : challenge.color.withOpacity(isDark ? 0.2 : 0.15),
+                        ),
+                        boxShadow: [BoxShadow(
+                          color: (_challengeCompletedToday ? const Color(0xFF10B981) : challenge.color)
+                              .withOpacity(isDark ? 0.1 : 0.06),
+                          blurRadius: 12, offset: const Offset(0, 4),
+                        )],
+                      ),
+                      child: Row(children: [
+                        Container(
+                          width: 52, height: 52,
+                          decoration: BoxDecoration(
+                            color: (_challengeCompletedToday ? const Color(0xFF10B981) : challenge.color).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: _challengeCompletedToday
+                              ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 26)
+                              : Icon(challenge.icon, color: challenge.color, size: 26),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: (_challengeCompletedToday ? const Color(0xFF10B981) : challenge.color).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                _challengeCompletedToday
+                                    ? 'challenge.challengeDone'.tr()
+                                    : 'home.challengeLabel'.tr(namedArgs: {'category': _challengeCategory(challenge)}),
+                                style: TextStyle(
+                                  fontSize: 10, fontWeight: FontWeight.w700,
+                                  color: _challengeCompletedToday ? const Color(0xFF10B981) : challenge.color,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (!_challengeCompletedToday)
+                              Text(challenge.duration, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                          ]),
+                          const SizedBox(height: 6),
+                          Text(_challengeTitle(challenge), style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : AppColors.textPrimary)),
+                          const SizedBox(height: 2),
+                          Text(
+                            _challengeCompletedToday
+                                ? '+${challenge.xpReward} XP 🎉'
+                                : _challengeDescription(challenge),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: _challengeCompletedToday ? const Color(0xFF10B981) : AppColors.textSecondary,
+                              fontWeight: _challengeCompletedToday ? FontWeight.w600 : FontWeight.w400,
+                            ),
+                          ),
+                        ])),
+                        if (!_challengeCompletedToday)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: challenge.color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+                            child: Text('+${challenge.xpReward}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: challenge.color)),
+                          ),
+                      ]),
+                    ),
+                  ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
+                  const SizedBox(height: 20),
 
                   // ── ACCIONES RÁPIDAS ──────────────────────────────────────
                   Text('home.todayTraining'.tr(), style: TextStyle(
@@ -995,7 +885,6 @@ GestureDetector(
                       .animate().fadeIn(delay: 650.ms),
                   const SizedBox(height: 14),
 
-                  // FIX: todas las cards tienen SizedBox(height:12) consistente
                   _buildActionCard(
                     icon: Icons.menu_book_rounded,
                     title: nextLesson != null ? nextLesson.$1 : 'home.allComplete'.tr(),
@@ -1004,19 +893,19 @@ GestureDetector(
                     isDark: isDark, delay: 700,
                     onTap: _openNextLesson,
                   ),
-                  const SizedBox(height: 12), // ← consistente
+                  const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.air_rounded,
                     title: 'home.breathingTitle'.tr(),
                     subtitle: 'home.breathingSubtitle'.tr(),
                     color: AppColors.moodCalm,
                     isDark: isDark, delay: 750,
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const BreathingScreen()),
-                      ),
+                    onTap: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const BreathingScreen()));
+                      if (mounted) await _grantGardenReward(RewardSource.breathing);
+                    },
                   ),
-                  const SizedBox(height: 12), // ← FIX: faltaba este
+                  const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.edit_note_rounded,
                     title: 'home.quickDiary'.tr(),
@@ -1024,22 +913,21 @@ GestureDetector(
                     color: const Color(0xFF10B981),
                     isDark: isDark, delay: 800,
                     onTap: () async {
-                      final result = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()),
-                      );
-                      if (result == true) _loadData();
+                      final result = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()));
+                      if (result == true) {
+                        _loadData();
+                        await _grantGardenReward(RewardSource.diaryEntry);
+                      }
                     },
                   ),
-                  const SizedBox(height: 12), // ← consistente
+                  const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.track_changes_rounded,
                     title: 'home.habitsReminders'.tr(),
                     subtitle: 'home.habitsRemindersSubtitle'.tr(),
                     color: const Color(0xFF8B5CF6),
                     isDark: isDark, delay: 850,
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const RemindersScreen())),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RemindersScreen())),
                   ),
                   const SizedBox(height: 24),
 
@@ -1067,9 +955,7 @@ GestureDetector(
                           ? [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.03)]
                           : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: isDark
-                          ? Colors.white.withOpacity(0.08)
-                          : const Color(0xFFDDD6FE)),
+                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFDDD6FE)),
                     ),
                     child: Row(children: [
                       Container(
@@ -1081,40 +967,30 @@ GestureDetector(
                           ),
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [BoxShadow(
-                            color: _getArchetypeGradient(authProvider.userModel?.archetype)
-                                .first.withOpacity(0.3),
+                            color: _getArchetypeGradient(authProvider.userModel?.archetype).first.withOpacity(0.3),
                             blurRadius: 12, offset: const Offset(0, 4),
                           )],
                         ),
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text('home.levelShort'.tr(), style: const TextStyle(
-                              color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w600)),
-                          Text('$level', style: const TextStyle(
-                              color: Colors.white, fontSize: 22,
-                              fontWeight: FontWeight.w800, height: 1)),
+                          Text('home.levelShort'.tr(), style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w600)),
+                          Text('$level', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, height: 1)),
                         ]),
                       ),
                       const SizedBox(width: 16),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(levelTitle, style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : AppColors.textPrimary)),
+                        Text(levelTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.textPrimary)),
                         const SizedBox(height: 10),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: LinearProgressIndicator(
                             value: (totalXp % xpForNext) / xpForNext,
-                            backgroundColor: isDark
-                                ? Colors.white.withOpacity(0.1)
-                                : const Color(0xFFDDD6FE),
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                _getArchetypeGradient(authProvider.userModel?.archetype).first),
+                            backgroundColor: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFDDD6FE),
+                            valueColor: AlwaysStoppedAnimation<Color>(_getArchetypeGradient(authProvider.userModel?.archetype).first),
                             minHeight: 10,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text('${totalXp % xpForNext} / $xpForNext XP',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('${totalXp % xpForNext} / $xpForNext XP', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       ])),
                     ]),
                   ).animate().fadeIn(delay: 1000.ms),
@@ -1137,21 +1013,15 @@ GestureDetector(
         decoration: BoxDecoration(
           color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: isDark
-              ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
-          boxShadow: isDark ? null : [BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8, offset: const Offset(0, 2),
-          )],
+          border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+          boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: Column(children: [
           Text(emoji, style: const TextStyle(fontSize: 22)),
           const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.textPrimary)),
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textPrimary)),
           const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-              overflow: TextOverflow.ellipsis),
+          Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
         ]),
       ),
     );
@@ -1174,39 +1044,24 @@ GestureDetector(
         decoration: BoxDecoration(
           color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isDark
-              ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
-          boxShadow: isDark ? null : [BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8, offset: const Offset(0, 2),
-          )],
+          border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+          boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
         ),
         child: Row(children: [
           Container(
             width: 52, height: 52,
-            decoration: BoxDecoration(
-              color: color.withOpacity(isDark ? 0.2 : 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
+            decoration: BoxDecoration(color: color.withOpacity(isDark ? 0.2 : 0.1), borderRadius: BorderRadius.circular(16)),
             child: Icon(icon, color: color, size: 26),
           ),
           const SizedBox(width: 16),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : AppColors.textPrimary)),
-              const SizedBox(height: 3),
-              Text(subtitle, style: TextStyle(
-                  fontSize: 13, color: AppColors.textSecondary)),
-            ],
-          )),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.textPrimary)),
+            const SizedBox(height: 3),
+            Text(subtitle, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          ])),
           Container(
             width: 36, height: 36,
-            decoration: BoxDecoration(
-              color: color.withOpacity(isDark ? 0.15 : 0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
+            decoration: BoxDecoration(color: color.withOpacity(isDark ? 0.15 : 0.08), borderRadius: BorderRadius.circular(10)),
             child: Icon(Icons.chevron_right_rounded, color: color, size: 20),
           ),
         ]),

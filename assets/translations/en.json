@@ -1540,5 +1540,138 @@
       "2": "You just reduced your cortisol. That is how powerful you are 💪",
       "3": "Calm is not the absence of chaos — it is mastery of the breath 🌊"
     }
+  },
+  "garden": {
+    "title": "My Zen Garden",
+    "subtitle": "Nurture your mind, cultivate your garden",
+    "seeds": "Seeds of Light",
+    "seedsCount": "{count} seeds",
+    "inventory": "Inventory",
+    "inventoryEmpty": "Your inventory is empty",
+    "inventoryEmptyDesc": "Complete challenges to earn seeds and items",
+    "shop": "Shop",
+    "shopTitle": "Garden Shop",
+    "buyWithSeeds": "Buy · {cost} seeds",
+    "buyPremium": "Premium · ${price}",
+    "notEnoughSeeds": "Not enough seeds",
+    "purchaseSuccess": "Item added to your inventory!",
+    "seasonal": "Seasonal",
+    "seasonalLocked": "Available in {month}",
+    "plant": "Plant",
+    "plantHere": "Plant here",
+    "remove": "Remove plant",
+    "applyBooster": "Apply booster",
+    "boosterApplied": "Booster applied!",
+    "gridFull": "Your garden is full",
+    "positionOccupied": "This position is already taken",
+    "growthProgress": "Growth",
+    "timeRemaining": "{hours}h {minutes}m remaining",
+    "timeRemainingMinutes": "{minutes}m remaining",
+    "boostersHint": "Complete challenges to earn boosters",
+    "fullyGrown": "Fully grown! 🌸",
+    "stage": {
+      "seed": "Seed",
+      "sprout": "Sprout",
+      "young": "Young",
+      "adult": "Adult"
+    },
+    "rarity": {
+      "common": "Common",
+      "rare": "Rare",
+      "epic": "Epic",
+      "legendary": "Legendary",
+      "seasonal": "Seasonal"
+    },
+    "categories": {
+      "plants": "Plants",
+      "decorations": "Decorations",
+      "boosters": "Boosters",
+      "premium": "Premium"
+    },
+    "plants": {
+      "clover": {
+        "name": "Lucky Clover",
+        "description": "Grows quickly and brings good fortune. Perfect for starting your garden."
+      },
+      "cactus": {
+        "name": "Zen Cactus",
+        "description": "Resilient and calm, just like you facing life's challenges."
+      },
+      "bamboo": {
+        "name": "Resilient Bamboo",
+        "description": "A symbol of resilience. It bends but never breaks."
+      },
+      "cherry": {
+        "name": "Blooming Cherry",
+        "description": "Its fleeting bloom reminds us to live in the present moment."
+      },
+      "lotus": {
+        "name": "Lotus Flower",
+        "description": "Born from the mud, it blooms in purity. The most special plant."
+      },
+      "christmasTree": {
+        "name": "Christmas Pine",
+        "description": "Only available in December. A special gift for your garden."
+      },
+      "pumpkin": {
+        "name": "Autumn Pumpkin",
+        "description": "Only available in October. Adds autumn magic to your garden."
+      }
+    },
+    "decorations": {
+      "zenStone": {
+        "name": "Zen Stone",
+        "description": "A balanced stone that conveys calm and serenity."
+      },
+      "lantern": {
+        "name": "Soul Lantern",
+        "description": "Illuminates your garden and your inner path."
+      },
+      "fountain": {
+        "name": "Peace Fountain",
+        "description": "The sound of water flows like your calm thoughts."
+      },
+      "bridge": {
+        "name": "Wooden Bridge",
+        "description": "Connects the spaces of your garden and your mind."
+      }
+    },
+    "boosters": {
+      "water": {
+        "name": "Water Drop",
+        "description": "Speeds up growth by 2 hours. Obtained by completing challenges."
+      },
+      "sun": {
+        "name": "Sun Ray",
+        "description": "Speeds up growth by 6 hours. Reward for completing lessons."
+      },
+      "fertilizer": {
+        "name": "Magic Fertilizer",
+        "description": "Speeds up growth by 12 hours. Very hard to obtain."
+      },
+      "elixir": {
+        "name": "Zen Elixir",
+        "description": "Completes growth instantly. The most powerful booster."
+      }
+    },
+    "reward": {
+      "seedsTitle": "Seeds earned!",
+      "seedsMessage": "You earned {count} Seeds of Light ✨",
+      "itemTitle": "Special item!",
+      "itemMessage": "You earned {name} for your garden",
+      "streakTitle": "Streak bonus!",
+      "streakMessage": "{days} days in a row! Bonus of {count} seeds 🔥",
+      "tapToContinue": "Tap to continue"
+    },
+    "welcome": {
+      "title": "Welcome to your garden!",
+      "message": "You received 20 seeds and a Lucky Clover as a gift 🍀",
+      "cta": "Go to garden"
+    },
+    "months": {
+  "1": "January", "2": "February", "3": "March", "4": "April",
+  "5": "May", "6": "June", "7": "July", "8": "August",
+  "9": "September", "10": "October", "11": "November", "12": "December"
+}
   }
 }

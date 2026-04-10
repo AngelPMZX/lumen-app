@@ -1540,5 +1540,141 @@
       "2": "Acabas de reducir tu cortisol. Así de poderoso eres 💪",
       "3": "La calma no es ausencia de caos — es dominio del aliento 🌊"
     }
+    
+  },
+  "garden": {
+    "title": "Mi Jardín Zen",
+    "subtitle": "Cuida tu mente, cultiva tu jardín",
+    "seeds": "Semillas de Luz",
+    "seedsCount": "{count} semillas",
+    "inventory": "Inventario",
+    "inventoryEmpty": "Tu inventario está vacío",
+    "inventoryEmptyDesc": "Completa retos para ganar semillas y items",
+    "shop": "Tienda",
+    "shopTitle": "Tienda del Jardín",
+    "buyWithSeeds": "Comprar · {cost} semillas",
+    "buyPremium": "Premium · ${price}",
+    "notEnoughSeeds": "No tienes suficientes semillas",
+    "purchaseSuccess": "¡Item añadido a tu inventario!",
+    "seasonal": "Temporada",
+    "seasonalLocked": "Disponible en {month}",
+    "plant": "Plantar",
+    "plantHere": "Plantar aquí",
+    "remove": "Retirar planta",
+    "applyBooster": "Aplicar booster",
+    "boosterApplied": "¡Booster aplicado!",
+    "gridFull": "Tu jardín está lleno",
+    "positionOccupied": "Esta posición ya está ocupada",
+    "growthProgress": "Crecimiento",
+    "timeRemaining": "{hours}h {minutes}m restantes",
+    "timeRemainingMinutes": "{minutes}m restantes",
+    "boostersHint": "Completa retos para ganar boosters",
+    "fullyGrown": "¡Planta adulta! 🌸",
+    "stage": {
+      "seed": "Semilla",
+      "sprout": "Brote",
+      "young": "Joven",
+      "adult": "Adulta"
+    },
+    "rarity": {
+      "common": "Común",
+      "rare": "Raro",
+      "epic": "Épico",
+      "legendary": "Legendario",
+      "seasonal": "Temporal"
+    },
+    "categories": {
+      "plants": "Plantas",
+      "decorations": "Decoraciones",
+      "boosters": "Potenciadores",
+      "premium": "Premium"
+    },
+    "plants": {
+      "clover": {
+        "name": "Trébol de la Suerte",
+        "description": "Crece rápido y trae buena fortuna. Ideal para comenzar tu jardín."
+      },
+      "cactus": {
+        "name": "Cactus Zen",
+        "description": "Resistente y tranquilo, como tú ante los retos de la vida."
+      },
+      "bamboo": {
+        "name": "Bambú Resiliente",
+        "description": "Símbolo de resiliencia. Se dobla pero nunca se rompe."
+      },
+      "cherry": {
+        "name": "Cerezo Floreciente",
+        "description": "Su floración efímera recuerda que hay que vivir el presente."
+      },
+      "lotus": {
+        "name": "Flor de Loto",
+        "description": "Nace del barro y florece en pureza. La más especial del jardín."
+      },
+      "christmasTree": {
+        "name": "Pino Navideño",
+        "description": "Solo disponible en diciembre. Un regalo especial para tu jardín."
+      },
+      "pumpkin": {
+        "name": "Calabaza Otoñal",
+        "description": "Solo disponible en octubre. Añade magia otoñal a tu jardín."
+      }
+    },
+    "decorations": {
+      "zenStone": {
+        "name": "Piedra Zen",
+        "description": "Una piedra equilibrada que transmite calma y serenidad."
+      },
+      "lantern": {
+        "name": "Linterna del Alma",
+        "description": "Ilumina tu jardín y tu camino interior."
+      },
+      "fountain": {
+        "name": "Fuente de la Paz",
+        "description": "El sonido del agua fluye como tus pensamientos en calma."
+      },
+      "bridge": {
+        "name": "Puente de Madera",
+        "description": "Conecta los espacios de tu jardín y tu mente."
+      }
+    },
+    "boosters": {
+      "water": {
+        "name": "Gota de Agua",
+        "description": "Acelera el crecimiento 2 horas. Se obtiene completando retos."
+      },
+      "sun": {
+        "name": "Rayo de Sol",
+        "description": "Acelera el crecimiento 6 horas. Recompensa por completar lecciones."
+      },
+      "fertilizer": {
+        "name": "Abono Mágico",
+        "description": "Acelera el crecimiento 12 horas. Muy difícil de conseguir."
+      },
+      "elixir": {
+        "name": "Elixir Zen",
+        "description": "Completa el crecimiento al instante. El booster más poderoso."
+      }
+    },
+    "reward": {
+      "seedsTitle": "¡Semillas ganadas!",
+      "seedsMessage": "Has ganado {count} Semillas de Luz ✨",
+      "itemTitle": "¡Item especial!",
+      "itemMessage": "Has ganado {name} para tu jardín",
+      "streakTitle": "¡Bonus de racha!",
+      "streakMessage": "¡{days} días seguidos! Bonus de {count} semillas 🔥",
+      "tapToContinue": "Toca para continuar"
+    },
+    "welcome": {
+      "title": "¡Bienvenido a tu jardín!",
+      "message": "Has recibido 20 semillas y un Trébol de la Suerte de regalo 🍀",
+      "cta": "Ir al jardín"
+    },
+    "months": {
+  "1": "enero", "2": "febrero", "3": "marzo", "4": "abril",
+  "5": "mayo", "6": "junio", "7": "julio", "8": "agosto",
+  "9": "septiembre", "10": "octubre", "11": "noviembre", "12": "diciembre"
+}
   }
+
+  
 }

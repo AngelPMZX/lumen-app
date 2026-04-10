@@ -5,46 +5,70 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
 import '../../../data/models/daily_challenge.dart';
+import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/providers/garden_provider.dart';
 import '../screens/breathing/breathing_screen.dart';
 import '../screens/diary/new_diary_entry_screen.dart';
+import 'reward_dialog.dart';
 
-/// Maneja la acción de un reto diario según su tipo.
+/// Maneja la accion de un reto diario segun su tipo.
 /// Llamar: ChallengeAction.execute(context, challenge)
 class ChallengeAction {
   static Future<bool> execute(
       BuildContext context, DailyChallenge challenge) async {
+    bool completed = false;
+
     switch (challenge.actionType) {
       case ChallengeActionType.breathing:
         await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const BreathingScreen()),
         );
-        return true; // breathing screen awards its own XP
+        completed = true;
+        break;
 
       case ChallengeActionType.diary:
         final result = await Navigator.push<bool>(
           context,
           MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()),
         );
-        return result == true;
+        completed = result == true;
+        break;
 
       case ChallengeActionType.timedGuide:
-        final completed = await showDialog<bool>(
+        final result = await showDialog<bool>(
           context: context,
           barrierDismissible: false,
           builder: (ctx) => _TimedGuideDialog(challenge: challenge),
         );
-        return completed == true;
+        completed = result == true;
+        break;
 
       case ChallengeActionType.infoComplete:
-        final completed = await showDialog<bool>(
+        final result = await showDialog<bool>(
           context: context,
           barrierDismissible: true,
           builder: (ctx) => _InfoCompleteDialog(challenge: challenge),
         );
-        return completed == true;
+        completed = result == true;
+        break;
     }
+
+    // Si completo el reto dar recompensa del jardin
+    if (completed && context.mounted) {
+      try {
+        final garden = context.read<GardenProvider>();
+        final reward = await garden.grantReward(RewardSource.dailyChallenge);
+        if (context.mounted) {
+          await RewardDialog.show(context, reward);
+        }
+      } catch (e) {
+        debugPrint('Error granting garden reward: $e');
+      }
+    }
+
+    return completed;
   }
 }
 
