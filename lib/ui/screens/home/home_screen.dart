@@ -25,6 +25,10 @@ import '../diary/new_diary_entry_screen.dart';
 import '../breathing/breathing_screen.dart';
 import '../garden/garden_screen.dart';
 import '../../../domain/services/routes_service.dart';
+import '../../../data/models/garden_item.dart';
+import '../../../data/models/garden_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:gimnasio_emocional/domain/services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -80,20 +84,23 @@ class _HomeScreenState extends State<HomeScreen>
     'Tu viaje importa. Cada paso cuenta.': 'quoteService.localQuotes.30.text',
   };
 
-  @override
-  void initState() {
-    super.initState();
-    _streakGlow = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+ @override
+void initState() {
+  super.initState();
+  _streakGlow = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 2),
+  )..repeat(reverse: true);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkProfileComplete();
-      _loadData();
-      context.read<GardenProvider>().loadGarden();
-    });
-  }
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+  _checkProfileComplete();
+  _loadChallengeState();
+  _loadData();
+  context.read<GardenProvider>().loadGarden();
+  await NotificationService.instance.requestPermissions();
+  await _scheduleDailyReminders();
+});
+}
 
   void _checkProfileComplete() {
     try {
@@ -111,50 +118,131 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  // Carga inmediata del estado del reto — evita el flash de "no completado"
+Future<void> _loadChallengeState() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+    final today = DateTime.now();
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final done = prefs.getBool('challenge_done_${uid}_$todayStr') ?? false;
+    if (mounted) setState(() => _challengeCompletedToday = done);
+  } catch (e) {
+    debugPrint('Error loading challenge state: $e');
+  }
+}
+
   Future<void> _loadData() async {
+    if (!mounted) return;
+
     try {
       final quote = await QuoteService.getQuoteOfTheDay();
-      if (mounted) setState(() { _quote = quote; _isLoadingQuote = false; });
+      if (!mounted) return;
+      setState(() { _quote = quote; _isLoadingQuote = false; });
     } catch (e) {
       if (mounted) setState(() => _isLoadingQuote = false);
     }
 
+    if (!mounted) return;
     try {
       final auth = context.read<AuthProvider>();
       final moods = await auth.getWeeklyMoods();
-      if (mounted) setState(() => _weeklyMoods = moods);
+      if (!mounted) return;
+      setState(() => _weeklyMoods = moods);
     } catch (e) { debugPrint('Error loading weekly moods: $e'); }
 
+    if (!mounted) return;
     try {
       final auth = context.read<AuthProvider>();
       final todayMood = await auth.getTodayMood();
-      if (mounted && todayMood != null) setState(() => _selectedMood = todayMood);
+      if (!mounted) return;
+      if (todayMood != null) setState(() => _selectedMood = todayMood);
     } catch (e) { debugPrint('Error loading today mood: $e'); }
 
+    if (!mounted) return;
     try {
       final auth = context.read<AuthProvider>();
       final hasDiary = await auth.hasDiaryEntryToday();
-      if (mounted) setState(() => _hasDiaryToday = hasDiary);
+      if (!mounted) return;
+      setState(() => _hasDiaryToday = hasDiary);
     } catch (e) { debugPrint('Error checking diary: $e'); }
 
+    if (!mounted) return;
     try {
       final locale = context.locale.languageCode;
       final routes = await RoutesService().getRoutes(locale);
-      if (mounted) setState(() => _dynamicRoutes = routes);
+      if (!mounted) return;
+      setState(() => _dynamicRoutes = routes);
     } catch (e) {
       debugPrint('Error loading dynamic routes: $e');
       if (mounted) setState(() => _dynamicRoutes = WellnessRoute.all);
     }
 
+    if (!mounted) return;
     try {
       final auth = context.read<AuthProvider>();
       final completed = await auth.getCompletedLessons();
+      if (!mounted) return;
       final hasLesson = await auth.hasCompletedLessonToday();
-      if (mounted) setState(() { _completedLessons = completed; _hasLessonToday = hasLesson; });
+      if (!mounted) return;
+      setState(() { _completedLessons = completed; _hasLessonToday = hasLesson; });
     } catch (e) { debugPrint('Error loading completed lessons: $e'); }
+
+  
   }
 
-  // ── Garden reward ─────────────────────────────────────────────────────────
+  /// Programa (o cancela) los recordatorios diarios en función del estado actual.
+/// Streak: solo se programa si el usuario NO hizo check-in hoy.
+/// Harvest: solo se programa si hay plantas listas para cosechar.
+Future<void> _scheduleDailyReminders() async {
+  if (!mounted) return;
+  final auth = context.read<AuthProvider>();
+  final garden = context.read<GardenProvider>();
+
+  // ── Streak reminder ──────────────────────────────────────────────
+  try {
+    // Si ya hizo check-in hoy, cancelar cualquier recordatorio pendiente
+    final progress = auth.userProgress;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final lastCheckIn = progress?.lastCheckIn;
+    final alreadyCheckedInToday = lastCheckIn != null &&
+        DateTime(lastCheckIn.year, lastCheckIn.month, lastCheckIn.day) == today;
+
+    if (alreadyCheckedInToday) {
+      await NotificationService.instance.cancelStreakReminder();
+      debugPrint('✅ Streak reminder cancelled — check-in already done today');
+    } else {
+      await NotificationService.instance.scheduleStreakReminderAt();
+      debugPrint('⏰ Streak reminder scheduled for 20:00');
+    }
+  } catch (e) {
+    debugPrint('Error scheduling streak reminder: $e');
+  }
+
+  // ── Harvest reminder ─────────────────────────────────────────────
+  try {
+    final hasPendingHarvest = garden.garden.any((p) {
+      final item = GardenCatalog.findById(p.itemId);
+      return item != null && p.hasPendingHarvestFor(item);
+    });
+
+    if (hasPendingHarvest) {
+      await NotificationService.instance.scheduleHarvestReminder(
+        hour: 10, minute: 0,
+      );
+      debugPrint('🌾 Harvest reminder scheduled for 10:00');
+    } else {
+      await NotificationService.instance.cancelHarvestReminder();
+      debugPrint('🌾 Harvest reminder cancelled — nothing to harvest');
+    }
+  } catch (e) {
+    debugPrint('Error scheduling harvest reminder: $e');
+  }
+}
+
+  // ── Garden reward ──────────────────────────────────────────────────────────
 
   Future<void> _grantGardenReward(RewardSource source) async {
     if (!mounted) return;
@@ -167,7 +255,60 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  // ── Lessons ───────────────────────────────────────────────────────────────
+  // ── Comodín de racha ───────────────────────────────────────────────────────
+
+  Future<void> _useStreakShield() async {
+  final garden = context.read<GardenProvider>();
+  final auth = context.read<AuthProvider>();
+  
+  // El escudo solo funciona si la racha está rota
+  if (!garden.canUseShield(auth.streakBrokenToday)) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(children: [
+          const Text('🛡️', style: TextStyle(fontSize: 20)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(
+            'home.shieldOnlyWhenBroken'.tr(),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          )),
+        ]),
+        backgroundColor: Colors.grey.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 3),
+      ));
+    }
+    return;
+  }
+
+  final recoveredStreak = await garden.useStreakShield();
+  if (!mounted) return;
+
+  if (recoveredStreak > 0) {
+    // Restaurar la racha en Firestore via AuthProvider
+    await auth.restoreStreakWithShield(recoveredStreak);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Row(children: [
+        const Text('🛡️', style: TextStyle(fontSize: 20)),
+        const SizedBox(width: 10),
+        Expanded(child: Text(
+          'home.shieldUsed'.tr(),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        )),
+      ]),
+      backgroundColor: const Color(0xFFF59E0B),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      margin: const EdgeInsets.all(16),
+      duration: const Duration(seconds: 3),
+    ));
+  }
+}
+
+  // ── Lessons ────────────────────────────────────────────────────────────────
 
   Future<void> _openNextLesson() async {
     final routes = _dynamicRoutes.isNotEmpty ? _dynamicRoutes : WellnessRoute.all;
@@ -186,7 +327,16 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             );
+            if (!mounted) return;
             if (result == true) {
+              // ── Completar lección pasando GardenProvider para XP multiplicado ──
+              final auth = context.read<AuthProvider>();
+              final garden = context.read<GardenProvider>();
+              await auth.completeLesson(
+                lesson.id,
+                lesson.xpReward,
+                garden: garden,
+              );
               _loadData();
               setState(() => _hasLessonToday = true);
               await _grantGardenReward(RewardSource.lessonCompleted);
@@ -227,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen>
     return null;
   }
 
-  // ── Mood ──────────────────────────────────────────────────────────────────
+  // ── Mood ───────────────────────────────────────────────────────────────────
 
   Future<void> _onMoodSelected(MoodType mood) async {
     HapticFeedback.mediumImpact();
@@ -257,7 +407,10 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              style: FilledButton.styleFrom(backgroundColor: mood.color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              style: FilledButton.styleFrom(
+                backgroundColor: mood.color,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
               child: Text('home.moodChange'.tr()),
             ),
           ],
@@ -271,7 +424,8 @@ class _HomeScreenState extends State<HomeScreen>
     await auth.recordCheckIn();
 
     if (auth.firebaseUser != null) {
-      final entry = MoodEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), mood: mood);
+      final entry = MoodEntry(
+          id: DateTime.now().millisecondsSinceEpoch.toString(), mood: mood);
       try {
         final isFirstToday = await auth.saveMoodEntry(entry);
         setState(() => _weeklyMoods[DateTime.now().weekday] = mood);
@@ -310,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // ── Helpers ────────────────────────────────────────────────────────────────
 
   String _moodLabel(MoodType mood) {
     final key = 'mood.${mood.name}';
@@ -402,6 +556,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final themeProvider = context.watch<ThemeProvider>();
+    final gardenProvider = context.watch<GardenProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final greeting = _getGreeting();
     final progress = authProvider.userProgress;
@@ -413,6 +568,11 @@ class _HomeScreenState extends State<HomeScreen>
     final xpForNext = progress?.xpForNextLevel ?? 100;
     final challenge = DailyChallenge.getToday();
     final nextLesson = _nextLessonInfo;
+
+    // ── Estado del jardín para banners ─────────────────────────────────────
+    final streakBroken = authProvider.streakBrokenToday;
+    final shields = gardenProvider.streakShields;
+    final activeMultiplier = gardenProvider.activeMultiplier;
 
     return Scaffold(
       body: Stack(
@@ -437,7 +597,7 @@ class _HomeScreenState extends State<HomeScreen>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
 
-                  // ── HEADER ────────────────────────────────────────────────
+                  // ── HEADER ─────────────────────────────────────────────────
                   Row(
                     children: [
                       Container(
@@ -463,7 +623,8 @@ class _HomeScreenState extends State<HomeScreen>
                           Text(greeting, style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
                           Text(
                             authProvider.userName.isNotEmpty ? authProvider.userName : 'home.user'.tr(),
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textPrimary),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
+                                color: isDark ? Colors.white : AppColors.textPrimary),
                           ),
                         ]),
                       ),
@@ -478,19 +639,22 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(Icons.bolt_rounded, color: AppColors.streak, size: 16),
                           const SizedBox(width: 2),
-                          Text('$totalXp', style: const TextStyle(color: AppColors.streak, fontSize: 13, fontWeight: FontWeight.w800)),
+                          Text('$totalXp', style: const TextStyle(
+                              color: AppColors.streak, fontSize: 13, fontWeight: FontWeight.w800)),
                         ]),
                       ),
                       const SizedBox(width: 8),
 
                       // Jardín button
                       GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GardenScreen())),
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const GardenScreen())),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           width: 42, height: 42,
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.1) : AppColors.surfaceVariant,
+                            color: isDark
+                                ? Colors.white.withOpacity(0.1) : AppColors.surfaceVariant,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Consumer<GardenProvider>(
@@ -498,12 +662,36 @@ class _HomeScreenState extends State<HomeScreen>
                               alignment: Alignment.center,
                               children: [
                                 const Text('🌱', style: TextStyle(fontSize: 18)),
-                                if (garden.seeds > 0)
+                                // Badge de cosecha pendiente (naranja, más prominente)
+                                if (garden.garden.any((p) {
+  final item = GardenCatalog.findById(p.itemId);
+  return item != null && p.hasPendingHarvestFor(item);
+}))
+                                  Positioned(
+                                    top: 4, right: 4,
+                                    child: Container(
+                                      width: 10, height: 10,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF59E0B),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                            color: Colors.white.withOpacity(0.8), width: 1.5),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFFF59E0B).withOpacity(0.6),
+                                            blurRadius: 4,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  )
+                                else if (garden.seeds > 0)
                                   Positioned(
                                     top: 6, right: 6,
                                     child: Container(
                                       width: 8, height: 8,
-                                      decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                                      decoration: const BoxDecoration(
+                                          color: Color(0xFF10B981), shape: BoxShape.circle),
                                     ),
                                   ),
                               ],
@@ -520,7 +708,8 @@ class _HomeScreenState extends State<HomeScreen>
                           duration: const Duration(milliseconds: 300),
                           width: 42, height: 42,
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.1) : AppColors.surfaceVariant,
+                            color: isDark
+                                ? Colors.white.withOpacity(0.1) : AppColors.surfaceVariant,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: AnimatedSwitcher(
@@ -542,7 +731,14 @@ class _HomeScreenState extends State<HomeScreen>
                   ).animate().fadeIn(duration: 500.ms),
                   const SizedBox(height: 20),
 
-                  // ── FRASE DEL DÍA ─────────────────────────────────────────
+                  // ── BANNER: MULTIPLICADOR XP ACTIVO ────────────────────────
+                  if (activeMultiplier != null) ...[
+                    _buildMultiplierBanner(activeMultiplier.multiplier,
+                        activeMultiplier.timeRemaining, isDark),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // ── FRASE DEL DÍA ──────────────────────────────────────────
                   if (_quote != null || _isLoadingQuote)
                     Container(
                       width: double.infinity,
@@ -556,25 +752,34 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE8D5A3).withOpacity(0.6),
+                          color: isDark
+                              ? Colors.white.withOpacity(0.08)
+                              : const Color(0xFFE8D5A3).withOpacity(0.6),
                         ),
                         boxShadow: [BoxShadow(
-                          color: isDark ? Colors.black.withOpacity(0.1) : const Color(0xFFD4A853).withOpacity(0.08),
+                          color: isDark
+                              ? Colors.black.withOpacity(0.1)
+                              : const Color(0xFFD4A853).withOpacity(0.08),
                           blurRadius: 12, offset: const Offset(0, 4),
                         )],
                       ),
                       child: _isLoadingQuote
-                          ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                          ? const Center(child: SizedBox(
+                              width: 20, height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2)))
                           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                               Row(children: [
                                 Container(
                                   width: 32, height: 32,
                                   decoration: BoxDecoration(
-                                    color: isDark ? AppColors.streak.withOpacity(0.15) : const Color(0xFFD4A853).withOpacity(0.15),
+                                    color: isDark
+                                        ? AppColors.streak.withOpacity(0.15)
+                                        : const Color(0xFFD4A853).withOpacity(0.15),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(Icons.format_quote_rounded,
-                                      color: isDark ? AppColors.streak : const Color(0xFFB8860B), size: 16),
+                                      color: isDark ? AppColors.streak : const Color(0xFFB8860B),
+                                      size: 16),
                                 ),
                                 const SizedBox(width: 10),
                                 Text('home.quoteOfDay'.tr(), style: TextStyle(
@@ -584,8 +789,10 @@ class _HomeScreenState extends State<HomeScreen>
                               ]),
                               const SizedBox(height: 12),
                               Text('"${_quoteText(_quote!)}"', style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w600, fontStyle: FontStyle.italic,
-                                color: isDark ? Colors.white : const Color(0xFF4A3728), height: 1.5,
+                                fontSize: 15, fontWeight: FontWeight.w600,
+                                fontStyle: FontStyle.italic,
+                                color: isDark ? Colors.white : const Color(0xFF4A3728),
+                                height: 1.5,
                               )),
                               const SizedBox(height: 6),
                               Text('— ${_quoteAuthor(_quote!)}', style: TextStyle(
@@ -597,14 +804,17 @@ class _HomeScreenState extends State<HomeScreen>
                                 const SizedBox(height: 8),
                                 Text(
                                   'home.poweredBy'.tr(namedArgs: {'source': _quote!.source}),
-                                  style: TextStyle(fontSize: 10, color: isDark ? Colors.white24 : const Color(0xFFB8860B).withOpacity(0.4)),
+                                  style: TextStyle(fontSize: 10,
+                                      color: isDark
+                                          ? Colors.white24
+                                          : const Color(0xFFB8860B).withOpacity(0.4)),
                                 ),
                               ],
                             ]),
                     ).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 16),
 
-                  // ── PROGRESO CIRCULAR ─────────────────────────────────────
+                  // ── PROGRESO CIRCULAR ──────────────────────────────────────
                   DailyProgressRing(
                     checkInDone: _selectedMood != null,
                     lessonDone: _hasLessonToday,
@@ -612,7 +822,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
                   const SizedBox(height: 16),
 
-                  // ── STREAK CARD ───────────────────────────────────────────
+                  // ── STREAK CARD ────────────────────────────────────────────
                   AnimatedBuilder(
                     animation: _streakGlow,
                     builder: (context, child) => Container(
@@ -626,7 +836,8 @@ class _HomeScreenState extends State<HomeScreen>
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [BoxShadow(
                           color: AppColors.primary.withOpacity(0.15 + _streakGlow.value * 0.1),
-                          blurRadius: 16 + _streakGlow.value * 8, offset: const Offset(0, 6),
+                          blurRadius: 16 + _streakGlow.value * 8,
+                          offset: const Offset(0, 6),
                         )],
                       ),
                       child: Column(children: [
@@ -641,42 +852,55 @@ class _HomeScreenState extends State<HomeScreen>
                                 blurRadius: 16, spreadRadius: 2,
                               )],
                             ),
-                            child: const Icon(Icons.local_fire_department_rounded, color: AppColors.streak, size: 32),
+                            child: const Icon(Icons.local_fire_department_rounded,
+                                color: AppColors.streak, size: 32),
                           ),
                           const SizedBox(width: 16),
                           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text(
-                              streak == 1 ? 'home.streakDay'.tr() : 'home.streakDays'.tr(namedArgs: {'count': '$streak'}),
-                              style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800, height: 1),
+                              streak == 1
+                                  ? 'home.streakDay'.tr()
+                                  : 'home.streakDays'.tr(namedArgs: {'count': '$streak'}),
+                              style: const TextStyle(color: Colors.white, fontSize: 30,
+                                  fontWeight: FontWeight.w800, height: 1),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               streak > 0 ? 'home.streakKeepGoing'.tr() : 'home.streakDoCheckin'.tr(),
-                              style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
+                              style: const TextStyle(color: Colors.white70, fontSize: 14,
+                                  fontWeight: FontWeight.w500),
                             ),
                           ]),
                           const Spacer(),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(14)),
+                            decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(14)),
                             child: Column(children: [
-                              const Icon(Icons.emoji_events_rounded, color: Color(0xFFFBBF24), size: 18),
+                              const Icon(Icons.emoji_events_rounded,
+                                  color: Color(0xFFFBBF24), size: 18),
                               const SizedBox(height: 2),
-                              Text('$bestStreak', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                              Text('home.streakBest'.tr(), style: const TextStyle(color: Colors.white60, fontSize: 10)),
+                              Text('$bestStreak', style: const TextStyle(
+                                  color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                              Text('home.streakBest'.tr(), style: const TextStyle(
+                                  color: Colors.white60, fontSize: 10)),
                             ]),
                           ),
                         ]),
                         const SizedBox(height: 18),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                          decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16)),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: List.generate(7, (index) {
                               final days = [
                                 'days.monShort'.tr(), 'days.tueShort'.tr(), 'days.wedShort'.tr(),
-                                'days.thuShort'.tr(), 'days.friShort'.tr(), 'days.satShort'.tr(), 'days.sunShort'.tr(),
+                                'days.thuShort'.tr(), 'days.friShort'.tr(),
+                                'days.satShort'.tr(), 'days.sunShort'.tr(),
                               ];
                               final today = DateTime.now().weekday - 1;
                               final isToday = index == today;
@@ -692,10 +916,16 @@ class _HomeScreenState extends State<HomeScreen>
                                   width: 30, height: 30,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: isToday ? AppColors.streak : wasActive ? AppColors.streak.withOpacity(0.4) : Colors.white.withOpacity(0.08),
+                                    color: isToday
+                                        ? AppColors.streak
+                                        : wasActive
+                                            ? AppColors.streak.withOpacity(0.4)
+                                            : Colors.white.withOpacity(0.08),
                                   ),
                                   child: Icon(
-                                    isToday ? Icons.local_fire_department_rounded : wasActive ? Icons.check_rounded : Icons.circle_outlined,
+                                    isToday
+                                        ? Icons.local_fire_department_rounded
+                                        : wasActive ? Icons.check_rounded : Icons.circle_outlined,
                                     color: isToday || wasActive ? Colors.white : Colors.white24,
                                     size: isToday ? 16 : wasActive ? 14 : 6,
                                   ),
@@ -707,9 +937,16 @@ class _HomeScreenState extends State<HomeScreen>
                       ]),
                     ),
                   ).animate().fadeIn(delay: 300.ms, duration: 700.ms).slideY(begin: 0.15, end: 0),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
 
-                  // ── MOOD CHECK-IN ─────────────────────────────────────────
+                  // ── BANNER: COMODÍN DE RACHA ────────────────────────────────
+                  if (streakBroken && shields > 0) ...[
+                    _buildShieldBanner(shields, isDark),
+                    const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 8),
+
+                  // ── MOOD CHECK-IN ──────────────────────────────────────────
                   Row(children: [
                     Expanded(child: Text('home.moodCheckIn'.tr(), style: TextStyle(
                         fontSize: 18, fontWeight: FontWeight.w700,
@@ -726,7 +963,9 @@ class _HomeScreenState extends State<HomeScreen>
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(Icons.refresh_rounded, size: 14, color: AppColors.textSecondary),
                             const SizedBox(width: 4),
-                            Text('home.moodChange'.tr(), style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                            Text('home.moodChange'.tr(), style: TextStyle(
+                                fontSize: 12, color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600)),
                           ]),
                         ),
                       ),
@@ -739,8 +978,11 @@ class _HomeScreenState extends State<HomeScreen>
                     decoration: BoxDecoration(
                       color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
-                      boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                      border: Border.all(
+                          color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+                      boxShadow: isDark ? null : [BoxShadow(
+                          color: Colors.black.withOpacity(0.04), blurRadius: 8,
+                          offset: const Offset(0, 2))],
                     ),
                     child: Wrap(
                       spacing: 6, runSpacing: 10, alignment: WrapAlignment.center,
@@ -755,10 +997,13 @@ class _HomeScreenState extends State<HomeScreen>
                             decoration: BoxDecoration(
                               color: isSelected ? mood.color.withOpacity(0.15) : Colors.transparent,
                               borderRadius: BorderRadius.circular(16),
-                              border: isSelected ? Border.all(color: mood.color.withOpacity(0.5), width: 2) : null,
+                              border: isSelected
+                                  ? Border.all(color: mood.color.withOpacity(0.5), width: 2)
+                                  : null,
                             ),
                             child: Column(children: [
-                              Text(mood.emoji, style: TextStyle(fontSize: isSelected ? 30 : 26)),
+                              Text(mood.emoji,
+                                  style: TextStyle(fontSize: isSelected ? 30 : 26)),
                               const SizedBox(height: 4),
                               Text(_moodLabel(mood), style: TextStyle(
                                 fontSize: 10,
@@ -773,24 +1018,36 @@ class _HomeScreenState extends State<HomeScreen>
                   ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 20),
 
-                  // ── GRÁFICA SEMANAL ───────────────────────────────────────
-                  WeeklyMoodChart(weeklyMoods: _weeklyMoods).animate().fadeIn(delay: 550.ms, duration: 600.ms),
+                  // ── GRÁFICA SEMANAL ────────────────────────────────────────
+                  WeeklyMoodChart(weeklyMoods: _weeklyMoods)
+                      .animate().fadeIn(delay: 550.ms, duration: 600.ms),
                   const SizedBox(height: 20),
 
-                  // ── RETO DIARIO ───────────────────────────────────────────
+                  // ── RETO DIARIO ────────────────────────────────────────────
                   GestureDetector(
                     onTap: _challengeCompletedToday ? null : () async {
                       final completed = await ChallengeAction.execute(context, challenge);
                       if (completed && mounted) {
-                        setState(() => _challengeCompletedToday = true);
-                        try {
-                          final auth = context.read<AuthProvider>();
-                          await auth.completeLesson(
-                            'challenge_${DateTime.now().day}_${DateTime.now().month}',
-                            challenge.xpReward,
-                          );
-                        } catch (e) { debugPrint('Error awarding challenge XP: $e'); }
-                      }
+  setState(() => _challengeCompletedToday = true);
+  try {
+    // Persistir estado del reto
+    final prefs = await SharedPreferences.getInstance();
+    final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+    final today = DateTime.now();
+    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    await prefs.setBool('challenge_done_${uid}_$todayStr', true);
+
+    final auth = context.read<AuthProvider>();
+    final garden = context.read<GardenProvider>();
+    await auth.completeLesson(
+      'challenge_${DateTime.now().day}_${DateTime.now().month}',
+      challenge.xpReward,
+      garden: garden,
+    );
+    // Recompensa de jardín solo una vez
+    await _grantGardenReward(RewardSource.lessonCompleted);
+  } catch (e) { debugPrint('Error awarding challenge XP: $e'); }
+}
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
@@ -812,7 +1069,9 @@ class _HomeScreenState extends State<HomeScreen>
                               : challenge.color.withOpacity(isDark ? 0.2 : 0.15),
                         ),
                         boxShadow: [BoxShadow(
-                          color: (_challengeCompletedToday ? const Color(0xFF10B981) : challenge.color)
+                          color: (_challengeCompletedToday
+                              ? const Color(0xFF10B981)
+                              : challenge.color)
                               .withOpacity(isDark ? 0.1 : 0.06),
                           blurRadius: 12, offset: const Offset(0, 4),
                         )],
@@ -821,35 +1080,44 @@ class _HomeScreenState extends State<HomeScreen>
                         Container(
                           width: 52, height: 52,
                           decoration: BoxDecoration(
-                            color: (_challengeCompletedToday ? const Color(0xFF10B981) : challenge.color).withOpacity(0.15),
+                            color: (_challengeCompletedToday
+                                ? const Color(0xFF10B981)
+                                : challenge.color).withOpacity(0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: _challengeCompletedToday
-                              ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 26)
+                              ? const Icon(Icons.check_circle_rounded,
+                                  color: Color(0xFF10B981), size: 26)
                               : Icon(challenge.icon, color: challenge.color, size: 26),
                         ),
                         const SizedBox(width: 16),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                           Row(children: [
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: (_challengeCompletedToday ? const Color(0xFF10B981) : challenge.color).withOpacity(0.15),
+                                color: (_challengeCompletedToday
+                                    ? const Color(0xFF10B981)
+                                    : challenge.color).withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 _challengeCompletedToday
                                     ? 'challenge.challengeDone'.tr()
-                                    : 'home.challengeLabel'.tr(namedArgs: {'category': _challengeCategory(challenge)}),
+                                    : 'home.challengeLabel'.tr(
+                                        namedArgs: {'category': _challengeCategory(challenge)}),
                                 style: TextStyle(
                                   fontSize: 10, fontWeight: FontWeight.w700,
-                                  color: _challengeCompletedToday ? const Color(0xFF10B981) : challenge.color,
+                                  color: _challengeCompletedToday
+                                      ? const Color(0xFF10B981) : challenge.color,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             if (!_challengeCompletedToday)
-                              Text(challenge.duration, style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                              Text(challenge.duration,
+                                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
                           ]),
                           const SizedBox(height: 6),
                           Text(_challengeTitle(challenge), style: TextStyle(
@@ -862,23 +1130,29 @@ class _HomeScreenState extends State<HomeScreen>
                                 : _challengeDescription(challenge),
                             style: TextStyle(
                               fontSize: 13,
-                              color: _challengeCompletedToday ? const Color(0xFF10B981) : AppColors.textSecondary,
-                              fontWeight: _challengeCompletedToday ? FontWeight.w600 : FontWeight.w400,
+                              color: _challengeCompletedToday
+                                  ? const Color(0xFF10B981) : AppColors.textSecondary,
+                              fontWeight: _challengeCompletedToday
+                                  ? FontWeight.w600 : FontWeight.w400,
                             ),
                           ),
                         ])),
                         if (!_challengeCompletedToday)
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(color: challenge.color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
-                            child: Text('+${challenge.xpReward}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: challenge.color)),
+                            decoration: BoxDecoration(
+                                color: challenge.color.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8)),
+                            child: Text('+${challenge.xpReward}', style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w800,
+                                color: challenge.color)),
                           ),
                       ]),
                     ),
                   ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
                   const SizedBox(height: 20),
 
-                  // ── ACCIONES RÁPIDAS ──────────────────────────────────────
+                  // ── ACCIONES RÁPIDAS ───────────────────────────────────────
                   Text('home.todayTraining'.tr(), style: TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w700,
                       color: isDark ? Colors.white : AppColors.textPrimary))
@@ -886,13 +1160,20 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 14),
 
                   _buildActionCard(
-                    icon: Icons.menu_book_rounded,
-                    title: nextLesson != null ? nextLesson.$1 : 'home.allComplete'.tr(),
-                    subtitle: nextLesson != null ? nextLesson.$2 : 'home.congratulations'.tr(),
-                    color: nextLesson?.$3 ?? const Color(0xFF10B981),
-                    isDark: isDark, delay: 700,
-                    onTap: _openNextLesson,
-                  ),
+  icon: Icons.menu_book_rounded,
+  title: _hasLessonToday
+      ? 'home.lessonDoneToday'.tr()
+      : nextLesson != null ? nextLesson.$1 : 'home.allComplete'.tr(),
+  subtitle: _hasLessonToday
+      ? 'home.lessonDoneTodaySubtitle'.tr()
+      : nextLesson != null ? nextLesson.$2 : 'home.congratulations'.tr(),
+  color: _hasLessonToday
+      ? const Color(0xFF10B981)
+      : nextLesson?.$3 ?? const Color(0xFF10B981),
+  isDark: isDark, delay: 700,
+  onTap: _hasLessonToday ? null : _openNextLesson,
+  isDone: _hasLessonToday,
+),
                   const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.air_rounded,
@@ -901,9 +1182,21 @@ class _HomeScreenState extends State<HomeScreen>
                     color: AppColors.moodCalm,
                     isDark: isDark, delay: 750,
                     onTap: () async {
-                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const BreathingScreen()));
-                      if (mounted) await _grantGardenReward(RewardSource.breathing);
-                    },
+  await Navigator.push(context,
+      MaterialPageRoute(builder: (_) => const BreathingScreen()));
+  if (!mounted) return;
+  // Solo dar recompensa una vez al día
+  final prefs = await SharedPreferences.getInstance();
+  final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+  final today = DateTime.now();
+  final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+  final key = 'breathing_reward_${uid}_$todayStr';
+  final alreadyClaimed = prefs.getBool(key) ?? false;
+  if (!alreadyClaimed) {
+    await prefs.setBool(key, true);
+    await _grantGardenReward(RewardSource.breathing);
+  }
+},
                   ),
                   const SizedBox(height: 12),
                   _buildActionCard(
@@ -913,11 +1206,23 @@ class _HomeScreenState extends State<HomeScreen>
                     color: const Color(0xFF10B981),
                     isDark: isDark, delay: 800,
                     onTap: () async {
-                      final result = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()));
+                      final result = await Navigator.push<bool>(context,
+                          MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()));
+                      if (!mounted) return;
                       if (result == true) {
-                        _loadData();
-                        await _grantGardenReward(RewardSource.diaryEntry);
-                      }
+  _loadData();
+  // Solo dar recompensa de diario una vez al día
+  final prefs = await SharedPreferences.getInstance();
+  final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+  final today = DateTime.now();
+  final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+  final key = 'diary_reward_${uid}_$todayStr';
+  final alreadyClaimed = prefs.getBool(key) ?? false;
+  if (!alreadyClaimed) {
+    await prefs.setBool(key, true);
+    await _grantGardenReward(RewardSource.diaryEntry);
+  }
+}
                     },
                   ),
                   const SizedBox(height: 12),
@@ -927,11 +1232,12 @@ class _HomeScreenState extends State<HomeScreen>
                     subtitle: 'home.habitsRemindersSubtitle'.tr(),
                     color: const Color(0xFF8B5CF6),
                     isDark: isDark, delay: 850,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RemindersScreen())),
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const RemindersScreen())),
                   ),
                   const SizedBox(height: 24),
 
-                  // ── STATS ─────────────────────────────────────────────────
+                  // ── STATS ──────────────────────────────────────────────────
                   Text('home.yourSummary'.tr(), style: TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w700,
                       color: isDark ? Colors.white : AppColors.textPrimary))
@@ -946,7 +1252,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ]).animate().fadeIn(delay: 950.ms),
                   const SizedBox(height: 20),
 
-                  // ── NIVEL Y XP ────────────────────────────────────────────
+                  // ── NIVEL Y XP ─────────────────────────────────────────────
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(22),
@@ -955,7 +1261,9 @@ class _HomeScreenState extends State<HomeScreen>
                           ? [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.03)]
                           : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
                       borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFDDD6FE)),
+                      border: Border.all(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.08) : const Color(0xFFDDD6FE)),
                     ),
                     child: Row(children: [
                       Container(
@@ -967,30 +1275,39 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [BoxShadow(
-                            color: _getArchetypeGradient(authProvider.userModel?.archetype).first.withOpacity(0.3),
+                            color: _getArchetypeGradient(
+                                authProvider.userModel?.archetype).first.withOpacity(0.3),
                             blurRadius: 12, offset: const Offset(0, 4),
                           )],
                         ),
                         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text('home.levelShort'.tr(), style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w600)),
-                          Text('$level', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, height: 1)),
+                          Text('home.levelShort'.tr(), style: const TextStyle(
+                              color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w600)),
+                          Text('$level', style: const TextStyle(
+                              color: Colors.white, fontSize: 22,
+                              fontWeight: FontWeight.w800, height: 1)),
                         ]),
                       ),
                       const SizedBox(width: 16),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(levelTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.textPrimary)),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text(levelTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : AppColors.textPrimary)),
                         const SizedBox(height: 10),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(6),
                           child: LinearProgressIndicator(
                             value: (totalXp % xpForNext) / xpForNext,
-                            backgroundColor: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFDDD6FE),
-                            valueColor: AlwaysStoppedAnimation<Color>(_getArchetypeGradient(authProvider.userModel?.archetype).first),
+                            backgroundColor: isDark
+                                ? Colors.white.withOpacity(0.1) : const Color(0xFFDDD6FE),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                _getArchetypeGradient(authProvider.userModel?.archetype).first),
                             minHeight: 10,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text('${totalXp % xpForNext} / $xpForNext XP', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        Text('${totalXp % xpForNext} / $xpForNext XP',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       ])),
                     ]),
                   ).animate().fadeIn(delay: 1000.ms),
@@ -1004,7 +1321,107 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Widgets ───────────────────────────────────────────────────────────────
+  // ── BANNER: Multiplicador XP ───────────────────────────────────────────────
+
+  Widget _buildMultiplierBanner(double mult, Duration remaining, bool isDark) {
+    final mins = remaining.inMinutes + 1;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(
+          color: const Color(0xFF8B5CF6).withOpacity(0.3),
+          blurRadius: 12,
+        )],
+      ),
+      child: Row(children: [
+        const Text('⚡', style: TextStyle(fontSize: 22)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              'home.xpMultiplierActive'.tr(namedArgs: {'mult': mult.toStringAsFixed(1)}),
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+            ),
+            Text(
+              'home.xpMultiplierHint'.tr(namedArgs: {'mins': '$mins'}),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ]),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            '${mins}min',
+            style: const TextStyle(
+                color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800),
+          ),
+        ),
+      ]),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0);
+  }
+
+  // ── BANNER: Comodín de racha ───────────────────────────────────────────────
+
+  Widget _buildShieldBanner(int shields, bool isDark) {
+    return GestureDetector(
+      onTap: _useStreakShield,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [BoxShadow(
+            color: const Color(0xFFF59E0B).withOpacity(0.3),
+            blurRadius: 12,
+          )],
+        ),
+        child: Row(children: [
+          const Text('🛡️', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(
+                'home.shieldAvailable'.tr(namedArgs: {'count': '$shields'}),
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14),
+              ),
+              Text(
+                'home.shieldHint'.tr(),
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ]),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'home.shieldUse'.tr(),
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ]),
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0);
+  }
+
+  // ── Widgets ────────────────────────────────────────────────────────────────
 
   Widget _buildStatCard(String emoji, String value, String label, bool isDark) {
     return Expanded(
@@ -1013,29 +1430,35 @@ class _HomeScreenState extends State<HomeScreen>
         decoration: BoxDecoration(
           color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
-          boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+          border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+          boxShadow: isDark ? null : [BoxShadow(
+              color: Colors.black.withOpacity(0.04), blurRadius: 8,
+              offset: const Offset(0, 2))],
         ),
         child: Column(children: [
           Text(emoji, style: const TextStyle(fontSize: 22)),
           const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textPrimary)),
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
+              color: isDark ? Colors.white : AppColors.textPrimary)),
           const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary), overflow: TextOverflow.ellipsis),
+          Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+              overflow: TextOverflow.ellipsis),
         ]),
       ),
     );
   }
 
   Widget _buildActionCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required bool isDark,
-    required int delay,
-    VoidCallback? onTap,
-  }) {
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required Color color,
+  required bool isDark,
+  required int delay,
+  VoidCallback? onTap,
+  bool isDone = false,
+}) {
     return GestureDetector(
       onTap: onTap ?? () {},
       child: Container(
@@ -1044,25 +1467,37 @@ class _HomeScreenState extends State<HomeScreen>
         decoration: BoxDecoration(
           color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
-          boxShadow: isDark ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+          border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+          boxShadow: isDark ? null : [BoxShadow(
+              color: Colors.black.withOpacity(0.04), blurRadius: 8,
+              offset: const Offset(0, 2))],
         ),
         child: Row(children: [
           Container(
             width: 52, height: 52,
-            decoration: BoxDecoration(color: color.withOpacity(isDark ? 0.2 : 0.1), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+                color: color.withOpacity(isDark ? 0.2 : 0.1),
+                borderRadius: BorderRadius.circular(16)),
             child: Icon(icon, color: color, size: 26),
           ),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : AppColors.textPrimary)),
+            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : AppColors.textPrimary)),
             const SizedBox(height: 3),
             Text(subtitle, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
           ])),
           Container(
             width: 36, height: 36,
-            decoration: BoxDecoration(color: color.withOpacity(isDark ? 0.15 : 0.08), borderRadius: BorderRadius.circular(10)),
-            child: Icon(Icons.chevron_right_rounded, color: color, size: 20),
+            decoration: BoxDecoration(
+                color: color.withOpacity(isDark ? 0.15 : 0.08),
+                borderRadius: BorderRadius.circular(10)),
+            child: Icon(
+              isDone ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
+              color: color,
+              size: 20,
+            ),
           ),
         ]),
       ),

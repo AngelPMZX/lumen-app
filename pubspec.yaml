@@ -28,6 +28,8 @@ dependencies:
   lottie: ^3.3.2
   confetti: ^0.8.0
   audioplayers: ^6.6.0
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
 
 dev_dependencies:
   flutter_test:
@@ -39,5 +41,8 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/gardens/
+    - assets/images/plants/
+    - assets/images/decorations/
     - assets/translations/
     - assets/lottie/

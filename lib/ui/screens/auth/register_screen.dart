@@ -27,13 +27,17 @@ class _RegisterScreenState extends State<RegisterScreen>
   late AnimationController _bgController;
 
   @override
-  void initState() {
-    super.initState();
-    _bgController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat();
-  }
+void initState() {
+  super.initState();
+  _bgController = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 15),
+  )..repeat();
+  // Limpiar error anterior al entrar a la pantalla
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    context.read<AuthProvider>().clearError();
+  });
+}
 
   @override
   void dispose() {
@@ -444,6 +448,8 @@ class _RegisterScreenState extends State<RegisterScreen>
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.accent),
         ),
+        // ── FIX: permitir hasta 3 líneas de error para mensajes largos ──
+        errorMaxLines: 3,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,

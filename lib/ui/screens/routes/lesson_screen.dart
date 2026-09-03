@@ -9,12 +9,13 @@ import 'package:confetti/confetti.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/wellness_route.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/providers/garden_provider.dart';
 
 // ─── Character state ──────────────────────────────────────────────────────────
 enum _CharacterState { idle, correct, wrong }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAR DOT — individual twinkling star (widget-based, web compatible)
+// STAR DOT
 // ═════════════════════════════════════════════════════════════════════════════
 class _StarDot extends StatefulWidget {
   final double size;
@@ -47,11 +48,9 @@ class _StarDotState extends State<_StarDot>
       vsync: this,
       duration: Duration(milliseconds: widget.durationMs),
     );
-    // Stagger start
     Future.delayed(Duration(milliseconds: widget.delayMs), () {
       if (mounted) _ctrl.repeat(reverse: true);
     });
-    // min opacity = 0.05 so stars almost disappear at trough
     _anim = Tween<double>(begin: 0.05, end: widget.maxOpacity)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
@@ -78,13 +77,11 @@ class _StarDotState extends State<_StarDot>
               shape: BoxShape.circle,
               boxShadow: widget.size > 1.8
                   ? [
-                      // Inner bright core
                       BoxShadow(
                         color: Colors.white.withOpacity(v * 0.9),
                         blurRadius: widget.size * 1.5,
                         spreadRadius: widget.size * 0.2,
                       ),
-                      // Colored outer glow
                       BoxShadow(
                         color: widget.glowColor.withOpacity(v * 0.7),
                         blurRadius: widget.size * 4.0,
@@ -106,12 +103,12 @@ class _StarDotState extends State<_StarDot>
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// SHOOTING STAR — animated streak across the screen
+// SHOOTING STAR
 // ═════════════════════════════════════════════════════════════════════════════
 class _ShootingStar extends StatefulWidget {
-  final double startX;   // 0..1 fraction of screen width
-  final double startY;   // 0..1 fraction of screen height
-  final double angle;    // radians
+  final double startX;
+  final double startY;
+  final double angle;
   final double length;
   final Color color;
   final int delayMs;
@@ -144,8 +141,6 @@ class _ShootingStarState extends State<_ShootingStar>
       duration: Duration(milliseconds: widget.durationMs),
     );
     _progress = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
-
-    // fire → wait 8s → fire again
     _scheduleNext();
   }
 
@@ -178,16 +173,13 @@ class _ShootingStarState extends State<_ShootingStar>
           final t = _progress.value;
           if (t == 0) return const SizedBox.shrink();
 
-          // Head position travels along the angle
           final dist = t * widget.length * 2.5;
           final dx = math.cos(widget.angle) * dist;
           final dy = math.sin(widget.angle) * dist;
           final headX = widget.startX * w + dx;
           final headY = widget.startY * h + dy;
 
-          // Tail fades out as head moves
           final tailOpacity = (1.0 - t).clamp(0.0, 1.0);
-          // Head fades in then out
           final headOpacity =
               t < 0.3 ? (t / 0.3) : ((1.0 - t) / 0.7).clamp(0.0, 1.0);
 
@@ -245,7 +237,6 @@ class _ShootingStarPainter extends CustomPainter {
 
     canvas.drawLine(Offset(tailX, tailY), Offset(headX, headY), paint);
 
-    // Bright head dot
     final dotPaint = Paint()
       ..color = Colors.white.withOpacity(headOpacity)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
@@ -258,7 +249,7 @@ class _ShootingStarPainter extends CustomPainter {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAR CANVAS — full star field with twinkling stars + shooting stars
+// STAR CANVAS
 // ═════════════════════════════════════════════════════════════════════════════
 class _StarCanvas extends StatelessWidget {
   final Color accentColor;
@@ -272,15 +263,14 @@ class _StarCanvas extends StatelessWidget {
       final h = constraints.maxHeight;
       final rng = math.Random(99);
 
-      // ── Twinkling stars ──────────────────────────────────────────────────
       const starCount = 80;
       final stars = List.generate(starCount, (i) {
         final x = rng.nextDouble() * w;
         final y = rng.nextDouble() * h;
         final size = 1.0 + rng.nextDouble() * 2.5;
-        final maxOpacity = 0.4 + rng.nextDouble() * 0.6; // brighter range
+        final maxOpacity = 0.4 + rng.nextDouble() * 0.6;
         final delayMs = rng.nextInt(2500);
-        final durationMs = 800 + rng.nextInt(1800); // faster twinkle
+        final durationMs = 800 + rng.nextInt(1800);
         final useAccent = i % 6 == 0;
 
         return Positioned(
@@ -296,44 +286,23 @@ class _StarCanvas extends StatelessWidget {
         );
       });
 
-      // ── Shooting stars ───────────────────────────────────────────────────
-      final angleBase = math.pi / 5; // ~36° downward-right
+      final angleBase = math.pi / 5;
       final shootingStars = [
         _ShootingStar(
-          startX: 0.1,
-          startY: 0.05,
-          angle: angleBase,
-          length: w * 0.22,
-          color: accentColor,
-          delayMs: 2000,
-          durationMs: 900,
+          startX: 0.1, startY: 0.05, angle: angleBase,
+          length: w * 0.22, color: accentColor, delayMs: 2000, durationMs: 900,
         ),
         _ShootingStar(
-          startX: 0.6,
-          startY: 0.02,
-          angle: angleBase + 0.1,
-          length: w * 0.18,
-          color: Colors.white,
-          delayMs: 5500,
-          durationMs: 750,
+          startX: 0.6, startY: 0.02, angle: angleBase + 0.1,
+          length: w * 0.18, color: Colors.white, delayMs: 5500, durationMs: 750,
         ),
         _ShootingStar(
-          startX: 0.3,
-          startY: 0.15,
-          angle: angleBase - 0.15,
-          length: w * 0.25,
-          color: const Color(0xFF818CF8),
-          delayMs: 9000,
-          durationMs: 1000,
+          startX: 0.3, startY: 0.15, angle: angleBase - 0.15,
+          length: w * 0.25, color: const Color(0xFF818CF8), delayMs: 9000, durationMs: 1000,
         ),
         _ShootingStar(
-          startX: 0.75,
-          startY: 0.08,
-          angle: angleBase + 0.05,
-          length: w * 0.15,
-          color: accentColor,
-          delayMs: 13000,
-          durationMs: 800,
+          startX: 0.75, startY: 0.08, angle: angleBase + 0.05,
+          length: w * 0.15, color: accentColor, delayMs: 13000, durationMs: 800,
         ),
       ];
 
@@ -381,6 +350,10 @@ class _LessonScreenState extends State<LessonScreen>
   late ConfettiController _confettiController;
   int _xpEarned = 0;
   bool _showCompletion = false;
+
+  // ── XP multiplicado para mostrar en pantalla de completado ─────────────────
+  int _finalXpAwarded = 0;
+  double _appliedMultiplier = 1.0;
 
   LessonStep get _step => widget.lesson.steps[_currentStep];
   bool get _isLastStep => _currentStep == widget.lesson.steps.length - 1;
@@ -449,14 +422,32 @@ class _LessonScreenState extends State<LessonScreen>
     });
   }
 
+  // ── COMPLETAR LECCIÓN — pasa GardenProvider para aplicar multiplicador ──────
   Future<void> _completeLesson() async {
     setState(() => _isSaving = true);
     try {
       final auth = context.read<AuthProvider>();
-      await auth.completeLesson(widget.lesson.id, widget.lesson.xpReward);
+      final garden = context.read<GardenProvider>(); // ← FIX: obtener garden
+
+      // Calcular XP multiplicado ANTES de llamar completeLesson para mostrarlo
+      final multiplier = garden.currentXpMultiplier;
+      final baseXp = widget.lesson.xpReward;
+      final finalXp = multiplier > 1.0
+          ? (baseXp * multiplier).round()
+          : baseXp;
+
+      // Pasar garden para que completeLesson aplique el multiplicador
+      await auth.completeLesson(
+        widget.lesson.id,
+        baseXp,
+        garden: garden, // ← FIX: multiplicador XP aplicado aquí
+      );
+
       if (mounted) {
         setState(() {
-          _xpEarned += widget.lesson.xpReward;
+          _xpEarned += finalXp;       // mostrar XP real (multiplicado)
+          _finalXpAwarded = finalXp;
+          _appliedMultiplier = multiplier;
           _isSaving = false;
           _showCompletion = true;
           _charState = _CharacterState.correct;
@@ -551,11 +542,9 @@ class _LessonScreenState extends State<LessonScreen>
       fit: StackFit.expand,
       children: [
         Positioned(
-          top: -100,
-          left: -80,
+          top: -100, left: -80,
           child: Container(
-            width: 320,
-            height: 320,
+            width: 320, height: 320,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
@@ -566,11 +555,9 @@ class _LessonScreenState extends State<LessonScreen>
           ),
         ),
         Positioned(
-          bottom: -80,
-          right: -100,
+          bottom: -80, right: -100,
           child: Container(
-            width: 260,
-            height: 260,
+            width: 260, height: 260,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
@@ -581,11 +568,9 @@ class _LessonScreenState extends State<LessonScreen>
           ),
         ),
         Positioned(
-          top: 180,
-          right: -50,
+          top: 180, right: -50,
           child: Container(
-            width: 180,
-            height: 180,
+            width: 180, height: 180,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
@@ -599,7 +584,6 @@ class _LessonScreenState extends State<LessonScreen>
     );
   }
 
-  // ─── Lesson content ──────────────────────────────────────────────────────
   Widget _buildLessonContent(bool isDark) {
     return Column(
       children: [
@@ -630,30 +614,64 @@ class _LessonScreenState extends State<LessonScreen>
   }
 
   Widget _buildTopBar(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 16, 4),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.15)),
+    // Mostrar multiplicador activo en el top bar si hay uno
+    return Consumer<GardenProvider>(
+      builder: (_, garden, __) {
+        final mult = garden.currentXpMultiplier;
+        final hasMultiplier = mult > 1.0;
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 16, 4),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withOpacity(0.15)),
+                      ),
+                      child: const Icon(Icons.close_rounded, size: 18, color: Colors.white60),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: _buildProgressNodes()),
+                  const SizedBox(width: 10),
+                  _buildXpBadge(),
+                ],
               ),
-              child: const Icon(Icons.close_rounded,
-                  size: 18, color: Colors.white60),
-            ),
+              // Banner del multiplicador activo dentro de la lección
+              if (hasMultiplier) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                  ),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    const Text('⚡', style: TextStyle(fontSize: 13)),
+                    const SizedBox(width: 6),
+                    Text(
+                      '×${mult.toStringAsFixed(1)} XP — ¡Multiplicador activo!',
+                      style: const TextStyle(
+                        color: Color(0xFF8B5CF6),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(child: _buildProgressNodes()),
-          const SizedBox(width: 10),
-          _buildXpBadge(),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -678,20 +696,15 @@ class _LessonScreenState extends State<LessonScreen>
                         : Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: isCurrent
-                    ? [
-                        BoxShadow(
-                          color: widget.routeColor.withOpacity(0.8),
-                          blurRadius: 8,
-                          spreadRadius: 1,
-                        )
-                      ]
+                    ? [BoxShadow(
+                        color: widget.routeColor.withOpacity(0.8),
+                        blurRadius: 8, spreadRadius: 1,
+                      )]
                     : isDone
-                        ? [
-                            BoxShadow(
-                              color: widget.routeColor.withOpacity(0.4),
-                              blurRadius: 4,
-                            )
-                          ]
+                        ? [BoxShadow(
+                            color: widget.routeColor.withOpacity(0.4),
+                            blurRadius: 4,
+                          )]
                         : null,
               ),
             ),
@@ -717,9 +730,7 @@ class _LessonScreenState extends State<LessonScreen>
           Text(
             '+$_xpEarned',
             style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFFFBBF24),
+              fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFFFBBF24),
             ),
           ),
         ],
@@ -781,23 +792,14 @@ class _LessonScreenState extends State<LessonScreen>
 
     return Center(
       child: Container(
-        width: 80,
-        height: 80,
+        width: 80, height: 80,
         decoration: BoxDecoration(
           color: glow.withOpacity(0.15),
           shape: BoxShape.circle,
           border: Border.all(color: glow.withOpacity(0.3), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-              color: glow.withOpacity(0.35),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
+          boxShadow: [BoxShadow(color: glow.withOpacity(0.35), blurRadius: 20, spreadRadius: 2)],
         ),
-        child: Center(
-          child: Text(emoji, style: const TextStyle(fontSize: 38)),
-        ),
+        child: Center(child: Text(emoji, style: const TextStyle(fontSize: 38))),
       ),
     )
         .animate(onPlay: (c) => c.repeat(reverse: true))
@@ -828,35 +830,25 @@ class _LessonScreenState extends State<LessonScreen>
             disabledBackgroundColor: widget.routeColor.withOpacity(0.22),
             elevation: _canContinue ? 8 : 0,
             shadowColor: widget.routeColor.withOpacity(0.5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
           child: _isSaving
               ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2.5, color: Colors.white),
+                  width: 24, height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      _isLastStep
-                          ? 'common.done'.tr()
-                          : 'common.continue'.tr(),
+                      _isLastStep ? 'common.done'.tr() : 'common.continue'.tr(),
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.3,
+                        fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.3,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Icon(
-                      _isLastStep
-                          ? Icons.check_rounded
-                          : Icons.arrow_forward_rounded,
+                      _isLastStep ? Icons.check_rounded : Icons.arrow_forward_rounded,
                       size: 20,
                     ),
                   ],
@@ -883,13 +875,8 @@ class _LessonScreenState extends State<LessonScreen>
         Text(
           _step.title,
           style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w800,
-            height: 1.2,
-            color: Colors.white,
-            shadows: [
-              Shadow(color: widget.routeColor.withOpacity(0.5), blurRadius: 14),
-            ],
+            fontSize: 26, fontWeight: FontWeight.w800, height: 1.2, color: Colors.white,
+            shadows: [Shadow(color: widget.routeColor.withOpacity(0.5), blurRadius: 14)],
           ),
         ),
         const SizedBox(height: 16),
@@ -900,21 +887,13 @@ class _LessonScreenState extends State<LessonScreen>
             color: Colors.white.withOpacity(0.07),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: widget.routeColor.withOpacity(0.25)),
-            boxShadow: [
-              BoxShadow(
-                color: widget.routeColor.withOpacity(0.1),
-                blurRadius: 16,
-                spreadRadius: 1,
-              ),
-            ],
+            boxShadow: [BoxShadow(
+              color: widget.routeColor.withOpacity(0.1), blurRadius: 16, spreadRadius: 1,
+            )],
           ),
           child: Text(
             _step.content ?? '',
-            style: TextStyle(
-              fontSize: 16,
-              height: 1.85,
-              color: Colors.white.withOpacity(0.88),
-            ),
+            style: TextStyle(fontSize: 16, height: 1.85, color: Colors.white.withOpacity(0.88)),
           ),
         ),
       ],
@@ -938,15 +917,11 @@ class _LessonScreenState extends State<LessonScreen>
         Text(
           _step.question!,
           style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            height: 1.3,
-            color: Colors.white,
+            fontSize: 22, fontWeight: FontWeight.w800, height: 1.3, color: Colors.white,
           ),
         ),
         const SizedBox(height: 20),
-        ...List.generate(
-            _step.options!.length, (i) => _buildQuizOption(i, isDark)),
+        ...List.generate(_step.options!.length, (i) => _buildQuizOption(i, isDark)),
         if (_quizAnswered && _step.explanation != null) ...[
           const SizedBox(height: 12),
           _buildExplanation(),
@@ -997,21 +972,17 @@ class _LessonScreenState extends State<LessonScreen>
               width: isSelected || (showResult && isCorrect) ? 2.0 : 1.0,
             ),
             boxShadow: (isSelected || (showResult && isCorrect))
-                ? [
-                    BoxShadow(
-                      color: glowColor.withOpacity(0.3),
-                      blurRadius: 14,
-                      offset: const Offset(0, 3),
-                    )
-                  ]
+                ? [BoxShadow(
+                    color: glowColor.withOpacity(0.3),
+                    blurRadius: 14, offset: const Offset(0, 3),
+                  )]
                 : null,
           ),
           child: Row(
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                width: 34,
-                height: 34,
+                width: 34, height: 34,
                 decoration: BoxDecoration(
                   color: showResult && isCorrect
                       ? const Color(0xFF10B981)
@@ -1025,21 +996,14 @@ class _LessonScreenState extends State<LessonScreen>
                 child: Center(
                   child: showResult
                       ? Icon(
-                          isCorrect
-                              ? Icons.check_rounded
-                              : isSelected
-                                  ? Icons.close_rounded
-                                  : null,
-                          color: Colors.white,
-                          size: 18,
+                          isCorrect ? Icons.check_rounded : isSelected ? Icons.close_rounded : null,
+                          color: Colors.white, size: 18,
                         )
                       : Text(
                           String.fromCharCode(65 + i),
                           style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                            color:
-                                isSelected ? Colors.white : Colors.white60,
+                            fontWeight: FontWeight.w800, fontSize: 13,
+                            color: isSelected ? Colors.white : Colors.white60,
                           ),
                         ),
                 ),
@@ -1049,9 +1013,7 @@ class _LessonScreenState extends State<LessonScreen>
                 child: Text(
                   _step.options![i],
                   style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white,
                   ),
                 ),
               ),
@@ -1067,8 +1029,7 @@ class _LessonScreenState extends State<LessonScreen>
 
   Widget _buildExplanation() {
     final isCorrect = _selectedQuizOption == _step.correctIndex;
-    final color =
-        isCorrect ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+    final color = isCorrect ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
 
     return Container(
       width: double.infinity,
@@ -1083,18 +1044,13 @@ class _LessonScreenState extends State<LessonScreen>
         children: [
           Icon(
             isCorrect ? Icons.check_circle_rounded : Icons.info_rounded,
-            color: color,
-            size: 20,
+            color: color, size: 20,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               _step.explanation!,
-              style: TextStyle(
-                fontSize: 14,
-                height: 1.55,
-                color: Colors.white.withOpacity(0.85),
-              ),
+              style: TextStyle(fontSize: 14, height: 1.55, color: Colors.white.withOpacity(0.85)),
             ),
           ),
         ],
@@ -1119,10 +1075,7 @@ class _LessonScreenState extends State<LessonScreen>
         Text(
           _step.title,
           style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            height: 1.2,
-            color: Colors.white,
+            fontSize: 24, fontWeight: FontWeight.w800, height: 1.2, color: Colors.white,
           ),
         ),
         const SizedBox(height: 12),
@@ -1132,16 +1085,11 @@ class _LessonScreenState extends State<LessonScreen>
           decoration: BoxDecoration(
             color: const Color(0xFF10B981).withOpacity(0.12),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-                color: const Color(0xFF10B981).withOpacity(0.25)),
+            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.25)),
           ),
           child: Text(
             _step.instruction!,
-            style: TextStyle(
-              fontSize: 15,
-              height: 1.65,
-              color: Colors.white.withOpacity(0.88),
-            ),
+            style: TextStyle(fontSize: 15, height: 1.65, color: Colors.white.withOpacity(0.88)),
           ),
         ),
         const SizedBox(height: 16),
@@ -1152,8 +1100,7 @@ class _LessonScreenState extends State<LessonScreen>
           maxLength: 500,
           style: const TextStyle(fontSize: 15, color: Colors.white),
           decoration: InputDecoration(
-            hintText:
-                _step.placeholder ?? 'routes.exercisePlaceholder'.tr(),
+            hintText: _step.placeholder ?? 'routes.exercisePlaceholder'.tr(),
             hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
             filled: true,
             fillColor: Colors.white.withOpacity(0.07),
@@ -1163,30 +1110,25 @@ class _LessonScreenState extends State<LessonScreen>
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide:
-                  BorderSide(color: Colors.white.withOpacity(0.12)),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
               borderSide: BorderSide(color: widget.routeColor, width: 1.8),
             ),
-            counterStyle:
-                const TextStyle(color: Colors.white38, fontSize: 11),
+            counterStyle: const TextStyle(color: Colors.white38, fontSize: 11),
             contentPadding: const EdgeInsets.all(18),
           ),
         ),
         const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(Icons.info_outline_rounded,
-                size: 13, color: Colors.white38),
+            const Icon(Icons.info_outline_rounded, size: 13, color: Colors.white38),
             const SizedBox(width: 5),
             Text(
               'routes.exerciseMinChars'.tr(),
               style: const TextStyle(
-                fontSize: 12,
-                color: Colors.white38,
-                fontStyle: FontStyle.italic,
+                fontSize: 12, color: Colors.white38, fontStyle: FontStyle.italic,
               ),
             ),
           ],
@@ -1212,14 +1154,7 @@ class _LessonScreenState extends State<LessonScreen>
         children: [
           Icon(icon, color: color, size: 14),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
         ],
       ),
     );
@@ -1229,6 +1164,9 @@ class _LessonScreenState extends State<LessonScreen>
   // COMPLETION SCREEN
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildCompletionScreen(bool isDark) {
+    final wasMultiplied = _appliedMultiplier > 1.0;
+    final baseXp = widget.lesson.xpReward;
+
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(28),
@@ -1255,9 +1193,7 @@ class _LessonScreenState extends State<LessonScreen>
             Text(
               'routes.lessonComplete'.tr(),
               style: const TextStyle(
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
+                fontSize: 30, fontWeight: FontWeight.w900, color: Colors.white,
               ),
               textAlign: TextAlign.center,
             )
@@ -1267,47 +1203,78 @@ class _LessonScreenState extends State<LessonScreen>
             const SizedBox(height: 8),
             Text(
               widget.lesson.title,
-              style: TextStyle(
-                  fontSize: 15, color: Colors.white.withOpacity(0.55)),
+              style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.55)),
               textAlign: TextAlign.center,
             ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
             const SizedBox(height: 28),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [
                   widget.routeColor.withOpacity(0.22),
                   const Color(0xFFFBBF24).withOpacity(0.12),
                 ]),
                 borderRadius: BorderRadius.circular(24),
-                border:
-                    Border.all(color: widget.routeColor.withOpacity(0.35)),
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.routeColor.withOpacity(0.25),
-                    blurRadius: 28,
-                    spreadRadius: 2,
-                  ),
-                ],
+                border: Border.all(color: widget.routeColor.withOpacity(0.35)),
+                boxShadow: [BoxShadow(
+                  color: widget.routeColor.withOpacity(0.25), blurRadius: 28, spreadRadius: 2,
+                )],
               ),
               child: Column(
                 children: [
                   const Text('⚡', style: TextStyle(fontSize: 36)),
                   const SizedBox(height: 6),
-                  Text(
-                    '+$_xpEarned XP',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w900,
-                      color: widget.routeColor,
+                  // Si hubo multiplicador, mostrar XP base tachado + XP real
+                  if (wasMultiplied) ...[
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '+$baseXp',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white.withOpacity(0.45),
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: Colors.white54,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          '+$_finalXpAwarded XP',
+                          style: TextStyle(
+                            fontSize: 36, fontWeight: FontWeight.w900, color: widget.routeColor,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                      ),
+                      child: Text(
+                        '⚡ ×${_appliedMultiplier.toStringAsFixed(1)} Multiplicador aplicado',
+                        style: const TextStyle(
+                          color: Color(0xFF8B5CF6), fontSize: 11, fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ] else
+                    Text(
+                      '+$_xpEarned XP',
+                      style: TextStyle(
+                        fontSize: 36, fontWeight: FontWeight.w900, color: widget.routeColor,
+                      ),
+                    ),
+                  const SizedBox(height: 4),
                   Text(
                     'routes.xpEarned'.tr(),
-                    style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withOpacity(0.5)),
+                    style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5)),
                   ),
                 ],
               ),
@@ -1329,16 +1296,12 @@ class _LessonScreenState extends State<LessonScreen>
                   backgroundColor: widget.routeColor,
                   elevation: 8,
                   shadowColor: widget.routeColor.withOpacity(0.6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
                 child: Text(
                   'routes.backToMap'.tr(),
                   style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.3,
+                    fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: 0.3,
                   ),
                 ),
               ),

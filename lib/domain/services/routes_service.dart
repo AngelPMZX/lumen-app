@@ -39,7 +39,8 @@ class RoutesService {
       _lastFetch[locale] = DateTime.now();
       return routes;
     } catch (e) {
-      debugPrint('Error loading routes from Firestore: $e');
+      debugPrint('❌❌❌ Error loading routes from Firestore: $e');
+debugPrint('StackTrace: ${StackTrace.current}');
       // Si hay cache expirado, usarlo como fallback
       if (_cache.containsKey(locale)) {
         return _cache[locale]!;

@@ -214,7 +214,16 @@
     "viewReminders": "Ver recordatorios",
     "user": "Usuario",
     "levelShort": "Nv",
-    "poweredBy": "Con tecnología de {source}"
+    "poweredBy": "Con tecnología de {source}",
+    "shieldAvailable": "🛡️ Tienes {count} comodín de racha",
+    "shieldHint": "Toca para proteger tu racha de hoy",
+    "shieldUse": "Usar",
+    "shieldUsed": "¡Escudo usado! Tu racha está protegida 🔥",
+    "shieldOnlyWhenBroken": "El escudo solo se puede usar cuando pierdes tu racha",
+    "xpMultiplierActive": "⚡ ×{mult} XP activo — ¡Momento ideal para una lección!",
+    "xpMultiplierHint": "Quedan {mins} minutos de bonus",
+    "lessonDoneToday": "¡Lección completada!",
+    "lessonDoneTodaySubtitle": "Vuelve mañana para la siguiente"
   },
   "mood": {
     "happy": "Feliz",
@@ -433,7 +442,9 @@
     "updated": "Recordatorio actualizado",
     "weekdaysShort": "Lun-Vie",
     "mondayToFriday": "Lunes a Viernes",
-    "weekendsLabel": "Fines de semana"
+    "weekendsLabel": "Fines de semana",
+    "defaultBody": "¡Es hora de tu momento Lumen! 🌱",
+    "scheduled": "Recordatorio programado ✓"
   },
   "routes": {
     "title": "Rutas de bienestar",
@@ -475,7 +486,8 @@
     "exercisePlaceholder": "Escribe tu reflexión aquí...",
     "exerciseMinChars": "Mínimo 10 caracteres para continuar",
     "xpEarned": "ganados en esta lección",
-    "backToMap": "Volver al mapa"
+    "backToMap": "Volver al mapa",
+    "multiplierActive": "⚡ ×{mult} XP — ¡Multiplicador activo!"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -778,6 +790,26 @@
     "habits50": {
       "title": "Disciplinado",
       "description": "Completa 50 hábitos"
+    },
+    "gardenFirstPlant": {
+      "title": "Primer Brote",
+      "description": "Planta tu primera semilla en el jardín"
+    },
+    "gardenFirstAdult": {
+      "title": "Primera Flor",
+      "description": "Lleva una planta a su etapa adulta"
+    },
+    "garden3Adults": {
+      "title": "Jardín en Flor",
+      "description": "Ten 3 plantas adultas al mismo tiempo"
+    },
+    "gardenFirstDeco": {
+      "title": "Decorador",
+      "description": "Coloca tu primera decoración en el jardín"
+    },
+    "gardenFull": {
+      "title": "Jardín Frondoso",
+      "description": "Ten 5 plantas en tu jardín a la vez"
     }
   },
   "wellnessRoutes": {
@@ -1223,6 +1255,26 @@
     "habits_50": {
       "title": "Disciplinado",
       "description": "Completa 50 hábitos"
+    },
+    "garden_first_plant": {
+      "title": "Primer Brote",
+      "description": "Planta tu primera semilla en el jardín"
+    },
+    "garden_first_adult": {
+      "title": "Primera Flor",
+      "description": "Lleva una planta a su etapa adulta"
+    },
+    "garden_3_adults": {
+      "title": "Jardín en Flor",
+      "description": "Ten 3 plantas adultas al mismo tiempo"
+    },
+    "garden_first_deco": {
+      "title": "Decorador",
+      "description": "Coloca tu primera decoración en el jardín"
+    },
+    "garden_full": {
+      "title": "Jardín Frondoso",
+      "description": "Ten 5 plantas en tu jardín a la vez"
     }
   },
   "achievementsScreen": {
@@ -1540,7 +1592,6 @@
       "2": "Acabas de reducir tu cortisol. Así de poderoso eres 💪",
       "3": "La calma no es ausencia de caos — es dominio del aliento 🌊"
     }
-    
   },
   "garden": {
     "title": "Mi Jardín Zen",
@@ -1570,6 +1621,55 @@
     "timeRemainingMinutes": "{minutes}m restantes",
     "boostersHint": "Completa retos para ganar boosters",
     "fullyGrown": "¡Planta adulta! 🌸",
+    "harvestReady": "🌾 Cosecha lista",
+    "harvestReadyHint": "Toca una planta adulta para cosechar",
+    "harvestClaim": "Cosechar",
+    "harvestClaimed": "Cosecha reclamada hoy",
+    "selectGarden": "Elige tu jardín",
+    "active": "Activo",
+    "sidebar": {
+      "shop": "Tienda",
+      "gardens": "Jardines",
+      "achievements": "Logros"
+    },
+    "decoOptions": {
+      "move": "Mover",
+      "moveHint": "Mantén presionado y arrastra"
+    },
+    "shields": {
+      "title": "Comodines de Racha",
+      "countOne": "Tienes 1 escudo",
+      "countOther": "Tienes {count} escudos",
+      "description": "Úsalos cuando pierdas tu racha para protegerla. Solo los generan el Cerezo y el Loto cuando están adultos.",
+      "useNow": "Usar escudo ahora"
+    },
+    "harvest": {
+      "dialogTitle": "¡Cosecha del día!",
+      "seedsEarned": "+{count} Semillas de Luz",
+      "multiplierLine": "×{mult} XP por {mins} min",
+      "multiplierHint": "¡Efecto raro! Completa lecciones ahora",
+      "shieldEarned": "Comodín de Racha",
+      "shieldFromPlant": "Regalo de tu {plant}"
+    },
+    "stats": {
+      "title": "Progreso del jardín",
+      "plants": "Plantas",
+      "plantsSub": "en el jardín",
+      "adults": "Adultas",
+      "adultsSub": "completamente",
+      "decos": "Decos",
+      "decosSub": "colocadas"
+    },
+    "achievementsSheet": {
+      "count": "{unlocked}/{total} logros"
+    },
+    "gardens": {
+      "meadow": "Prado Sereno",
+      "mountain": "Valle de Montaña",
+      "forest": "Bosque Encantado",
+      "lake": "Lago Tranquilo",
+      "greenhouse": "Invernadero"
+    },
     "stage": {
       "seed": "Semilla",
       "sprout": "Brote",
@@ -1670,11 +1770,33 @@
       "cta": "Ir al jardín"
     },
     "months": {
-  "1": "enero", "2": "febrero", "3": "marzo", "4": "abril",
-  "5": "mayo", "6": "junio", "7": "julio", "8": "agosto",
-  "9": "septiembre", "10": "octubre", "11": "noviembre", "12": "diciembre"
+      "1": "enero",
+      "2": "febrero",
+      "3": "marzo",
+      "4": "abril",
+      "5": "mayo",
+      "6": "junio",
+      "7": "julio",
+      "8": "agosto",
+      "9": "septiembre",
+      "10": "octubre",
+      "11": "noviembre",
+      "12": "diciembre"
+    },
+    "notifications": {
+  "harvest": {
+    "title": "🌾 ¡Plantas listas para cosechar!",
+    "body": "Tus plantas están maduras. Entra a Lumen y recoge tus semillas."
+  },
+  "streak": {
+    "title": "🔥 ¡Tu racha está en riesgo!",
+    "body": "No olvides hacer tu check-in diario en Lumen para mantener tu racha."
+  },
+  "test": {
+    "title": "🧪 Prueba de notificación",
+    "body": "Si ves esto, las notificaciones funcionan correctamente en tu dispositivo."
+  }
 }
   }
-
   
 }

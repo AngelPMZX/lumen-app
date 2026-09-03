@@ -12,31 +12,23 @@ enum ItemRarity { common, rare, epic, legendary, seasonal }
 
 class GardenItem {
   final String id;
-  final String nameKey;        // clave i18n
-  final String descriptionKey; // clave i18n
+  final String nameKey;
+  final String descriptionKey;
   final ItemType type;
   final ItemRarity rarity;
   final String emoji;
 
-  // Costos
-  final int seedCost;          // 0 = no disponible con semillas
-  final double? premiumCost;   // null = solo con semillas, valor = precio USD
+  final int seedCost;
+  final double? premiumCost;
 
-  // Solo para plantas
-  final Duration? growthTime;  // tiempo total hasta adulta
-  final List<Duration>? stageThresholds; // [sprout, young, adult] desde plantedAt
+  final Duration? growthTime;
+  final List<Duration>? stageThresholds;
 
-  // Estacionalidad
   final bool isSeasonal;
-  final int? availableMonth;   // 1-12, null = siempre disponible
+  final int? availableMonth;
 
-  // Visual por etapa (solo plantas)
   final Map<PlantStage, String>? stageEmojis;
-
-  // Para boosters: cuánto tiempo reducen
   final Duration? boostDuration;
-
-  // Para temas: color de fondo
   final Color? themeColor;
 
   const GardenItem({
@@ -57,20 +49,15 @@ class GardenItem {
     this.themeColor,
   });
 
-  /// ¿Está disponible este mes?
   bool get isCurrentlyAvailable {
     if (!isSeasonal) return true;
     final currentMonth = DateTime.now().month;
     return availableMonth == currentMonth;
   }
 
-  /// ¿Es de pago?
   bool get isPremium => premiumCost != null && seedCost == 0;
-
-  /// ¿Puede comprarse con semillas?
   bool get canBuyWithSeeds => seedCost > 0;
 
-  // Serialización
   Map<String, dynamic> toMap() => {
     'id': id,
     'type': type.name,
@@ -89,7 +76,10 @@ class GardenItem {
 class GardenCatalog {
   GardenCatalog._();
 
-  // ── PLANTAS ──────────────────────────────────────────────────────────────
+  // ── PLANTAS ───────────────────────────────────────────────────────────────
+  // Tiempos de crecimiento aumentados para incentivar uso diario de la app.
+  // Antes: 6h / 12h / 24h / 48h / 72h
+  // Ahora: 1d / 2d / 3d / 5d / 7d
 
   static const GardenItem cloverPlant = GardenItem(
     id: 'plant_clover',
@@ -99,11 +89,11 @@ class GardenCatalog {
     rarity: ItemRarity.common,
     emoji: '🍀',
     seedCost: 15,
-    growthTime: Duration(hours: 6),
+    growthTime: Duration(hours: 24), // era 6h → ahora 1 día
     stageThresholds: [
-      Duration(hours: 1),   // → sprout
-      Duration(hours: 3),   // → young
-      Duration(hours: 6),   // → adult
+      Duration(hours: 4),    // → sprout
+      Duration(hours: 12),   // → young
+      Duration(hours: 24),   // → adult
     ],
     stageEmojis: {
       PlantStage.seed:   '🟤',
@@ -121,11 +111,11 @@ class GardenCatalog {
     rarity: ItemRarity.common,
     emoji: '🌵',
     seedCost: 25,
-    growthTime: Duration(hours: 12),
+    growthTime: Duration(hours: 48), // era 12h → ahora 2 días
     stageThresholds: [
-      Duration(hours: 2),
-      Duration(hours: 6),
-      Duration(hours: 12),
+      Duration(hours: 8),
+      Duration(hours: 24),
+      Duration(hours: 48),
     ],
     stageEmojis: {
       PlantStage.seed:   '🟤',
@@ -143,11 +133,11 @@ class GardenCatalog {
     rarity: ItemRarity.common,
     emoji: '🎋',
     seedCost: 40,
-    growthTime: Duration(hours: 24),
+    growthTime: Duration(hours: 72), // era 24h → ahora 3 días
     stageThresholds: [
-      Duration(hours: 4),
       Duration(hours: 12),
-      Duration(hours: 24),
+      Duration(hours: 36),
+      Duration(hours: 72),
     ],
     stageEmojis: {
       PlantStage.seed:   '🟤',
@@ -165,11 +155,11 @@ class GardenCatalog {
     rarity: ItemRarity.rare,
     emoji: '🌸',
     seedCost: 60,
-    growthTime: Duration(hours: 48),
+    growthTime: Duration(hours: 120), // era 48h → ahora 5 días
     stageThresholds: [
-      Duration(hours: 8),
-      Duration(hours: 24),
-      Duration(hours: 48),
+      Duration(hours: 20),
+      Duration(hours: 60),
+      Duration(hours: 120),
     ],
     stageEmojis: {
       PlantStage.seed:   '🟤',
@@ -187,11 +177,11 @@ class GardenCatalog {
     rarity: ItemRarity.epic,
     emoji: '🪷',
     seedCost: 100,
-    growthTime: Duration(hours: 72),
+    growthTime: Duration(hours: 168), // era 72h → ahora 7 días
     stageThresholds: [
-      Duration(hours: 12),
-      Duration(hours: 36),
-      Duration(hours: 72),
+      Duration(hours: 28),
+      Duration(hours: 84),
+      Duration(hours: 168),
     ],
     stageEmojis: {
       PlantStage.seed:   '🟤',
@@ -214,11 +204,11 @@ class GardenCatalog {
     premiumCost: 0.99,
     isSeasonal: true,
     availableMonth: 12,
-    growthTime: Duration(hours: 24),
+    growthTime: Duration(hours: 48), // era 24h → ahora 2 días
     stageThresholds: [
-      Duration(hours: 4),
-      Duration(hours: 12),
+      Duration(hours: 8),
       Duration(hours: 24),
+      Duration(hours: 48),
     ],
     stageEmojis: {
       PlantStage.seed:   '🌲',
@@ -239,11 +229,11 @@ class GardenCatalog {
     premiumCost: 0.99,
     isSeasonal: true,
     availableMonth: 10,
-    growthTime: Duration(hours: 18),
+    growthTime: Duration(hours: 36), // era 18h → ahora 1.5 días
     stageThresholds: [
-      Duration(hours: 3),
-      Duration(hours: 9),
+      Duration(hours: 6),
       Duration(hours: 18),
+      Duration(hours: 36),
     ],
     stageEmojis: {
       PlantStage.seed:   '🟤',
@@ -253,7 +243,7 @@ class GardenCatalog {
     },
   );
 
-  // ── DECORACIONES ─────────────────────────────────────────────────────────
+  // ── DECORACIONES ──────────────────────────────────────────────────────────
 
   static const GardenItem zenStone = GardenItem(
     id: 'deco_zen_stone',
@@ -296,7 +286,7 @@ class GardenCatalog {
     premiumCost: 1.99,
   );
 
-  // ── BOOSTERS ─────────────────────────────────────────────────────────────
+  // ── BOOSTERS ──────────────────────────────────────────────────────────────
 
   static const GardenItem waterDrop = GardenItem(
     id: 'boost_water',
@@ -305,7 +295,7 @@ class GardenCatalog {
     type: ItemType.booster,
     rarity: ItemRarity.common,
     emoji: '💧',
-    seedCost: 0, // solo se obtiene como recompensa aleatoria
+    seedCost: 0,
     boostDuration: Duration(hours: 2),
   );
 
@@ -340,7 +330,7 @@ class GardenCatalog {
     emoji: '⚗️',
     seedCost: 0,
     premiumCost: 0.99,
-    boostDuration: Duration(days: 999), // completa al instante
+    boostDuration: Duration(days: 999),
   );
 
   // ── LISTAS ────────────────────────────────────────────────────────────────
@@ -386,20 +376,16 @@ class GardenCatalog {
     }
   }
 
-  // ── Recompensas aleatorias de retos ──────────────────────────────────────
-  // Probabilidades: 70% semillas, 20% booster común, 9% booster raro, 1% booster épico
-
   static const List<_RewardWeight> challengeRewardPool = [
-    _RewardWeight(itemId: null,              weight: 70), // semillas
-    _RewardWeight(itemId: 'boost_water',     weight: 20),
-    _RewardWeight(itemId: 'boost_sun',       weight: 9),
-    _RewardWeight(itemId: 'boost_fertilizer',weight: 1),
+    _RewardWeight(itemId: null,               weight: 70),
+    _RewardWeight(itemId: 'boost_water',      weight: 20),
+    _RewardWeight(itemId: 'boost_sun',        weight: 9),
+    _RewardWeight(itemId: 'boost_fertilizer', weight: 1),
   ];
 }
 
-/// Peso para el sistema de recompensas aleatorias
 class _RewardWeight {
-  final String? itemId; // null = semillas
+  final String? itemId;
   final int weight;
   const _RewardWeight({required this.itemId, required this.weight});
 }

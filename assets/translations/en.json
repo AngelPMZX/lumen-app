@@ -214,7 +214,16 @@
     "viewReminders": "View reminders",
     "user": "User",
     "levelShort": "Lv",
-    "poweredBy": "Powered by {source}"
+    "poweredBy": "Powered by {source}",
+    "shieldAvailable": "🛡️ You have {count} streak wildcard",
+    "shieldHint": "Tap to protect your streak today",
+    "shieldUse": "Use",
+    "shieldUsed": "Shield used! Your streak is protected 🔥",
+    "shieldOnlyWhenBroken": "Shield can only be used when you lose your streak",
+    "xpMultiplierActive": "⚡ ×{mult} Active XP — Perfect time for a lesson!",
+    "xpMultiplierHint": "There are {mins} bonus minutes remaining",
+    "lessonDoneToday": "Lesson complete!",
+    "lessonDoneTodaySubtitle": "Come back tomorrow for the next one"
   },
   "mood": {
     "happy": "Happy",
@@ -433,7 +442,9 @@
     "updated": "Reminder updated",
     "weekdaysShort": "Mon-Fri",
     "mondayToFriday": "Monday to Friday",
-    "weekendsLabel": "Weekends"
+    "weekendsLabel": "Weekends",
+    "defaultBody": "Time for your Lumen moment! 🌱",
+    "scheduled": "Reminder scheduled ✓"
   },
   "routes": {
     "title": "Wellness Routes",
@@ -475,7 +486,8 @@
     "exercisePlaceholder": "Write your reflection here...",
     "exerciseMinChars": "Minimum 10 characters to continue",
     "xpEarned": "earned in this lesson",
-    "backToMap": "Back to map"
+    "backToMap": "Back to map",
+    "multiplierActive": "⚡ ×{mult} XP — Multiplier active!"
   },
   "profile": {
     "title": "My Profile",
@@ -778,6 +790,26 @@
     "habits50": {
       "title": "Disciplined",
       "description": "Complete 50 habits"
+    },
+    "gardenFirstPlant": {
+      "title": "First Sprout",
+      "description": "Plant your first seed in the garden"
+    },
+    "gardenFirstAdult": {
+      "title": "First Bloom",
+      "description": "Grow a plant to its adult stage"
+    },
+    "garden3Adults": {
+      "title": "Garden in Bloom",
+      "description": "Have 3 adult plants at the same time"
+    },
+    "gardenFirstDeco": {
+      "title": "Decorator",
+      "description": "Place your first decoration in the garden"
+    },
+    "gardenFull": {
+      "title": "Lush Garden",
+      "description": "Have 5 plants in your garden at once"
     }
   },
   "wellnessRoutes": {
@@ -1223,6 +1255,26 @@
     "habits_50": {
       "title": "Disciplined",
       "description": "Complete 50 habits"
+    },
+    "garden_first_plant": {
+      "title": "First Sprout",
+      "description": "Plant your first seed in the garden"
+    },
+    "garden_first_adult": {
+      "title": "First Bloom",
+      "description": "Grow a plant to its adult stage"
+    },
+    "garden_3_adults": {
+      "title": "Garden in Bloom",
+      "description": "Have 3 adult plants at the same time"
+    },
+    "garden_first_deco": {
+      "title": "Decorator",
+      "description": "Place your first decoration in the garden"
+    },
+    "garden_full": {
+      "title": "Lush Garden",
+      "description": "Have 5 plants in your garden at once"
     }
   },
   "achievementsScreen": {
@@ -1569,6 +1621,55 @@
     "timeRemainingMinutes": "{minutes}m remaining",
     "boostersHint": "Complete challenges to earn boosters",
     "fullyGrown": "Fully grown! 🌸",
+    "harvestReady": "🌾 Harvest ready",
+    "harvestReadyHint": "Tap an adult plant to harvest",
+    "harvestClaim": "Harvest",
+    "harvestClaimed": "Already harvested today",
+    "selectGarden": "Choose your garden",
+    "active": "Active",
+    "sidebar": {
+      "shop": "Shop",
+      "gardens": "Gardens",
+      "achievements": "Achievements"
+    },
+    "decoOptions": {
+      "move": "Move",
+      "moveHint": "Long press and drag"
+    },
+    "shields": {
+      "title": "Streak Wildcards",
+      "countOne": "You have 1 shield",
+      "countOther": "You have {count} shields",
+      "description": "Use them when you lose your streak to protect it. Only the Cherry and Lotus generate them when fully grown.",
+      "useNow": "Use shield now"
+    },
+    "harvest": {
+      "dialogTitle": "Daily harvest!",
+      "seedsEarned": "+{count} Seeds of Light",
+      "multiplierLine": "×{mult} XP for {mins} min",
+      "multiplierHint": "Rare effect! Complete lessons now",
+      "shieldEarned": "Streak Wildcard",
+      "shieldFromPlant": "Gift from your {plant}"
+    },
+    "stats": {
+      "title": "Garden progress",
+      "plants": "Plants",
+      "plantsSub": "in the garden",
+      "adults": "Adults",
+      "adultsSub": "fully grown",
+      "decos": "Decos",
+      "decosSub": "placed"
+    },
+    "achievementsSheet": {
+      "count": "{unlocked}/{total} achievements"
+    },
+    "gardens": {
+      "meadow": "Serene Meadow",
+      "mountain": "Mountain Valley",
+      "forest": "Enchanted Forest",
+      "lake": "Tranquil Lake",
+      "greenhouse": "Greenhouse"
+    },
     "stage": {
       "seed": "Seed",
       "sprout": "Sprout",
@@ -1669,9 +1770,32 @@
       "cta": "Go to garden"
     },
     "months": {
-  "1": "January", "2": "February", "3": "March", "4": "April",
-  "5": "May", "6": "June", "7": "July", "8": "August",
-  "9": "September", "10": "October", "11": "November", "12": "December"
+      "1": "January",
+      "2": "February",
+      "3": "March",
+      "4": "April",
+      "5": "May",
+      "6": "June",
+      "7": "July",
+      "8": "August",
+      "9": "September",
+      "10": "October",
+      "11": "November",
+      "12": "December"
+    },
+    "notifications": {
+  "harvest": {
+    "title": "🌾 Plants ready to harvest!",
+    "body": "Your plants are ripe. Open Lumen and collect your seeds."
+  },
+  "streak": {
+    "title": "🔥 Your streak is at risk!",
+    "body": "Don't forget your daily check-in on Lumen to keep your streak alive."
+  },
+  "test": {
+    "title": "🧪 Notification test",
+    "body": "If you see this, notifications work correctly on your device."
+  }
 }
   }
 }

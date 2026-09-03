@@ -39,6 +39,44 @@ class _ShopScreenState extends State<ShopScreen>
     super.dispose();
   }
 
+  // ── Helper: imagen del item (PNG real con fallback a emoji) ────────────────
+
+  /// Retorna el widget visual del item:
+  /// - Plantas → etapa adulta (4_adult)
+  /// - Decoraciones → PNG de assets/images/decorations/
+  /// - Boosters/otros → emoji grande
+  Widget _itemVisual(GardenItem item, {double size = 32}) {
+    if (item.type == ItemType.plant) {
+      final name = item.id.replaceFirst('plant_', '');
+      return Image.asset(
+        'assets/images/plants/${name}_4_adult.png',
+        width: size, height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Image.asset(
+          'assets/images/plants/${name}_1_seed.png',
+          width: size, height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) =>
+              Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
+        ),
+      );
+    }
+
+    if (item.type == ItemType.decoration) {
+      final name = item.id.replaceFirst('deco_', '');
+      return Image.asset(
+        'assets/images/decorations/$name.png',
+        width: size, height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) =>
+            Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
+      );
+    }
+
+    // Boosters y otros → emoji
+    return Text(item.emoji, style: TextStyle(fontSize: size * 0.8));
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // BUILD
   // ═══════════════════════════════════════════════════════════════════════════
@@ -98,7 +136,6 @@ class _ShopScreenState extends State<ShopScreen>
             color: isDark ? Colors.white : const Color(0xFF1A2E1A),
           )),
         ),
-        // Seeds badge
         Consumer<GardenProvider>(
           builder: (_, garden, __) => Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -143,47 +180,50 @@ class _ShopScreenState extends State<ShopScreen>
           borderRadius: BorderRadius.circular(16),
         ),
         child: TabBar(
-          controller: _tabCtrl,
-          indicator: BoxDecoration(
-            color: const Color(0xFF10B981),
-            borderRadius: BorderRadius.circular(13),
+  controller: _tabCtrl,
+  indicator: BoxDecoration(
+    color: const Color(0xFF10B981),
+    borderRadius: BorderRadius.circular(13),
+  ),
+  indicatorSize: TabBarIndicatorSize.tab,
+  dividerColor: Colors.transparent,
+  labelColor: Colors.white,
+  unselectedLabelColor: isDark ? Colors.white54 : Colors.black45,
+  labelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+  labelPadding: EdgeInsets.zero,   // ← elimina el padding lateral por defecto
+  tabs: List.generate(labels.length, (i) => Tab(
+    height: 48,
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(icons[i], style: const TextStyle(fontSize: 13)),
+        const SizedBox(width: 3),
+        Flexible(
+          child: Text(
+            labels[i],
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
-          indicatorSize: TabBarIndicatorSize.tab,
-          dividerColor: Colors.transparent,
-          labelColor: Colors.white,
-          unselectedLabelColor: isDark
-              ? Colors.white54 : Colors.black45,
-          labelStyle: const TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w700),
-          tabs: List.generate(labels.length, (i) => Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(icons[i], style: const TextStyle(fontSize: 14)),
-                const SizedBox(width: 4),
-                Text(labels[i]),
-              ],
-            ),
-          )),
         ),
+      ],
+    ),
+  )),
+),
       ),
     );
   }
 
   // ── Item grid ──────────────────────────────────────────────────────────────
 
-  Widget _buildItemGrid(
-      ItemType type, GardenProvider garden, bool isDark) {
+  Widget _buildItemGrid(ItemType type, GardenProvider garden, bool isDark) {
     final items = _getItemsByType(type);
 
-    if (items.isEmpty) {
-      return _buildEmptyCategory(isDark);
-    }
+    if (items.isEmpty) return _buildEmptyCategory(isDark);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
-        // Items con semillas
         const SizedBox(height: 8),
         ...items
             .where((i) => i.canBuyWithSeeds && i.isCurrentlyAvailable)
@@ -195,7 +235,6 @@ class _ShopScreenState extends State<ShopScreen>
                   .slideX(begin: 0.05, end: 0),
             )),
 
-        // Sección premium
         if (items.any((i) => i.isPremium)) ...[
           const SizedBox(height: 8),
           _buildPremiumHeader(isDark),
@@ -208,7 +247,6 @@ class _ShopScreenState extends State<ShopScreen>
               )),
         ],
 
-        // Estacionales bloqueadas
         if (items.any((i) => i.isSeasonal && !i.isCurrentlyAvailable)) ...[
           const SizedBox(height: 8),
           _buildSeasonalHeader(isDark),
@@ -226,17 +264,16 @@ class _ShopScreenState extends State<ShopScreen>
 
   List<GardenItem> _getItemsByType(ItemType type) {
     switch (type) {
-      case ItemType.plant:       return GardenCatalog.allPlants;
-      case ItemType.decoration:  return GardenCatalog.allDecorations;
-      case ItemType.booster:     return GardenCatalog.allBoosters;
-      case ItemType.theme:       return [];
+      case ItemType.plant:      return GardenCatalog.allPlants;
+      case ItemType.decoration: return GardenCatalog.allDecorations;
+      case ItemType.booster:    return GardenCatalog.allBoosters;
+      case ItemType.theme:      return [];
     }
   }
 
   // ── Item card (semillas) ───────────────────────────────────────────────────
 
-  Widget _buildItemCard(
-      GardenItem item, GardenProvider garden, bool isDark) {
+  Widget _buildItemCard(GardenItem item, GardenProvider garden, bool isDark) {
     final canAfford = garden.state.canAfford(item);
     final alreadyOwned = garden.state.hasInInventory(item.id);
     final rarityColor = _rarityColor(item.rarity);
@@ -244,9 +281,7 @@ class _ShopScreenState extends State<ShopScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withOpacity(0.06)
-            : Colors.white,
+        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: alreadyOwned
@@ -263,42 +298,35 @@ class _ShopScreenState extends State<ShopScreen>
         ],
       ),
       child: Row(children: [
-        // Emoji + rareza
-        Stack(
-          children: [
-            Container(
-              width: 56, height: 56,
+        // ── Visual del item + badge de rareza ──────────────────────────
+        Stack(children: [
+          Container(
+            width: 56, height: 56,
+            decoration: BoxDecoration(
+              color: rarityColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Center(child: _itemVisual(item, size: 40)),
+          ),
+          Positioned(
+            bottom: 0, right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
-                color: rarityColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(16),
+                color: rarityColor,
+                borderRadius: BorderRadius.circular(4),
               ),
-              child: Center(
-                child: Text(item.emoji,
-                    style: const TextStyle(fontSize: 28)),
-              ),
-            ),
-            Positioned(
-              bottom: 0, right: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: rarityColor,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'garden.rarity.${item.rarity.name}'.tr(),
-                  style: const TextStyle(
-                      fontSize: 7, color: Colors.white,
-                      fontWeight: FontWeight.w700),
-                ),
+              child: Text(
+                'garden.rarity.${item.rarity.name}'.tr(),
+                style: const TextStyle(
+                    fontSize: 7, color: Colors.white, fontWeight: FontWeight.w700),
               ),
             ),
-          ],
-        ),
+          ),
+        ]),
         const SizedBox(width: 14),
 
-        // Info
+        // ── Info ───────────────────────────────────────────────────────
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -314,24 +342,20 @@ class _ShopScreenState extends State<ShopScreen>
             if (item.growthTime != null) ...[
               const SizedBox(height: 4),
               Row(children: [
-                Icon(Icons.schedule_rounded,
-                    size: 12,
+                Icon(Icons.schedule_rounded, size: 12,
                     color: isDark ? Colors.white38 : Colors.black38),
                 const SizedBox(width: 3),
-                Text(
-                  _formatDuration(item.growthTime!),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? Colors.white38 : Colors.black38,
-                  ),
-                ),
+                Text(_formatDuration(item.growthTime!), style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? Colors.white38 : Colors.black38,
+                )),
               ]),
             ],
           ],
         )),
         const SizedBox(width: 12),
 
-        // Botón comprar
+        // ── Botón comprar ──────────────────────────────────────────────
         alreadyOwned
             ? _buildOwnedBadge()
             : _buildBuyButton(item, canAfford, garden, isDark),
@@ -345,17 +369,14 @@ class _ShopScreenState extends State<ShopScreen>
       decoration: BoxDecoration(
         color: const Color(0xFF10B981).withOpacity(0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: const Color(0xFF10B981).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
       ),
-      child: const Icon(Icons.check_rounded,
-          color: Color(0xFF10B981), size: 16),
+      child: const Icon(Icons.check_rounded, color: Color(0xFF10B981), size: 16),
     );
   }
 
   Widget _buildBuyButton(
-      GardenItem item, bool canAfford,
-      GardenProvider garden, bool isDark) {
+      GardenItem item, bool canAfford, GardenProvider garden, bool isDark) {
     return GestureDetector(
       onTap: canAfford ? () => _buyItem(item, garden) : null,
       child: AnimatedContainer(
@@ -371,8 +392,7 @@ class _ShopScreenState extends State<ShopScreen>
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Text('✨', style: TextStyle(
-              fontSize: 13,
-              color: canAfford ? Colors.white : Colors.grey)),
+              fontSize: 13, color: canAfford ? Colors.white : Colors.grey)),
           const SizedBox(width: 4),
           Text('${item.seedCost}', style: TextStyle(
             fontSize: 13, fontWeight: FontWeight.w800,
@@ -385,37 +405,27 @@ class _ShopScreenState extends State<ShopScreen>
 
   // ── Premium card ───────────────────────────────────────────────────────────
 
-  Widget _buildPremiumCard(
-      GardenItem item, GardenProvider garden, bool isDark) {
+  Widget _buildPremiumCard(GardenItem item, GardenProvider garden, bool isDark) {
     final alreadyPurchased = garden.state.hasPurchased(item.id);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: isDark
-            ? [
-                const Color(0xFF1A1A3E),
-                const Color(0xFF2D1B69).withOpacity(0.5),
-              ]
-            : [
-                const Color(0xFFF5F0FF),
-                const Color(0xFFEDE9FE),
-              ]),
+            ? [const Color(0xFF1A1A3E), const Color(0xFF2D1B69).withOpacity(0.5)]
+            : [const Color(0xFFF5F0FF), const Color(0xFFEDE9FE)]),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF8B5CF6).withOpacity(0.3),
-        ),
+        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
       ),
       child: Row(children: [
+        // ── Visual del item ────────────────────────────────────────────
         Container(
           width: 56, height: 56,
           decoration: BoxDecoration(
             color: const Color(0xFF8B5CF6).withOpacity(0.15),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Center(
-            child: Text(item.emoji, style: const TextStyle(fontSize: 28)),
-          ),
+          child: Center(child: _itemVisual(item, size: 40)),
         ),
         const SizedBox(width: 14),
         Expanded(child: Column(
@@ -428,8 +438,7 @@ class _ShopScreenState extends State<ShopScreen>
               )),
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFF8B5CF6).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(6),
@@ -448,26 +457,21 @@ class _ShopScreenState extends State<ShopScreen>
           ],
         )),
         const SizedBox(width: 12),
-
         alreadyPurchased
             ? _buildOwnedBadge()
             : GestureDetector(
                 onTap: () => _showPremiumComingSoon(item),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
-                    ),
+                        colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '\$${item.premiumCost?.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
+                        fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white),
                   ),
                 ),
               ),
@@ -496,6 +500,7 @@ class _ShopScreenState extends State<ShopScreen>
           ),
         ),
         child: Row(children: [
+          // ── Visual con lock overlay ────────────────────────────────
           Stack(children: [
             Container(
               width: 56, height: 56,
@@ -503,18 +508,14 @@ class _ShopScreenState extends State<ShopScreen>
                 color: Colors.grey.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Center(
-                child: Text(item.emoji,
-                    style: const TextStyle(fontSize: 28)),
-              ),
+              child: Center(child: _itemVisual(item, size: 40)),
             ),
             Positioned.fill(child: Container(
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(Icons.lock_rounded,
-                  color: Colors.white, size: 22),
+              child: const Icon(Icons.lock_rounded, color: Colors.white, size: 22),
             )),
           ]),
           const SizedBox(width: 14),
@@ -527,8 +528,7 @@ class _ShopScreenState extends State<ShopScreen>
               )),
               const SizedBox(height: 3),
               Text(
-                'garden.seasonalLocked'.tr(
-                    namedArgs: {'month': monthName}),
+                'garden.seasonalLocked'.tr(namedArgs: {'month': monthName}),
                 style: TextStyle(
                   fontSize: 12,
                   color: isDark ? Colors.white38 : Colors.black38,
@@ -537,8 +537,7 @@ class _ShopScreenState extends State<ShopScreen>
             ],
           )),
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 8, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.grey.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
@@ -626,22 +625,21 @@ class _ShopScreenState extends State<ShopScreen>
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Row(children: [
-        Text(success ? item.emoji : '❌',
-            style: const TextStyle(fontSize: 18)),
+        SizedBox(
+          width: 28, height: 28,
+          child: _itemVisual(item, size: 22),
+        ),
         const SizedBox(width: 8),
         Expanded(child: Text(
           success
               ? 'garden.purchaseSuccess'.tr()
               : (error ?? 'garden.notEnoughSeeds'.tr()),
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.w600),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         )),
       ]),
-      backgroundColor: success
-          ? const Color(0xFF10B981) : Colors.red.shade400,
+      backgroundColor: success ? const Color(0xFF10B981) : Colors.red.shade400,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       margin: const EdgeInsets.all(16),
       duration: const Duration(seconds: 2),
     ));
@@ -651,10 +649,9 @@ class _ShopScreenState extends State<ShopScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(children: [
-          Text(item.emoji, style: const TextStyle(fontSize: 24)),
+          SizedBox(width: 32, height: 32, child: _itemVisual(item, size: 28)),
           const SizedBox(width: 10),
           Text(item.nameKey.tr(),
               style: const TextStyle(fontWeight: FontWeight.w700)),
@@ -693,6 +690,5 @@ class _ShopScreenState extends State<ShopScreen>
     return '${d.inMinutes}min';
   }
 
-  String _monthName(int month) =>
-    'garden.months.$month'.tr();
+  String _monthName(int month) => 'garden.months.$month'.tr();
 }

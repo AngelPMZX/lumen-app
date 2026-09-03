@@ -147,7 +147,7 @@ class _RoutesScreenState extends State<RoutesScreen>
   }
 
   // ═══════════════════════════════════════════
-  // LISTA DE RUTAS (sin cambios significativos)
+  // LISTA DE RUTAS
   // ═══════════════════════════════════════════
   Widget _buildRoutesList(bool isDark) {
     return SingleChildScrollView(
@@ -199,12 +199,23 @@ class _RoutesScreenState extends State<RoutesScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(route.title, style: TextStyle(fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: isDark ? Colors.white : AppColors.textPrimary)),
+                            // ── FIX overflow: maxLines + ellipsis ──
+                            Text(
+                              route.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.white : AppColors.textPrimary),
+                            ),
                             const SizedBox(height: 2),
-                            Text(route.description, style: TextStyle(fontSize: 13,
-                                color: AppColors.textSecondary)),
+                            Text(
+                              route.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 13,
+                                  color: AppColors.textSecondary),
+                            ),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -245,8 +256,6 @@ class _RoutesScreenState extends State<RoutesScreen>
 
   // ═══════════════════════════════════════════
   // MAPA DE LECCIONES — ESTILO DUOLINGO
-  // Camino curvo S, nodos circulares grandes,
-  // glow effects, pulso en nodo actual
   // ═══════════════════════════════════════════
   Widget _buildLessonMap(bool isDark) {
     final route = _selectedRoute!;
@@ -285,9 +294,14 @@ class _RoutesScreenState extends State<RoutesScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(route.title, style: TextStyle(fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : AppColors.textPrimary)),
+                    Text(
+                      route.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : AppColors.textPrimary),
+                    ),
                     Text('routes.lessonsProgress'.tr(namedArgs: {
                       'completed': '${lessons.where((l) => _completedLessons.contains(l.id)).length}',
                       'total': '${lessons.length}',
@@ -328,7 +342,7 @@ class _RoutesScreenState extends State<RoutesScreen>
     const verticalSpacing = 130.0;
     final totalHeight = (lessons.length - 1) * verticalSpacing + nodeSize + 80;
     final centerX = width / 2;
-    const amplitude = 80.0; // Qué tan lejos se mueve la S
+    const amplitude = 80.0;
 
     return SizedBox(
       height: totalHeight,
@@ -364,7 +378,6 @@ class _RoutesScreenState extends State<RoutesScreen>
             final isUnlocked = _isLessonUnlocked(lesson, route);
             final isCurrent = index == currentIndex;
 
-            // Posición S-curve
             final t = index / (lessons.length > 1 ? lessons.length - 1 : 1);
             final sOffset = sin(t * pi * 2 - pi / 2) * amplitude;
             final x = centerX + sOffset - nodeSize / 2;
@@ -413,7 +426,6 @@ class _RoutesScreenState extends State<RoutesScreen>
       onTap: () => _openLesson(lesson, route),
       child: Column(
         children: [
-          // Nodo circular principal
           AnimatedBuilder(
             animation: isCurrent ? _pulseController : const AlwaysStoppedAnimation(0),
             builder: (context, child) {
@@ -499,7 +511,6 @@ class _RoutesScreenState extends State<RoutesScreen>
 
           const SizedBox(height: 10),
 
-          // Título y subtítulo
           AnimatedOpacity(
             duration: const Duration(milliseconds: 300),
             opacity: isUnlocked ? 1.0 : 0.4,
@@ -627,7 +638,6 @@ class _CurvedPathPainter extends CustomPainter {
       final isNextUnlocked = i == 0 ||
           completedLessons.contains(lessons[i].id);
 
-      // Posiciones de los nodos
       final t1 = i / (lessonCount - 1);
       final t2 = (i + 1) / (lessonCount - 1);
       final x1 = centerX + sin(t1 * pi * 2 - pi / 2) * amplitude;
@@ -635,7 +645,6 @@ class _CurvedPathPainter extends CustomPainter {
       final x2 = centerX + sin(t2 * pi * 2 - pi / 2) * amplitude;
       final y2 = (i + 1) * verticalSpacing + startY;
 
-      // Puntos de control para la curva Bézier
       final midY = (y1 + y2) / 2;
       final cp1x = x1;
       final cp1y = midY;
@@ -646,15 +655,31 @@ class _CurvedPathPainter extends CustomPainter {
         ..moveTo(x1, y1 + nodeRadius)
         ..cubicTo(cp1x, cp1y, cp2x, cp2y, x2, y2 - nodeRadius);
 
-      // Dibujar glow del camino completado
+      // ── GLOW: multi-stroke sin MaskFilter.blur (safe en web) ────────
+      // Simula el blur dibujando 3 trazos concéntricos con alpha decreciente
       if (isSegmentCompleted) {
-        final glowPaint = Paint()
-          ..color = routeColor.withValues(alpha: 0.08 + glowProgress * 0.06)
-          ..strokeWidth = 14
+        final baseAlpha = 0.06 + glowProgress * 0.04;
+        // Trazo más ancho, más transparente (outer glow)
+        final glowOuter = Paint()
+          ..color = routeColor.withValues(alpha: baseAlpha)
+          ..strokeWidth = 18
           ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-        canvas.drawPath(path, glowPaint);
+          ..strokeCap = StrokeCap.round;
+        canvas.drawPath(path, glowOuter);
+        // Trazo intermedio
+        final glowMid = Paint()
+          ..color = routeColor.withValues(alpha: baseAlpha * 1.5)
+          ..strokeWidth = 12
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+        canvas.drawPath(path, glowMid);
+        // Trazo interior, más opaco
+        final glowInner = Paint()
+          ..color = routeColor.withValues(alpha: baseAlpha * 2.2)
+          ..strokeWidth = 7
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+        canvas.drawPath(path, glowInner);
       }
 
       // Camino principal
@@ -671,7 +696,6 @@ class _CurvedPathPainter extends CustomPainter {
       // Camino punteado para segmentos no desbloqueados
       if (!isNextUnlocked && !isSegmentCompleted) {
         paint.strokeWidth = 2;
-        // Simular dash con segmentos
         final pathMetrics = path.computeMetrics();
         for (final metric in pathMetrics) {
           final totalLength = metric.length;
@@ -689,7 +713,7 @@ class _CurvedPathPainter extends CustomPainter {
         canvas.drawPath(path, paint);
       }
 
-      // Pequeñas estrellas decorativas en segmentos completados
+      // Estrellas decorativas
       if (isSegmentCompleted) {
         final starPaint = Paint()
           ..color = routeColor.withValues(alpha: 0.15 + glowProgress * 0.1);

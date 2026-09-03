@@ -10,7 +10,7 @@ class Achievement {
   final String emoji;
   final Color color;
   final AchievementType type;
-  final int requirement; // Número requerido para desbloquear
+  final int requirement;
 
   const Achievement({
     required this.id,
@@ -33,6 +33,11 @@ class Achievement {
     required int diaryEntries,
     required int habitsCompleted,
     required int moodCheckIns,
+    // ── Parámetros del jardín (opcionales para compatibilidad) ──────────
+    int plantsGrown = 0,
+    int adultPlants = 0,
+    int decorationsPlaced = 0,
+    int totalPlantsEver = 0,
   }) {
     switch (type) {
       case AchievementType.streak:
@@ -47,6 +52,13 @@ class Achievement {
         return habitsCompleted >= requirement;
       case AchievementType.moods:
         return moodCheckIns >= requirement;
+      // ── Nuevos tipos de jardín ──────────────────────────────────────
+      case AchievementType.gardenPlants:
+        return totalPlantsEver >= requirement;
+      case AchievementType.gardenAdults:
+        return adultPlants >= requirement;
+      case AchievementType.gardenDecorations:
+        return decorationsPlaced >= requirement;
     }
   }
 
@@ -59,6 +71,10 @@ class Achievement {
     required int diaryEntries,
     required int habitsCompleted,
     required int moodCheckIns,
+    int plantsGrown = 0,
+    int adultPlants = 0,
+    int decorationsPlaced = 0,
+    int totalPlantsEver = 0,
   }) {
     int current;
     switch (type) {
@@ -74,12 +90,19 @@ class Achievement {
         current = habitsCompleted;
       case AchievementType.moods:
         current = moodCheckIns;
+      case AchievementType.gardenPlants:
+        current = totalPlantsEver;
+      case AchievementType.gardenAdults:
+        current = adultPlants;
+      case AchievementType.gardenDecorations:
+        current = decorationsPlaced;
     }
     return (current / requirement).clamp(0.0, 1.0);
   }
 
   /// Todos los logros disponibles
   static List<Achievement> get all => [
+        // ── Rachas ──────────────────────────────────────────────────────
         const Achievement(
           id: 'streak_3',
           title: 'Constante',
@@ -124,6 +147,7 @@ class Achievement {
           type: AchievementType.streak,
           requirement: 30,
         ),
+        // ── XP ──────────────────────────────────────────────────────────
         const Achievement(
           id: 'xp_100',
           title: 'Primer Centenario',
@@ -157,6 +181,7 @@ class Achievement {
           type: AchievementType.xp,
           requirement: 1000,
         ),
+        // ── Nivel ────────────────────────────────────────────────────────
         const Achievement(
           id: 'level_2',
           title: 'Subiendo',
@@ -190,6 +215,7 @@ class Achievement {
           type: AchievementType.level,
           requirement: 10,
         ),
+        // ── Diario ───────────────────────────────────────────────────────
         const Achievement(
           id: 'diary_1',
           title: 'Primera Reflexión',
@@ -223,6 +249,7 @@ class Achievement {
           type: AchievementType.diary,
           requirement: 50,
         ),
+        // ── Ánimo ────────────────────────────────────────────────────────
         const Achievement(
           id: 'mood_1',
           title: 'Auto-Consciente',
@@ -245,6 +272,7 @@ class Achievement {
           type: AchievementType.moods,
           requirement: 30,
         ),
+        // ── Hábitos ──────────────────────────────────────────────────────
         const Achievement(
           id: 'habits_5',
           title: 'En Marcha',
@@ -267,6 +295,62 @@ class Achievement {
           type: AchievementType.habits,
           requirement: 50,
         ),
+        // ── Jardín ───────────────────────────────────────────────────────
+        const Achievement(
+          id: 'garden_first_plant',
+          title: 'Primer Brote',
+          description: 'Planta tu primera semilla en el jardín',
+          titleKey: 'achievements.gardenFirstPlant.title',
+          descriptionKey: 'achievements.gardenFirstPlant.description',
+          emoji: '🌱',
+          color: Color(0xFF10B981),
+          type: AchievementType.gardenPlants,
+          requirement: 1,
+        ),
+        const Achievement(
+          id: 'garden_first_adult',
+          title: 'Primera Flor',
+          description: 'Lleva una planta a su etapa adulta',
+          titleKey: 'achievements.gardenFirstAdult.title',
+          descriptionKey: 'achievements.gardenFirstAdult.description',
+          emoji: '🌸',
+          color: Color(0xFFEC4899),
+          type: AchievementType.gardenAdults,
+          requirement: 1,
+        ),
+        const Achievement(
+          id: 'garden_3_adults',
+          title: 'Jardín en Flor',
+          description: 'Ten 3 plantas adultas al mismo tiempo',
+          titleKey: 'achievements.garden3Adults.title',
+          descriptionKey: 'achievements.garden3Adults.description',
+          emoji: '🏡',
+          color: Color(0xFF059669),
+          type: AchievementType.gardenAdults,
+          requirement: 3,
+        ),
+        const Achievement(
+          id: 'garden_first_deco',
+          title: 'Decorador',
+          description: 'Coloca tu primera decoración en el jardín',
+          titleKey: 'achievements.gardenFirstDeco.title',
+          descriptionKey: 'achievements.gardenFirstDeco.description',
+          emoji: '🪨',
+          color: Color(0xFF6366F1),
+          type: AchievementType.gardenDecorations,
+          requirement: 1,
+        ),
+        const Achievement(
+          id: 'garden_full',
+          title: 'Jardín Frondoso',
+          description: 'Ten 5 plantas en tu jardín a la vez',
+          titleKey: 'achievements.gardenFull.title',
+          descriptionKey: 'achievements.gardenFull.description',
+          emoji: '🌳',
+          color: Color(0xFF047857),
+          type: AchievementType.gardenPlants,
+          requirement: 5,
+        ),
       ];
 }
 
@@ -277,4 +361,8 @@ enum AchievementType {
   diary,
   habits,
   moods,
+  // ── Jardín ────────────────────────────────────────────────────────────
+  gardenPlants,       // total de plantas sembradas (vivas actualmente)
+  gardenAdults,       // plantas adultas simultáneas
+  gardenDecorations,  // decoraciones colocadas simultáneas
 }

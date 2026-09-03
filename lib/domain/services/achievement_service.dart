@@ -24,16 +24,9 @@ class CelebrationEvent {
 }
 
 /// Servicio que detecta logros nuevos comparando estado antes/después.
-/// Usa un Set de IDs ya celebrados para evitar duplicados entre sesiones.
 class AchievementService {
   static const streakMilestones = [7, 14, 30, 50, 100];
 
-  /// Compara el estado antes y después de una acción y retorna
-  /// los eventos que merecen celebración.
-  ///
-  /// [celebratedAchievementIds] — IDs de logros que ya fueron celebrados
-  /// en sesiones anteriores (leídos de Firestore). Solo se celebra un
-  /// achievement si su ID NO está en este set.
   static List<CelebrationEvent> checkForCelebrations({
     required UserProgress? progressBefore,
     required UserProgress progressAfter,
@@ -41,10 +34,14 @@ class AchievementService {
     required int habitsCompleted,
     required int moodCheckIns,
     required Set<String> celebratedAchievementIds,
+    // ── Parámetros del jardín (opcionales — default 0) ──────────────────
+    int plantsInGarden = 0,
+    int adultPlantsInGarden = 0,
+    int decorationsPlaced = 0,
   }) {
     final events = <CelebrationEvent>[];
 
-    // ── 1. Level up ──────────────────────────────────────────────────────────
+    // ── 1. Level up ──────────────────────────────────────────────────────
     final levelBefore = progressBefore?.level ?? 1;
     final levelAfter = progressAfter.level;
     if (levelAfter > levelBefore) {
@@ -54,7 +51,7 @@ class AchievementService {
       ));
     }
 
-    // ── 2. Streak milestones ─────────────────────────────────────────────────
+    // ── 2. Streak milestones ─────────────────────────────────────────────
     final streakBefore = progressBefore?.currentStreak ?? 0;
     final streakAfter = progressAfter.currentStreak;
     for (final milestone in streakMilestones) {
@@ -67,12 +64,8 @@ class AchievementService {
       }
     }
 
-    // ── 3. Achievements ──────────────────────────────────────────────────────
-    // Solo celebramos achievements que:
-    //   a) Están desbloqueados CON el estado actual
-    //   b) NO están en el set de ya celebrados (fuente de verdad en Firestore)
+    // ── 3. Achievements ──────────────────────────────────────────────────
     for (final achievement in Achievement.all) {
-      // Saltar si ya fue celebrado antes
       if (celebratedAchievementIds.contains(achievement.id)) continue;
 
       final isUnlockedNow = achievement.isUnlocked(
@@ -83,6 +76,10 @@ class AchievementService {
         diaryEntries: diaryEntries,
         habitsCompleted: habitsCompleted,
         moodCheckIns: moodCheckIns,
+        // Parámetros de jardín
+        totalPlantsEver: plantsInGarden,
+        adultPlants: adultPlantsInGarden,
+        decorationsPlaced: decorationsPlaced,
       );
 
       if (isUnlockedNow) {

@@ -12,7 +12,20 @@
           "package_name": "com.example.gimnasio_emocional"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "190336343882-edeud2t7iq3on33h3cd5lpqrj7ndu74o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.gimnasio_emocional",
+            "certificate_hash": "1d811bf787c4d96542f49b57ba843ba73eb9db60"
+          }
+        },
+        {
+          "client_id": "190336343882-lfsrg6vqjgsooaq96b006muk5milmohl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAQRZ40nOGDl41dOWSqu5Xz2Kg-jwfRKsM"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "190336343882-lfsrg6vqjgsooaq96b006muk5milmohl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

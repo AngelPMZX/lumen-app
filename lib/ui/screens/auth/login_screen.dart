@@ -54,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _loginWithGoogle() async {
     final authProvider = context.read<AuthProvider>();
+    authProvider.clearError();
     final success = await authProvider.loginWithGoogle();
     if (success && mounted) {
       Navigator.pushReplacementNamed(context, AppRoutes.home);
@@ -530,6 +531,7 @@ class _LoginScreenState extends State<LoginScreen>
           horizontal: 16,
           vertical: 16,
         ),
+        errorMaxLines: 3,
       ),
     );
   }

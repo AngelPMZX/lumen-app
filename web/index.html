@@ -15,7 +15,7 @@
     the `--base-href` argument provided to `flutter build`.
   -->
   <base href="$FLUTTER_BASE_HREF">
-
+<meta name="google-signin-client_id" content="190336343882-lfsrg6vqjgsooaq96b006muk5milmohl.apps.googleusercontent.com">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
@@ -41,6 +41,19 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+  window.addEventListener('load', function(ev) {
+    _flutter.loader.load({
+      onEntrypointLoaded: async function(engineInitializer) {
+        let appRunner = await engineInitializer.initializeEngine({
+          renderer: "html",  // <-- usa HTML renderer, evita el bug de CanvasKit
+        });
+        await appRunner.runApp();
+      }
+    });
+  });
+</script>
+
+<script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

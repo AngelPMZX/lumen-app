@@ -8,6 +8,7 @@ import 'app.dart';
 import 'domain/providers/auth_provider.dart';
 import 'domain/providers/theme_provider.dart';
 import 'domain/providers/garden_provider.dart';
+import 'package:gimnasio_emocional/domain/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,7 @@ void main() async {
   await initializeDateFormatting('es_ES', null);
   await initializeDateFormatting('en_US', null);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+   await NotificationService.instance.initialize();
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('es'), Locale('en')],

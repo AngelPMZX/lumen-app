@@ -61,18 +61,41 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
     return 'reminders.night'.tr();
   }
 
+  /// Devuelve 'AM' o 'PM' según la hora seleccionada (formato 12h)
+  String get _amPmLabel => _selectedTime.hour < 12 ? 'AM' : 'PM';
+
+  /// Convierte hora 24h a 12h para mostrar (1-12)
+  int get _hour12 {
+    final h = _selectedTime.hour % 12;
+    return h == 0 ? 12 : h;
+  }
+
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
+      // Forzar formato 12h con AM/PM sin importar el ajuste del sistema
       builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            timePickerTheme: TimePickerThemeData(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              timePickerTheme: TimePickerThemeData(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                hourMinuteTextStyle: const TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.w800,
+                ),
+                dayPeriodTextStyle: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
+            child: child!,
           ),
-          child: child!,
         );
       },
     );
@@ -171,7 +194,7 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final h = _selectedTime.hour.toString().padLeft(2, '0');
+    final h12 = _hour12.toString().padLeft(2, '0');
     final m = _selectedTime.minute.toString().padLeft(2, '0');
 
     return Scaffold(
@@ -283,15 +306,46 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                Text(
-                                  '$h:$m',
-                                  style: TextStyle(
-                                    fontSize: 64,
-                                    fontWeight: FontWeight.w800,
-                                    color: isDark ? Colors.white : _currentTimeColor,
-                                    letterSpacing: 6,
-                                    height: 1,
-                                  ),
+                                // ── HORA GRANDE (12h) + BADGE AM/PM ─────────────
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '$h12:$m',
+                                      style: TextStyle(
+                                        fontSize: 64,
+                                        fontWeight: FontWeight.w800,
+                                        color: isDark ? Colors.white : _currentTimeColor,
+                                        letterSpacing: 4,
+                                        height: 1,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: _currentTimeColor,
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: _currentTimeColor.withValues(alpha: 0.4),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        _amPmLabel,
+                                        style: const TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                          letterSpacing: 1,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 10),
                                 Row(

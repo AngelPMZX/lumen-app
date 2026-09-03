@@ -1,16 +1,30 @@
 import 'garden_item.dart';
 
-// ─── PlantedItem ──────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// CAMBIOS NECESARIOS EN garden_state.dart
+// Reemplaza la clase PlantedItem y los métodos relacionados en GardenState
+// ════════════════════════════════════════════════════════════════════════════
 
-/// Una planta colocada en el jardín del usuario
+// ─── PlantedItem ACTUALIZADO ──────────────────────────────────────────────────
+
+/// Una planta colocada en el jardín del usuario.
+/// Usa gardenId + slotIndex en lugar de gridX/gridY para soportar
+/// múltiples jardines con layouts distintos.
 class PlantedItem {
-  final String instanceId;   // UUID único por instancia plantada
-  final String itemId;       // referencia a GardenItem.id
+  final String instanceId;
+  final String itemId;
   final DateTime plantedAt;
-  final DateTime? boostedAt; // última vez que se aplicó booster
-  final Duration totalBoosted; // tiempo total acortado por boosters
-  final int gridX;           // posición en el grid (0-5)
-  final int gridY;           // posición en el grid (0-3)
+  final DateTime? boostedAt;
+  final Duration totalBoosted;
+  final String gardenId;   // 'meadow', 'mountain', etc.
+  final int slotIndex;     // índice del slot dentro de ese jardín
+
+  // NOTA: gridX y gridY se mantienen por retrocompatibilidad con Firestore
+  final int gridX;
+  final int gridY;
+
+  // ── NUEVO: última cosecha individual de esta planta ──────────────────────
+  final DateTime? lastHarvestedAt;
 
   const PlantedItem({
     required this.instanceId,
@@ -18,17 +32,30 @@ class PlantedItem {
     required this.plantedAt,
     this.boostedAt,
     this.totalBoosted = Duration.zero,
-    required this.gridX,
-    required this.gridY,
+    required this.gardenId,
+    required this.slotIndex,
+    this.gridX = 0,
+    this.gridY = 0,
+    this.lastHarvestedAt,
   });
 
-  /// Tiempo efectivo transcurrido (real + boost aplicado)
+  /// ¿Esta planta tiene cosecha pendiente hoy?
+  /// Verdadero si es adulta Y no ha sido cosechada hoy.
+  bool hasPendingHarvestFor(GardenItem item) {
+    if (!isAdult(item)) return false;
+    if (lastHarvestedAt == null) return true;
+    final today = DateTime.now();
+    final last = lastHarvestedAt!;
+    return !(last.year == today.year &&
+        last.month == today.month &&
+        last.day == today.day);
+  }
+
   Duration get effectiveAge {
     final realAge = DateTime.now().difference(plantedAt);
     return realAge + totalBoosted;
   }
 
-  /// Etapa actual de crecimiento
   PlantStage currentStage(GardenItem item) {
     if (item.stageThresholds == null || item.growthTime == null) {
       return PlantStage.adult;
@@ -41,10 +68,8 @@ class PlantedItem {
     return PlantStage.seed;
   }
 
-  /// ¿Ya está completamente crecida?
   bool isAdult(GardenItem item) => currentStage(item) == PlantStage.adult;
 
-  /// Progreso 0.0 - 1.0 hacia el siguiente stage
   double growthProgress(GardenItem item) {
     if (item.stageThresholds == null || item.growthTime == null) return 1.0;
     final age = effectiveAge;
@@ -52,21 +77,17 @@ class PlantedItem {
     return (age.inSeconds / total.inSeconds).clamp(0.0, 1.0);
   }
 
-  /// Tiempo restante para completar crecimiento
   Duration? timeRemaining(GardenItem item) {
     if (item.growthTime == null) return null;
     final remaining = item.growthTime! - effectiveAge;
     return remaining.isNegative ? Duration.zero : remaining;
   }
 
-  /// Emoji actual según etapa
   String currentEmoji(GardenItem item) {
     if (item.stageEmojis == null) return item.emoji;
     final stage = currentStage(item);
     return item.stageEmojis![stage] ?? item.emoji;
   }
-
-  // ── Serialización ─────────────────────────────────────────────────────────
 
   Map<String, dynamic> toMap() => {
     'instanceId': instanceId,
@@ -74,39 +95,60 @@ class PlantedItem {
     'plantedAt': plantedAt.toIso8601String(),
     'boostedAt': boostedAt?.toIso8601String(),
     'totalBoostedMs': totalBoosted.inMilliseconds,
+    'gardenId': gardenId,
+    'slotIndex': slotIndex,
     'gridX': gridX,
     'gridY': gridY,
+    // NUEVO
+    'lastHarvestedAt': lastHarvestedAt?.toIso8601String(),
   };
 
-  factory PlantedItem.fromMap(Map<String, dynamic> map) => PlantedItem(
-    instanceId: map['instanceId'] as String,
-    itemId: map['itemId'] as String,
-    plantedAt: DateTime.parse(map['plantedAt'] as String),
-    boostedAt: map['boostedAt'] != null
-        ? DateTime.parse(map['boostedAt'] as String)
-        : null,
-    totalBoosted: Duration(milliseconds: (map['totalBoostedMs'] as int?) ?? 0),
-    gridX: (map['gridX'] as int?) ?? 0,
-    gridY: (map['gridY'] as int?) ?? 0,
-  );
+  factory PlantedItem.fromMap(Map<String, dynamic> map) {
+    final gardenId = (map['gardenId'] as String?) ?? 'meadow';
+    final slotIndex = (map['slotIndex'] as int?) ??
+        ((map['gridX'] as int?) ?? 0);
+
+    return PlantedItem(
+      instanceId: map['instanceId'] as String,
+      itemId: map['itemId'] as String,
+      plantedAt: DateTime.parse(map['plantedAt'] as String),
+      boostedAt: map['boostedAt'] != null
+          ? DateTime.parse(map['boostedAt'] as String)
+          : null,
+      totalBoosted:
+          Duration(milliseconds: (map['totalBoostedMs'] as int?) ?? 0),
+      gardenId: gardenId,
+      slotIndex: slotIndex,
+      gridX: (map['gridX'] as int?) ?? 0,
+      gridY: (map['gridY'] as int?) ?? 0,
+      // NUEVO — null si la planta nunca ha sido cosechada (datos existentes)
+      lastHarvestedAt: map['lastHarvestedAt'] != null
+          ? DateTime.parse(map['lastHarvestedAt'] as String)
+          : null,
+    );
+  }
 
   PlantedItem copyWith({
     Duration? totalBoosted,
     DateTime? boostedAt,
-  }) => PlantedItem(
-    instanceId: instanceId,
-    itemId: itemId,
-    plantedAt: plantedAt,
-    boostedAt: boostedAt ?? this.boostedAt,
-    totalBoosted: totalBoosted ?? this.totalBoosted,
-    gridX: gridX,
-    gridY: gridY,
-  );
+    DateTime? lastHarvestedAt,
+  }) =>
+      PlantedItem(
+        instanceId: instanceId,
+        itemId: itemId,
+        plantedAt: plantedAt,
+        boostedAt: boostedAt ?? this.boostedAt,
+        totalBoosted: totalBoosted ?? this.totalBoosted,
+        gardenId: gardenId,
+        slotIndex: slotIndex,
+        gridX: gridX,
+        gridY: gridY,
+        lastHarvestedAt: lastHarvestedAt ?? this.lastHarvestedAt,
+      );
 }
 
 // ─── InventoryItem ────────────────────────────────────────────────────────────
 
-/// Un item en el inventario del usuario (sin colocar aún)
 class InventoryItem {
   final String itemId;
   final int quantity;
@@ -134,14 +176,13 @@ class InventoryItem {
 
 // ─── GardenState ──────────────────────────────────────────────────────────────
 
-/// Estado completo del jardín del usuario
 class GardenState {
-  final int seeds;                      // moneda principal "Semillas de Luz"
-  final int totalSeedsEarned;          // histórico para estadísticas
-  final List<InventoryItem> inventory; // items sin colocar
-  final List<PlantedItem> garden;      // items colocados en el grid
-  final List<String> purchasedIds;     // IDs comprados (para RevenueCat/restore)
-  final DateTime? lastDailyReward;     // para no dar recompensa duplicada
+  final int seeds;
+  final int totalSeedsEarned;
+  final List<InventoryItem> inventory;
+  final List<PlantedItem> garden;
+  final List<String> purchasedIds;
+  final DateTime? lastDailyReward;
 
   const GardenState({
     this.seeds = 0,
@@ -152,14 +193,9 @@ class GardenState {
     this.lastDailyReward,
   });
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  bool hasInInventory(String itemId) =>
+      inventory.any((i) => i.itemId == itemId && i.quantity > 0);
 
-  /// ¿Tiene este item en inventario?
-  bool hasInInventory(String itemId) {
-    return inventory.any((i) => i.itemId == itemId && i.quantity > 0);
-  }
-
-  /// Cantidad de un item en inventario
   int quantityOf(String itemId) {
     try {
       return inventory.firstWhere((i) => i.itemId == itemId).quantity;
@@ -168,21 +204,16 @@ class GardenState {
     }
   }
 
-  /// ¿Ya compró este item premium?
   bool hasPurchased(String itemId) => purchasedIds.contains(itemId);
 
-  /// ¿Puede comprar con semillas?
   bool canAfford(GardenItem item) => seeds >= item.seedCost && item.seedCost > 0;
 
-  /// Posiciones ocupadas en el grid
   Set<String> get occupiedPositions =>
       garden.map((p) => '${p.gridX}_${p.gridY}').toSet();
 
-  /// ¿Posición libre en el grid?
   bool isPositionFree(int x, int y) =>
       !occupiedPositions.contains('${x}_$y');
 
-  /// Plantas actualmente creciendo (no adultas)
   List<PlantedItem> get growingPlants {
     return garden.where((p) {
       final item = GardenCatalog.findById(p.itemId);
@@ -191,7 +222,6 @@ class GardenState {
     }).toList();
   }
 
-  /// Plantas completamente adultas
   List<PlantedItem> get adultPlants {
     return garden.where((p) {
       final item = GardenCatalog.findById(p.itemId);
@@ -199,8 +229,6 @@ class GardenState {
       return p.isAdult(item);
     }).toList();
   }
-
-  // ── Serialización ─────────────────────────────────────────────────────────
 
   Map<String, dynamic> toMap() => {
     'seeds': seeds,
@@ -242,11 +270,10 @@ class GardenState {
     lastDailyReward: lastDailyReward ?? this.lastDailyReward,
   );
 
-  /// Estado inicial para usuarios nuevos — con trébol de regalo
-  static GardenState initial() => GardenState(
-    seeds: 20, // semillas de bienvenida
-    inventory: const [
-      InventoryItem(itemId: 'plant_clover', quantity: 1), // regalo inicial
+  static GardenState initial() => const GardenState(
+    seeds: 20,
+    inventory: [
+      InventoryItem(itemId: 'plant_clover', quantity: 1),
     ],
   );
 

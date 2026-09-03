@@ -24,9 +24,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
   bool _isLoading = true;
   CalendarFormat _calendarFormat = CalendarFormat.twoWeeks;
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay;
+  // Inicia con hoy seleccionado — muestra solo las entradas de hoy al abrir
+  DateTime? _selectedDay = DateTime.now();
 
-  // FIX: guardamos la última versión vista para detectar cambios
   int _lastKnownDiaryVersion = -1;
 
   @override
@@ -35,17 +35,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
     _loadEntries();
   }
 
-  /// didChangeDependencies se llama cada vez que el provider notifica.
-  /// Solo recargamos si diaryVersion realmente cambió — evita recargas
-  /// innecesarias por otros notifyListeners del AuthProvider.
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final currentVersion =
-        context.watch<AuthProvider>().diaryVersion;
+    final currentVersion = context.watch<AuthProvider>().diaryVersion;
     if (currentVersion != _lastKnownDiaryVersion) {
       _lastKnownDiaryVersion = currentVersion;
-      // No recargar en la primera llamada (initState ya lo hace)
       if (currentVersion > 0) {
         _loadEntries();
       }
@@ -116,6 +111,13 @@ class _DiaryScreenState extends State<DiaryScreen> {
     );
   }
 
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+        date.month == now.month &&
+        date.day == now.day;
+  }
+
   String _formatTimeAgo(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
@@ -141,9 +143,36 @@ class _DiaryScreenState extends State<DiaryScreen> {
     return DateFormat('d MMM', _calendarLocale()).format(date);
   }
 
+  // Título de la sección según el filtro activo
+  String get _sectionTitle {
+    if (_selectedDay == null) return 'diary.recentEntries'.tr();
+    if (_isToday(_selectedDay!)) {
+      return context.locale.languageCode == 'es' ? 'Hoy' : 'Today';
+    }
+    return DateFormat('d MMMM', _calendarLocale()).format(_selectedDay!);
+  }
+
+  // Texto del botón toggle
+  String get _toggleButtonLabel {
+    if (_selectedDay == null) {
+      return context.locale.languageCode == 'es' ? 'Ver hoy' : 'Today';
+    }
+    return context.locale.languageCode == 'es' ? 'Ver todas' : 'See all';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Filtrar entradas por fecha seleccionada
+    final displayEntries = _selectedDay == null
+        ? _entries
+        : _entries
+            .where((e) =>
+                e.createdAt.year == _selectedDay!.year &&
+                e.createdAt.month == _selectedDay!.month &&
+                e.createdAt.day == _selectedDay!.day)
+            .toList();
 
     return Scaffold(
       body: SafeArea(
@@ -151,6 +180,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
             ? const Center(child: CircularProgressIndicator())
             : CustomScrollView(
                 slivers: [
+                  // ── Header ─────────────────────────────────────────────────
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -200,6 +230,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+                  // ── Calendario ─────────────────────────────────────────────
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -225,7 +257,12 @@ class _DiaryScreenState extends State<DiaryScreen> {
                               isSameDay(_selectedDay, day),
                           onDaySelected: (selectedDay, focusedDay) {
                             setState(() {
-                              _selectedDay = selectedDay;
+                              // Toca la misma fecha → quita el filtro
+                              if (isSameDay(_selectedDay, selectedDay)) {
+                                _selectedDay = null;
+                              } else {
+                                _selectedDay = selectedDay;
+                              }
                               _focusedDay = focusedDay;
                             });
                           },
@@ -238,8 +275,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
                           },
                           calendarStyle: CalendarStyle(
                             todayDecoration: BoxDecoration(
-                              color:
-                                  AppColors.primary.withValues(alpha: 0.3),
+                              color: AppColors.primary
+                                  .withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
                             selectedDecoration: const BoxDecoration(
@@ -354,31 +391,73 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     ).animate().fadeIn(duration: 500.ms),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                  // ── Título + botón toggle ──────────────────────────────────
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        'diary.recentEntries'.tr(),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color:
-                              isDark ? Colors.white : AppColors.textPrimary,
-                        ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _sectionTitle,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? Colors.white
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          // Toggle: "Ver todas" ↔ "Ver hoy"
+                          GestureDetector(
+                            onTap: () => setState(() {
+                              if (_selectedDay == null) {
+                                _selectedDay = DateTime.now();
+                                _focusedDay = _selectedDay!;
+                              } else {
+                                _selectedDay = null;
+                              }
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.textSecondary
+                                    .withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                _toggleButtonLabel,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                  _entries.isEmpty
+
+                  // ── Lista de entradas ──────────────────────────────────────
+                  displayEntries.isEmpty
                       ? SliverToBoxAdapter(
-                          child: _buildEmptyState(isDark))
+                          child: _selectedDay != null
+                              ? _buildEmptyFilterState(isDark)
+                              : _buildEmptyState(isDark),
+                        )
                       : SliverPadding(
                           padding:
                               const EdgeInsets.symmetric(horizontal: 20),
                           sliver: SliverList(
                             delegate: SliverChildBuilderDelegate(
                               (context, index) {
-                                final entry = _entries[index];
+                                final entry = displayEntries[index];
                                 return Padding(
                                   padding:
                                       const EdgeInsets.only(bottom: 12),
@@ -386,7 +465,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                       entry, isDark, index),
                                 );
                               },
-                              childCount: _entries.length,
+                              childCount: displayEntries.length,
                             ),
                           ),
                         ),
@@ -445,6 +524,47 @@ class _DiaryScreenState extends State<DiaryScreen> {
               fontSize: 14,
               color: AppColors.textSecondary,
               height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyFilterState(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.textSecondary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: const Icon(
+              Icons.calendar_today_rounded,
+              color: AppColors.textSecondary,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'diary.noEntriesMonth'.tr(),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white70 : AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            DateFormat('d MMMM yyyy', _calendarLocale())
+                .format(_selectedDay!),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -537,8 +657,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color:
-                      const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
