@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -24,7 +25,19 @@ class NotificationService {
   Future<void> initialize() async {
     if (_initialized) return;
 
+    // Cargar base de datos de zonas horarias
     tz.initializeTimeZones();
+
+    // ⭐ CRÍTICO: configurar tz.local con la zona horaria REAL del dispositivo.
+    // Sin esto, tz.local puede caer en UTC y las notificaciones programadas
+    // se disparan a la hora incorrecta (bug: notificación 6h antes en México).
+    try {
+      final String timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+      debugPrint('🌍 Timezone configured: $timeZoneName');
+    } catch (e) {
+      debugPrint('⚠️ Could not set timezone, using default: $e');
+    }
 
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -56,23 +69,17 @@ class NotificationService {
   // PERMISOS
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Pide TODOS los permisos necesarios en Android/iOS.
-  /// Llamar antes de programar cualquier recordatorio.
-  /// Retorna true si el usuario aceptó (al menos el permiso básico de notificaciones).
   Future<bool> requestAllPermissions() async {
     await initialize();
 
-        final androidPlugin = _plugin.resolvePlatformSpecificImplementation
+    final androidPlugin = _plugin.resolvePlatformSpecificImplementation
         <AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidPlugin != null) {
-      // 1. Permiso de notificaciones (Android 13+ / API 33+)
       final notifGranted =
           await androidPlugin.requestNotificationsPermission() ?? false;
       debugPrint('📱 Notifications permission granted: $notifGranted');
 
-      // 2. Permiso de alarmas exactas (Android 12+ / API 31+)
-      // Sin esto, zonedSchedule con exactAllowWhileIdle falla silenciosamente.
       final exactAlarmGranted =
           await androidPlugin.requestExactAlarmsPermission() ?? false;
       debugPrint('⏰ Exact alarms permission granted: $exactAlarmGranted');
@@ -80,7 +87,7 @@ class NotificationService {
       return notifGranted;
     }
 
-        final iosPlugin = _plugin.resolvePlatformSpecificImplementation
+    final iosPlugin = _plugin.resolvePlatformSpecificImplementation
         <IOSFlutterLocalNotificationsPlugin>();
     if (iosPlugin != null) {
       final granted = await iosPlugin.requestPermissions(
@@ -94,8 +101,6 @@ class NotificationService {
     return true;
   }
 
-  /// Alias mantenido por compatibilidad con código antiguo.
-  /// Prefiere requestAllPermissions() para pedir también SCHEDULE_EXACT_ALARM.
   Future<bool> requestPermissions() => requestAllPermissions();
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -170,6 +175,8 @@ class NotificationService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
+    debugPrint('📅 Scheduling ONE-OFF for: $scheduledDate (now: $now)');
+
     await _plugin.zonedSchedule(
       id,
       title,
@@ -206,6 +213,8 @@ class NotificationService {
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 7));
     }
+
+    debugPrint('📅 Scheduling WEEKLY (day $weekday) for: $scheduledDate (now: $now)');
 
     await _plugin.zonedSchedule(
       id,
@@ -335,8 +344,6 @@ class NotificationService {
   // TEST — enviar una notificación INMEDIATA para debug
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Muestra una notificación de prueba INMEDIATA. Útil para verificar
-  /// que los permisos y canales están correctos antes de probar programadas.
   Future<void> showTestNotification() async {
     await initialize();
     await _plugin.show(
