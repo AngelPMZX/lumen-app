@@ -44,6 +44,8 @@ flutter:
     - assets/images/
     - assets/images/gardens/
     - assets/images/plants/
+    - assets/images/boosters/
     - assets/images/decorations/
+    - assets/images/currency/
     - assets/translations/
     - assets/lottie/
