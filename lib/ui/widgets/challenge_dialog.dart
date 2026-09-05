@@ -11,6 +11,7 @@ import '../../../domain/providers/garden_provider.dart';
 import '../screens/breathing/breathing_screen.dart';
 import '../screens/diary/new_diary_entry_screen.dart';
 import 'reward_dialog.dart';
+import './seed_icon.dart';
 
 /// Maneja la accion de un reto diario segun su tipo.
 /// Llamar: ChallengeAction.execute(context, challenge)
@@ -334,7 +335,7 @@ class _TimedGuideDialogState extends State<_TimedGuideDialog>
               color: color.withOpacity(0.3), blurRadius: 20, spreadRadius: 4,
             )],
           ),
-          child: const Center(child: Text('✨', style: TextStyle(fontSize: 38))),
+          child: const Center(child: SeedIcon(size: 56, animated: true)),
         ).animate().scale(
           begin: const Offset(0.5, 0.5), end: const Offset(1, 1),
           duration: 500.ms, curve: Curves.easeOutBack,
