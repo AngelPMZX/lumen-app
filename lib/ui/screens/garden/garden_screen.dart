@@ -12,6 +12,8 @@ import '../../../data/models/garden_state.dart';
 import '../../../domain/providers/garden_provider.dart';
 import 'shop_screen.dart';
 import 'package:gimnasio_emocional/domain/services/notification_service.dart';
+import '../../widgets/aura_container.dart';
+import '../../widgets/seed_icon.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GARDEN CONFIG — slots hardcodeados por jardín
@@ -456,11 +458,15 @@ if (hasPending) {
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
-              SizedBox(
-                width: size, height: size,
-                child: Image.asset(assetPath, fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) =>
-                        Text(item.emoji, style: const TextStyle(fontSize: 32))),
+              AuraContainer(
+                item: item,
+                sizeMultiplier: size / 60,
+                child: SizedBox(
+                  width: size, height: size,
+                  child: Image.asset(assetPath, fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) =>
+                          Text(item.emoji, style: const TextStyle(fontSize: 32))),
+                ),
               ),
             ],
           ),
@@ -603,13 +609,17 @@ if (hasPending) {
               fallback: _plantFallbackEmoji(planted, item),
             )
           else
-            SizedBox(
-              width: size,
-              height: size,
-              child: Image.asset(
-                assetPath,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => _plantFallbackEmoji(planted, item),
+            AuraContainer(
+              item: item,
+              sizeMultiplier: size / 60,
+              child: SizedBox(
+                width: size,
+                height: size,
+                child: Image.asset(
+                  assetPath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => _plantFallbackEmoji(planted, item),
+                ),
               ),
             ),
 
@@ -799,7 +809,7 @@ if (hasPending) {
           ],
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Text('✨', style: TextStyle(fontSize: 13)),
+          const SeedIcon(size: 30),
           const SizedBox(width: 4),
           Text(
             '$seeds',
@@ -1111,7 +1121,17 @@ if (hasPending) {
                 ),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(booster.emoji, style: const TextStyle(fontSize: 14)),
+                SizedBox(
+  width: 18, height: 18,
+  child: Image.asset(
+    'assets/images/boosters/${booster.id.replaceFirst('boost_', '')}.png',
+    fit: BoxFit.contain,
+    errorBuilder: (_, __, ___) => Text(
+      booster.emoji,
+      style: const TextStyle(fontSize: 14),
+    ),
+  ),
+),
                 const SizedBox(width: 4),
                 Text(
                   '×$qty',
@@ -1213,6 +1233,13 @@ if (hasPending) {
                       ),
                     );
                   }
+
+                  // Envolver el visual con aura del item (color+intensidad por rareza)
+                  itemVisual = AuraContainer(
+                    item: item,
+                    sizeMultiplier: 0.8,
+                    child: itemVisual,
+                  );
 
                   // Decoraciones son Draggable; plantas usan tap normal
                   final inventoryItem = AnimatedContainer(

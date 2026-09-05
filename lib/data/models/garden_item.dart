@@ -58,6 +58,63 @@ class GardenItem {
   bool get isPremium => premiumCost != null && seedCost == 0;
   bool get canBuyWithSeeds => seedCost > 0;
 
+  // ─── AURA / GLOW VISUAL ─────────────────────────────────────────────────
+  // Cada item tiene un color y una intensidad de glow que se aplican
+  // automáticamente en la tienda, inventario y jardín.
+
+  /// Color específico del aura del item (personalidad visual)
+  Color get auraColor {
+    switch (id) {
+      // Boosters
+      case 'boost_water':           return const Color(0xFF06B6D4); // cyan
+      case 'boost_sun':             return const Color(0xFFFBBF24); // dorado
+      case 'boost_fertilizer':      return const Color(0xFF10B981); // verde
+      case 'boost_elixir':          return const Color(0xFFA855F7); // morado
+      // Plantas
+      case 'plant_clover':          return const Color(0xFF10B981); // verde
+      case 'plant_cactus':          return const Color(0xFF84CC16); // lime
+      case 'plant_bamboo':          return const Color(0xFF22C55E); // verde bosque
+      case 'plant_cherry':          return const Color(0xFFEC4899); // rosa
+      case 'plant_lotus':           return const Color(0xFFA855F7); // morado
+      case 'plant_christmas_tree':  return const Color(0xFFDC2626); // rojo festivo
+      case 'plant_pumpkin':         return const Color(0xFFF97316); // naranja
+      // Decoraciones — usar color por rareza
+      default:                      return _rarityColor(rarity);
+    }
+  }
+
+  /// Blur del glow según rareza (más raro = más intenso)
+  double get auraBlurRadius {
+    switch (rarity) {
+      case ItemRarity.common:    return 8;
+      case ItemRarity.rare:      return 12;
+      case ItemRarity.epic:      return 16;
+      case ItemRarity.legendary: return 20;
+      case ItemRarity.seasonal:  return 16;
+    }
+  }
+
+  /// Opacidad del glow según rareza
+  double get auraOpacity {
+    switch (rarity) {
+      case ItemRarity.common:    return 0.15;
+      case ItemRarity.rare:      return 0.25;
+      case ItemRarity.epic:      return 0.35;
+      case ItemRarity.legendary: return 0.45;
+      case ItemRarity.seasonal:  return 0.35;
+    }
+  }
+
+  static Color _rarityColor(ItemRarity r) {
+    switch (r) {
+      case ItemRarity.common:    return const Color(0xFF9CA3AF);
+      case ItemRarity.rare:      return const Color(0xFF3B82F6);
+      case ItemRarity.epic:      return const Color(0xFFA855F7);
+      case ItemRarity.legendary: return const Color(0xFFFBBF24);
+      case ItemRarity.seasonal:  return const Color(0xFFDC2626);
+    }
+  }
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'type': type.name,
@@ -77,9 +134,6 @@ class GardenCatalog {
   GardenCatalog._();
 
   // ── PLANTAS ───────────────────────────────────────────────────────────────
-  // Tiempos de crecimiento aumentados para incentivar uso diario de la app.
-  // Antes: 6h / 12h / 24h / 48h / 72h
-  // Ahora: 1d / 2d / 3d / 5d / 7d
 
   static const GardenItem cloverPlant = GardenItem(
     id: 'plant_clover',
@@ -89,11 +143,11 @@ class GardenCatalog {
     rarity: ItemRarity.common,
     emoji: '🍀',
     seedCost: 15,
-    growthTime: Duration(hours: 24), // era 6h → ahora 1 día
+    growthTime: Duration(hours: 24),
     stageThresholds: [
-      Duration(hours: 4),    // → sprout
-      Duration(hours: 12),   // → young
-      Duration(hours: 24),   // → adult
+      Duration(hours: 4),
+      Duration(hours: 12),
+      Duration(hours: 24),
     ],
     stageEmojis: {
       PlantStage.seed:   '🟤',
@@ -111,7 +165,7 @@ class GardenCatalog {
     rarity: ItemRarity.common,
     emoji: '🌵',
     seedCost: 25,
-    growthTime: Duration(hours: 48), // era 12h → ahora 2 días
+    growthTime: Duration(hours: 48),
     stageThresholds: [
       Duration(hours: 8),
       Duration(hours: 24),
@@ -133,7 +187,7 @@ class GardenCatalog {
     rarity: ItemRarity.common,
     emoji: '🎋',
     seedCost: 40,
-    growthTime: Duration(hours: 72), // era 24h → ahora 3 días
+    growthTime: Duration(hours: 72),
     stageThresholds: [
       Duration(hours: 12),
       Duration(hours: 36),
@@ -155,7 +209,7 @@ class GardenCatalog {
     rarity: ItemRarity.rare,
     emoji: '🌸',
     seedCost: 60,
-    growthTime: Duration(hours: 120), // era 48h → ahora 5 días
+    growthTime: Duration(hours: 120),
     stageThresholds: [
       Duration(hours: 20),
       Duration(hours: 60),
@@ -177,7 +231,7 @@ class GardenCatalog {
     rarity: ItemRarity.epic,
     emoji: '🪷',
     seedCost: 100,
-    growthTime: Duration(hours: 168), // era 72h → ahora 7 días
+    growthTime: Duration(hours: 168),
     stageThresholds: [
       Duration(hours: 28),
       Duration(hours: 84),
@@ -204,7 +258,7 @@ class GardenCatalog {
     premiumCost: 0.99,
     isSeasonal: true,
     availableMonth: 12,
-    growthTime: Duration(hours: 48), // era 24h → ahora 2 días
+    growthTime: Duration(hours: 48),
     stageThresholds: [
       Duration(hours: 8),
       Duration(hours: 24),
@@ -229,7 +283,7 @@ class GardenCatalog {
     premiumCost: 0.99,
     isSeasonal: true,
     availableMonth: 10,
-    growthTime: Duration(hours: 36), // era 18h → ahora 1.5 días
+    growthTime: Duration(hours: 36),
     stageThresholds: [
       Duration(hours: 6),
       Duration(hours: 18),
@@ -287,6 +341,8 @@ class GardenCatalog {
   );
 
   // ── BOOSTERS ──────────────────────────────────────────────────────────────
+  // Ahora comprables con semillas — antes solo se ganaban como recompensa.
+  // El elixir sigue siendo solo premium por ser legendary.
 
   static const GardenItem waterDrop = GardenItem(
     id: 'boost_water',
@@ -295,7 +351,7 @@ class GardenCatalog {
     type: ItemType.booster,
     rarity: ItemRarity.common,
     emoji: '💧',
-    seedCost: 0,
+    seedCost: 20, // era 0
     boostDuration: Duration(hours: 2),
   );
 
@@ -306,7 +362,7 @@ class GardenCatalog {
     type: ItemType.booster,
     rarity: ItemRarity.rare,
     emoji: '☀️',
-    seedCost: 0,
+    seedCost: 60, // era 0
     boostDuration: Duration(hours: 6),
   );
 
@@ -317,7 +373,7 @@ class GardenCatalog {
     type: ItemType.booster,
     rarity: ItemRarity.epic,
     emoji: '🌿',
-    seedCost: 0,
+    seedCost: 150, // era 0
     boostDuration: Duration(hours: 12),
   );
 

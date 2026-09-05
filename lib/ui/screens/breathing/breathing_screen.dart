@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../widgets/seed_icon.dart';
 
 // ─── Breathing technique model ────────────────────────────────────────────────
 class _BreathingTechnique {
@@ -976,27 +977,35 @@ class _BreathingScreenState extends State<BreathingScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 110, height: 110,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(colors: [
-                  _selectedTechnique.color.withOpacity(0.3),
-                  _selectedTechnique.color.withOpacity(0.05),
-                ]),
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: _selectedTechnique.color.withOpacity(0.4), width: 2),
-                boxShadow: [BoxShadow(
-                  color: _selectedTechnique.color.withOpacity(0.3),
-                  blurRadius: 30, spreadRadius: 5,
-                )],
-              ),
-              child: const Center(child: Text('✨', style: TextStyle(fontSize: 52))),
-            )
-                .animate()
-                .scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1),
-                    duration: 600.ms, curve: Curves.easeOutBack)
-                .fadeIn(duration: 400.ms),
-
+  width: 110, height: 110,
+  decoration: BoxDecoration(
+    gradient: RadialGradient(colors: [
+      _selectedTechnique.color.withOpacity(0.3),
+      _selectedTechnique.color.withOpacity(0.05),
+    ]),
+    shape: BoxShape.circle,
+    border: Border.all(
+        color: _selectedTechnique.color.withOpacity(0.4), width: 2),
+    boxShadow: [BoxShadow(
+      color: _selectedTechnique.color.withOpacity(0.3),
+      blurRadius: 30, spreadRadius: 5,
+    )],
+  ),
+  child: const Center(child: Text('🫁', style: TextStyle(fontSize: 56))),
+)
+    // Pulse continuo tipo respiración
+    .animate(onPlay: (c) => c.repeat(reverse: true))
+    .scale(
+      begin: const Offset(0.95, 0.95),
+      end: const Offset(1.08, 1.08),
+      duration: 2000.ms,
+      curve: Curves.easeInOut,
+    )
+    // Entrada
+    .animate()
+    .scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1),
+        duration: 600.ms, curve: Curves.easeOutBack)
+    .fadeIn(duration: 400.ms),
             const SizedBox(height: 24),
 
             Text('breathing.sessionComplete'.tr(), style: const TextStyle(

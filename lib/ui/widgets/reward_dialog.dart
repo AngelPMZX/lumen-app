@@ -8,6 +8,7 @@ import '../../../data/models/garden_item.dart';
 import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/garden_provider.dart';
 import 'dart:ui' as ui;
+import './seed_icon.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // RewardDialog — muestra la recompensa ganada (semillas o item)
@@ -317,7 +318,7 @@ class _RewardDialogState extends State<RewardDialog>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('✨', style: TextStyle(fontSize: 28)),
+          const SeedIcon(size: 40, animated: true),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,70 +353,106 @@ class _RewardDialogState extends State<RewardDialog>
   }
 
   Widget _buildItemBadge(GardenItem item, bool isDark) {
-    final rarityColor = _rarityColor(item.rarity);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [
-          rarityColor.withOpacity(0.15),
-          rarityColor.withOpacity(0.05),
-        ]),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: rarityColor.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Emoji del item
-          Container(
-            width: 56, height: 56,
-            decoration: BoxDecoration(
-              color: rarityColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
-              child: Text(item.emoji, style: const TextStyle(fontSize: 28)),
-            ),
+  final rarityColor = _rarityColor(item.rarity);
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(colors: [
+        rarityColor.withOpacity(0.15),
+        rarityColor.withOpacity(0.05),
+      ]),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: rarityColor.withOpacity(0.3)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Visual del item — ahora con imagen ilustrada
+        Container(
+          width: 56, height: 56,
+          decoration: BoxDecoration(
+            color: rarityColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(16),
           ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.nameKey.tr(),
+          child: Center(
+            child: _itemVisualForReward(item, size: 40),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.nameKey.tr(),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: rarityColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'garden.rarity.${item.rarity.name}'.tr(),
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: rarityColor,
                 ),
               ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: rarityColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'garden.rarity.${item.rarity.name}'.tr(),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: rarityColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    ).animate(delay: 400.ms).scale(
-      begin: const Offset(0.8, 0.8),
-      end: const Offset(1, 1),
-      duration: 400.ms,
-      curve: Curves.easeOutBack,
-    ).fadeIn(duration: 300.ms);
+            ),
+          ],
+        ),
+      ],
+    ),
+  ).animate(delay: 400.ms).scale(
+    begin: const Offset(0.8, 0.8),
+    end: const Offset(1, 1),
+    duration: 400.ms,
+    curve: Curves.easeOutBack,
+  ).fadeIn(duration: 300.ms);
+}
+
+/// Helper local: renderiza la imagen ilustrada del item con fallback a emoji.
+/// Similar al de shop_screen pero sin dependencia externa.
+Widget _itemVisualForReward(GardenItem item, {double size = 48}) {
+  Widget visual;
+
+  if (item.type == ItemType.plant) {
+    final name = item.id.replaceFirst('plant_', '');
+    visual = Image.asset(
+      'assets/images/plants/${name}_4_adult.png',
+      width: size, height: size, fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) =>
+          Text(item.emoji, style: TextStyle(fontSize: size * 0.9)),
+    );
+  } else if (item.type == ItemType.decoration) {
+    final name = item.id.replaceFirst('deco_', '');
+    visual = Image.asset(
+      'assets/images/decorations/$name.png',
+      width: size, height: size, fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) =>
+          Text(item.emoji, style: TextStyle(fontSize: size * 0.9)),
+    );
+  } else if (item.type == ItemType.booster) {
+    final name = item.id.replaceFirst('boost_', '');
+    visual = Image.asset(
+      'assets/images/boosters/$name.png',
+      width: size, height: size, fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) =>
+          Text(item.emoji, style: TextStyle(fontSize: size * 0.9)),
+    );
+  } else {
+    visual = Text(item.emoji, style: TextStyle(fontSize: size * 0.9));
   }
+
+  return SizedBox(width: size, height: size, child: visual);
+}
 
   String _gardenHint() {
     if (widget.reward.isItem) {

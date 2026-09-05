@@ -5,6 +5,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
 import '../../../data/models/garden_item.dart';
 import '../../../domain/providers/garden_provider.dart';
+import '../../widgets/aura_container.dart';
+import '../../widgets/seed_icon.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SHOP SCREEN
@@ -39,43 +41,57 @@ class _ShopScreenState extends State<ShopScreen>
     super.dispose();
   }
 
-  // ── Helper: imagen del item (PNG real con fallback a emoji) ────────────────
+// ── Helper: imagen del item (PNG real con fallback a emoji + aura) ─────────
 
-  /// Retorna el widget visual del item:
-  /// - Plantas → etapa adulta (4_adult)
-  /// - Decoraciones → PNG de assets/images/decorations/
-  /// - Boosters/otros → emoji grande
-  Widget _itemVisual(GardenItem item, {double size = 32}) {
-    if (item.type == ItemType.plant) {
-      final name = item.id.replaceFirst('plant_', '');
-      return Image.asset(
-        'assets/images/plants/${name}_4_adult.png',
-        width: size, height: size,
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => Image.asset(
-          'assets/images/plants/${name}_1_seed.png',
-          width: size, height: size,
-          fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) =>
-              Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
-        ),
-      );
-    }
+Widget _itemVisual(GardenItem item, {double size = 32}) {
+  Widget baseVisual;
 
-    if (item.type == ItemType.decoration) {
-      final name = item.id.replaceFirst('deco_', '');
-      return Image.asset(
-        'assets/images/decorations/$name.png',
+  if (item.type == ItemType.plant) {
+    final name = item.id.replaceFirst('plant_', '');
+    baseVisual = Image.asset(
+      'assets/images/plants/${name}_4_adult.png',
+      width: size, height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => Image.asset(
+        'assets/images/plants/${name}_1_seed.png',
         width: size, height: size,
         fit: BoxFit.contain,
         errorBuilder: (_, __, ___) =>
             Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
-      );
-    }
-
-    // Boosters y otros → emoji
-    return Text(item.emoji, style: TextStyle(fontSize: size * 0.8));
+      ),
+    );
+  } else if (item.type == ItemType.decoration) {
+    final name = item.id.replaceFirst('deco_', '');
+    baseVisual = Image.asset(
+      'assets/images/decorations/$name.png',
+      width: size, height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) =>
+          Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
+    );
+  } else if (item.type == ItemType.booster) {
+    final name = item.id.replaceFirst('boost_', '');
+    baseVisual = Image.asset(
+      'assets/images/boosters/$name.png',
+      width: size, height: size,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) =>
+          Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
+    );
+  } else {
+    baseVisual = Text(item.emoji, style: TextStyle(fontSize: size * 0.8));
   }
+
+  // Envolver con aura por color/rareza
+  return AuraContainer(
+    item: item,
+    sizeMultiplier: size / 32,
+    child: SizedBox(
+      width: size, height: size,
+      child: baseVisual,
+    ),
+  );
+}
 
   // ═══════════════════════════════════════════════════════════════════════════
   // BUILD
@@ -146,8 +162,8 @@ class _ShopScreenState extends State<ShopScreen>
                   color: const Color(0xFF10B981).withOpacity(0.3)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Text('✨', style: TextStyle(fontSize: 14)),
-              const SizedBox(width: 4),
+              const SeedIcon(size: 24),
+const SizedBox(width: 6),
               Text('${garden.seeds}', style: const TextStyle(
                 color: Color(0xFF10B981),
                 fontSize: 14, fontWeight: FontWeight.w800,
@@ -376,32 +392,31 @@ class _ShopScreenState extends State<ShopScreen>
   }
 
   Widget _buildBuyButton(
-      GardenItem item, bool canAfford, GardenProvider garden, bool isDark) {
-    return GestureDetector(
-      onTap: canAfford ? () => _buyItem(item, garden) : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: canAfford
-              ? const Color(0xFF10B981)
-              : isDark
-                  ? Colors.white.withOpacity(0.06)
-                  : Colors.black.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text('✨', style: TextStyle(
-              fontSize: 13, color: canAfford ? Colors.white : Colors.grey)),
-          const SizedBox(width: 4),
-          Text('${item.seedCost}', style: TextStyle(
-            fontSize: 13, fontWeight: FontWeight.w800,
-            color: canAfford ? Colors.white : Colors.grey,
-          )),
-        ]),
+    GardenItem item, bool canAfford, GardenProvider garden, bool isDark) {
+  return GestureDetector(
+    onTap: canAfford ? () => _buyItem(item, garden) : null,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: canAfford
+            ? const Color(0xFF10B981)
+            : isDark
+                ? Colors.white.withOpacity(0.06)
+                : Colors.black.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
       ),
-    );
-  }
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        const SeedIcon(size: 22),
+        const SizedBox(width: 6),
+        Text('${item.seedCost}', style: TextStyle(
+          fontSize: 14, fontWeight: FontWeight.w800,
+          color: canAfford ? Colors.white : Colors.grey,
+        )),
+      ]),
+    ),
+  );
+}
 
   // ── Premium card ───────────────────────────────────────────────────────────
 
