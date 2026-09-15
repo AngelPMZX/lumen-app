@@ -482,6 +482,7 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
   required String email,
   required String password,
   required String name,
+  String? languageCode,
 }) async {
   try {
     _isLoading = true;
@@ -508,8 +509,9 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
     // ── Enviar email de verificación ─────────────────────────────
     try {
       // Configurar idioma del email según el locale actual de la app
-      final locale = 'es'; // se sobreescribe abajo si viene contexto
-      await _auth.setLanguageCode(locale);
+      if (languageCode != null) {
+        await _auth.setLanguageCode(languageCode);
+      }
       await credential.user!.sendEmailVerification();
     } catch (e) {
       debugPrint('Error sending email verification: $e');
@@ -596,6 +598,25 @@ Future<bool> checkEmailVerified() async {
     debugPrint('checkEmailVerified error: $e');
     return false;
   }
+}
+
+/// Para sesiones guardadas al abrir la app: recarga el usuario y, si su email
+/// sigue sin verificar (Google exento), prepara el estado para /verify-email.
+/// Retorna true si debe ir a verificar.
+Future<bool> needsVerificationOnStartup() async {
+  if (_auth.currentUser == null || isGoogleUser) return false;
+  try {
+    await _auth.currentUser!.reload();
+  } catch (e) {
+    // Sin conexión: se usa el último estado conocido
+    debugPrint('needsVerificationOnStartup reload error: $e');
+  }
+  final user = _auth.currentUser;
+  if (user == null || user.emailVerified) return false;
+  _pendingVerificationEmail = user.email;
+  _needsEmailVerification = true;
+  notifyListeners();
+  return true;
 }
 
 /// Reenvía el email de verificación al usuario actual.

@@ -44,13 +44,18 @@ class _SplashScreenState extends State<SplashScreen>
     final authProvider = context.read<AuthProvider>();
 
     if (authProvider.isLoggedIn) {
-      await authProvider.loadUserData();
+      // Sesión guardada de un registro sin verificar: no dejarla pasar
+      final needsVerification =
+          await authProvider.needsVerificationOnStartup();
+      if (!needsVerification) await authProvider.loadUserData();
       await Future.delayed(const Duration(milliseconds: 800));
       if (!mounted) return;
 
       Future.microtask(() {
         if (!mounted) return;
-        if (authProvider.isProfileComplete) {
+        if (needsVerification) {
+          Navigator.pushReplacementNamed(context, AppRoutes.verifyEmail);
+        } else if (authProvider.isProfileComplete) {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
         } else {
           Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);

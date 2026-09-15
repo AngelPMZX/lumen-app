@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../data/models/achievement.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/providers/garden_provider.dart';
 import '../../../domain/providers/theme_provider.dart';
 import '../../widgets/animated_particles_background.dart';
 import 'edit_profile_screen.dart';
@@ -103,7 +104,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _logout() async {
   final auth = context.read<AuthProvider>();
-  
+  final garden = context.read<GardenProvider>();
+
   final confirm = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -126,6 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: () async {
             Navigator.of(ctx).pop(); // Cerrar dialog primero
             await auth.logout();
+            garden.resetOnLogout();
             if (mounted) {
               Navigator.of(context).pushNamedAndRemoveUntil(
                 AppRoutes.splash,

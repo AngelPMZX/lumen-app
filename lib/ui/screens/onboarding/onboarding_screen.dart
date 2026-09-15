@@ -31,7 +31,7 @@ class _SlideData {
 
 const List<_SlideData> _slides = [
   _SlideData(
-    asset: 'assets/images/onboarding/slide_welcome.png',
+    asset: 'assets/images/onboarding/slide_welcome.webp',
     titleKey: 'onboarding.slide1.title',
     descriptionKey: 'onboarding.slide1.description',
     topColor: Color(0xFF10B981),
@@ -41,7 +41,7 @@ const List<_SlideData> _slides = [
     fallbackEmoji: '🌱',
   ),
   _SlideData(
-    asset: 'assets/images/onboarding/slide_routes.png',
+    asset: 'assets/images/onboarding/slide_routes.webp',
     titleKey: 'onboarding.slide2.title',
     descriptionKey: 'onboarding.slide2.description',
     topColor: Color(0xFFF97316),
@@ -51,7 +51,7 @@ const List<_SlideData> _slides = [
     fallbackEmoji: '🔥',
   ),
   _SlideData(
-    asset: 'assets/images/onboarding/slide_diary.png',
+    asset: 'assets/images/onboarding/slide_diary.webp',
     titleKey: 'onboarding.slide3.title',
     descriptionKey: 'onboarding.slide3.description',
     topColor: Color(0xFF3B82F6),
@@ -61,7 +61,7 @@ const List<_SlideData> _slides = [
     fallbackEmoji: '📖',
   ),
   _SlideData(
-    asset: 'assets/images/onboarding/slide_garden.png',
+    asset: 'assets/images/onboarding/slide_garden.webp',
     titleKey: 'onboarding.slide4.title',
     descriptionKey: 'onboarding.slide4.description',
     topColor: Color(0xFF8B5CF6),

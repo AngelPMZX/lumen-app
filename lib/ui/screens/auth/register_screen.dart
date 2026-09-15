@@ -56,6 +56,7 @@ void initState() {
       email: _emailController.text.trim(),
       password: _passwordController.text,
       name: _nameController.text.trim(),
+      languageCode: context.locale.languageCode,
     );
     if (success && mounted) {
       Navigator.pushReplacementNamed(context, AppRoutes.verifyEmail);
