@@ -41,6 +41,9 @@ Clean architecture simplificada:
 6. **Reglas de Firestore NO cascadean a subcolecciones** — cada nivel necesita `match` explícito.
 7. **Nueva subcolección bajo `users/{uid}`** → agregarla a `_userSubcollections` en `AuthProvider`, o sus datos quedan huérfanos al eliminar la cuenta.
 8. **Imágenes grandes en WebP** (quality ~85), no PNG — los PNG ilustrados pesan ~2 MB cada uno.
+9. **Días de racha**: usar `UserProgress.daysSinceCheckIn` (días de calendario en UTC), nunca `difference().inDays` entre fechas locales — falla en días con cambio de horario.
+10. **`progress/current` se sobrescribe completo** con `.set(toMap())` en varios lugares: no guardar campos extra ahí. Datos auxiliares van en su propio doc de `progress/` (`celebrated_achievements`, `discoveries`, `breathing`).
+11. **PowerShell 5.1 parte los argumentos con comillas dobles** al llamar ejecutables (`git commit -m "..."`, `python -c "..."`): usar `git commit -F archivo.txt` y scripts `.py` en archivo.
 
 ## Features implementadas
 
@@ -57,6 +60,7 @@ Clean architecture simplificada:
 ### Home
 - Check-in de ánimo diario con 12 emojis.
 - Racha diaria con validación anti-trampa vía server timestamp (colección `_server_time`).
+- La racha mostrada es `AuthProvider.currentStreak` (0 si ya se perdió un día); `currentStreak` en Firestore solo se recalcula al hacer check-in.
 - Lección del día + diario rápido.
 - Reto diario aleatorio.
 - Timeline emocional semanal.
@@ -73,7 +77,7 @@ Clean architecture simplificada:
 - Assets ilustrados estilo watercolor children's book (PNG en `assets/images/plants/`, `decorations/`, `boosters/`, `currency/`).
 - Sistema de auras (color+intensidad por rareza).
 - Tienda con precios en semillas + premium ($0.99 vía RevenueCat futuro).
-- Escudos de racha (protege racha si se rompe).
+- Escudos de racha: el home guarda la racha rota (`saveStreakBeforeBreak`, tras cargar las mecánicas) y el escudo solo se puede usar ese día (`streakBreakDate` en `garden/mechanics`), antes o después del check-in. Si ya hizo check-in, hoy también cuenta.
 - Múltiples jardines (meadow, forest, mountain, lake, greenhouse).
 
 ### Hábitos y recordatorios
@@ -88,7 +92,11 @@ Clean architecture simplificada:
 ### Respiración guiada
 - 3 técnicas (Box, 4-7-8, Flow).
 - Sonidos ambientales.
-- Recompensa XP al terminar.
+- Recompensa XP + semillas (`RewardSource.breathing`) solo en la primera sesión del día (`progress/breathing`, hora del servidor).
+
+### Discovery moments
+- Popup ilustrado la primera vez que se entra al jardín, respiración, diario, rutas o recordatorios, con +5 semillas (`DiscoveryDialog`).
+- Guardado en `progress/discoveries`. Diario y Rutas se disparan al tocar la pestaña en `MainShell` (viven en un `IndexedStack`, su `initState` corre al abrir la app).
 
 ### Onboarding
 - 4 slides al terminar profile setup: bienvenida, rutas, diario, jardín.
@@ -106,6 +114,9 @@ Clean architecture simplificada:
 5. **Google Sign-In en Android**: requiere SHA-1 registrado en Firebase Console.
 6. **Google Sign-In en web**: requiere puerto fijo (`--web-port 8080`) y ese origen registrado en Google Cloud Console.
 7. **`assets/assets/` en errores 404 de Flutter web**: no es bug, es cómo Flutter web sirve assets.
+8. **Racha mostrada que no bajaba**: mostrar `progress.currentStreak` directo deja ver la racha vieja tras perder días. Usar `AuthProvider.currentStreak`.
+9. **Escudo de racha inservible**: `saveStreakBeforeBreak` nunca se llamaba y el escudo del jardín no restauraba la racha. Ambos flujos deben terminar en `restoreStreakWithShield`.
+10. **Respiración guardada como lección** (`completed_lessons/breathing_session_<día>`): bloqueaba XP el mismo día del mes siguiente y contaba como lección del día.
 
 ## Reglas de Firestore vigentes
 
@@ -160,9 +171,9 @@ flutter clean; flutter pub get
 
 ## Pendientes actuales
 
-- **Discovery moments**: al descubrir features (ej. entrar al jardín por primera vez), popup "¡Descubriste el jardín! 🌱 Eres curioso...".
 - **RevenueCat activo** para monetización.
-- **Recompensa de semillas en respiración**.
+- **Reglas de Firestore**: restringir lectura de `users/{userId}` al dueño antes de publicar (hoy cualquier usuario autenticado puede leer perfiles ajenos).
+- **Limpieza de warnings** de `flutter analyze` (~430, sobre todo imports sin usar).
 - **Polish visual de `lesson_screen.dart`** con personajes.
 - **Panel admin** de rutas de bienestar (sin script Node.js).
 - **Guía de batería para Xiaomi/Huawei/Oppo** al detectar el fabricante.
