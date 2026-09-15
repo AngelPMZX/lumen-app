@@ -58,7 +58,7 @@ void initState() {
       name: _nameController.text.trim(),
     );
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+      Navigator.pushReplacementNamed(context, AppRoutes.verifyEmail);
     }
   }
 

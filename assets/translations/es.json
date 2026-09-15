@@ -37,7 +37,29 @@
     "title3": "Mantén tu racha\ny crece cada día",
     "desc3": "Gana XP, sube de nivel y desbloquea contenido mientras cuidas de ti mismo.",
     "getStarted": "Comenzar",
-    "skip": "Omitir"
+    "skip": "Omitir",
+  "next": "Siguiente",
+  "start": "¡Empezar!",
+  "skipConfirmTitle": "¿Saltar el tour?",
+  "skipConfirmMessage": "Podrás verlo después desde tu perfil, en Ajustes → Ver tour de nuevo.",
+  "skipConfirmYes": "Saltar",
+  "skipConfirmNo": "Continuar tour",
+  "slide1": {
+    "title": "Bienvenido a Lumen 🌱",
+    "description": "Tu gimnasio emocional. Cuida tu mente todos los días, un pequeño paso a la vez."
+  },
+  "slide2": {
+    "title": "Aprende algo nuevo cada día",
+    "description": "Rutas cortas de bienestar sobre emociones, mindfulness y resiliencia. Mantén tu racha viva 🔥"
+  },
+  "slide3": {
+    "title": "Registra cómo te sientes",
+    "description": "Diario emocional, hábitos diarios y respiración guiada. Todo en un solo lugar."
+  },
+  "slide4": {
+    "title": "Descubre secretos escondidos",
+    "description": "Explora Lumen y encontrarás sorpresas. Cada acción cuida tu jardín interior 🌿"
+  }
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -63,7 +85,30 @@
     "streakWaiting": "¡Tu racha te espera! 🔥",
     "joinLumen": "Únete a Lumen",
     "journeyStarts": "Tu viaje comienza aquí ✨",
-    "completeData": "Completa tus datos para crear tu cuenta"
+    "completeData": "Completa tus datos para crear tu cuenta",
+    "forgotPasswordTitle": "¿Olvidaste tu contraseña?",
+"forgotPasswordSubtitle": "No te preocupes. Te enviaremos un enlace para restablecerla.",
+"enterYourEmail": "Ingresa tu correo electrónico:",
+"sendResetLink": "Enviar enlace",
+"emailSentTitle": "¡Correo enviado!",
+"emailSentSubtitle": "Revisa tu bandeja de entrada",
+"checkYourInbox": "Te enviamos un enlace a {email}. Toca el enlace para crear una nueva contraseña.",
+"checkSpamFolder": "Si no lo encuentras, revisa tu carpeta de spam o correo no deseado.",
+"backToLogin": "Volver a iniciar sesión",
+"resendEmail": "Reenviar correo",
+"emailResent": "Correo reenviado ✉️",
+"resendEmailCooldown": "Reenviar en {seconds}s",
+"useAnotherEmail": "Usar otro correo",
+"verifyEmailTitle": "Verifica tu correo",
+"verifyEmailSubtitle": "Te enviamos un enlace de verificación",
+"verifyEmailInstructions": "Revisa tu bandeja de entrada en {email} y toca el enlace para confirmar tu cuenta.",
+"verifyEmailCta": "Ya verifiqué mi correo",
+"verifyEmailResend": "Reenviar correo",
+"verifyEmailResendSuccess": "Correo reenviado ✉️",
+"verifyEmailBackToLogin": "Volver al inicio de sesión",
+"verifyEmailNotYetVerified": "Aún no encontramos la verificación. Revisa tu correo y toca el enlace.",
+"verifyEmailSuccess": "¡Correo verificado! 🎉",
+"verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos..."
   },
   "validation": {
     "required": "Este campo es obligatorio",
@@ -165,7 +210,9 @@
     "freeSpiritName": "Espíritu Libre",
     "freeSpiritDesc": "Eres espontáneo, curioso y amante del cambio. Cada día es una nueva aventura y tu optimismo ilumina cualquier habitación.",
     "freeSpiritStrengths": "Adaptabilidad,Curiosidad,Optimismo",
-    "freeSpiritTip": "Tu superpoder es la libertad. Lumen será tu compañero de aventuras en el crecimiento emocional."
+    "freeSpiritTip": "Tu superpoder es la libertad. Lumen será tu compañero de aventuras en el crecimiento emocional.",
+    "watchTour": "Ver tour de nuevo",
+"watchTourSubtitle": "Redescubre qué puedes hacer en Lumen"
   },
   "home": {
     "greeting": "¡Hola, {name}!",
@@ -602,7 +649,9 @@
     "weakPassword": "La contraseña es muy débil",
     "tooManyRequests": "Demasiados intentos. Espera un momento.",
     "saveFailed": "Error al guardar. Intenta de nuevo.",
-    "loadFailed": "Error al cargar los datos."
+    "loadFailed": "Error al cargar los datos.",
+    "tooManyRequests": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
+"sessionExpired": "Tu sesión expiró. Vuelve a iniciar sesión."
   },
   "dailyChallenges": {
     "categories": {
@@ -1327,7 +1376,9 @@
     "language": "Idioma",
     "languageSubtitle": "Español",
     "languageEn": "English",
-    "languageEs": "Español"
+    "languageEs": "Español",
+    "watchTour": "Ver tour de nuevo",
+"watchTourSubtitle": "Redescubre qué puedes hacer en Lumen"
   },
   "moodHistory": {
     "title": "Historial de ánimo",

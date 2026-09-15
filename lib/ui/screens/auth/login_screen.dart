@@ -41,16 +41,21 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.loginWithEmail(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-    );
-    if (success && mounted) {
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
-    }
+  if (!_formKey.currentState!.validate()) return;
+  final authProvider = context.read<AuthProvider>();
+  final success = await authProvider.loginWithEmail(
+    email: _emailController.text.trim(),
+    password: _passwordController.text,
+  );
+  if (!mounted) return;
+  if (success) {
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
+  } else if (authProvider.needsEmailVerification) {
+    // Login rechazado por email no verificado → ir a pantalla de verificación
+    Navigator.pushReplacementNamed(context, AppRoutes.verifyEmail);
   }
+  // Si false y !needsEmailVerification, el error ya se muestra vía Consumer
+}
 
   Future<void> _loginWithGoogle() async {
     final authProvider = context.read<AuthProvider>();
@@ -297,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
-                                    onPressed: () {},
+                                    onPressed: () => Navigator.pushNamed(context, AppRoutes.forgotPassword),
                                     child: Text(
                                       'auth.forgotPassword'.tr(),
                                       style: TextStyle(

@@ -37,7 +37,29 @@
     "title3": "Keep your streak\nand grow every day",
     "desc3": "Earn XP, level up, and unlock content while taking care of yourself.",
     "getStarted": "Get Started",
-    "skip": "Skip"
+    "skip": "Skip",
+    "next": "Next",
+  "start": "Let's start!",
+  "skipConfirmTitle": "Skip the tour?",
+  "skipConfirmMessage": "You can watch it later from your profile, in Settings → Watch tour again.",
+  "skipConfirmYes": "Skip",
+  "skipConfirmNo": "Keep watching",
+  "slide1": {
+    "title": "Welcome to Lumen 🌱",
+    "description": "Your emotional gym. Take care of your mind every day, one small step at a time."
+  },
+  "slide2": {
+    "title": "Learn something new every day",
+    "description": "Short wellness paths on emotions, mindfulness and resilience. Keep your streak alive 🔥"
+  },
+  "slide3": {
+    "title": "Track how you feel",
+    "description": "Emotional journal, daily habits and guided breathing. All in one place."
+  },
+  "slide4": {
+    "title": "Discover hidden secrets",
+    "description": "Explore Lumen and you'll find surprises. Every action tends to your inner garden 🌿"
+  }
   },
   "auth": {
     "login": "Log In",
@@ -63,7 +85,30 @@
     "streakWaiting": "Your streak is waiting! 🔥",
     "joinLumen": "Join Lumen",
     "journeyStarts": "Your journey starts here ✨",
-    "completeData": "Fill in your details to create your account"
+    "completeData": "Fill in your details to create your account",
+    "forgotPasswordTitle": "Forgot your password?",
+"forgotPasswordSubtitle": "Don't worry. We'll send you a link to reset it.",
+"enterYourEmail": "Enter your email address:",
+"sendResetLink": "Send reset link",
+"emailSentTitle": "Email sent!",
+"emailSentSubtitle": "Check your inbox",
+"checkYourInbox": "We sent a link to {email}. Tap the link to create a new password.",
+"checkSpamFolder": "If you don't see it, check your spam or junk folder.",
+"backToLogin": "Back to login",
+"resendEmail": "Resend email",
+"emailResent": "Email resent ✉️",
+"resendEmailCooldown": "Resend in {seconds}s",
+"useAnotherEmail": "Use another email",
+"verifyEmailTitle": "Verifica tu correo",
+"verifyEmailSubtitle": "Te enviamos un enlace de verificación",
+"verifyEmailInstructions": "Revisa tu bandeja de entrada en {email} y toca el enlace para confirmar tu cuenta.",
+"verifyEmailCta": "Ya verifiqué mi correo",
+"verifyEmailResend": "Reenviar correo",
+"verifyEmailResendSuccess": "Correo reenviado ✉️",
+"verifyEmailBackToLogin": "Volver al inicio de sesión",
+"verifyEmailNotYetVerified": "Aún no encontramos la verificación. Revisa tu correo y toca el enlace.",
+"verifyEmailSuccess": "¡Correo verificado! 🎉",
+"verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos..."
   },
   "validation": {
     "required": "This field is required",
@@ -136,7 +181,9 @@
     "selectAtLeast2": "Select at least 2 genres",
     "discoverArchetype": "Discover my archetype",
     "errorSaveProfile": "Error saving your profile",
-    "errorCompleteProfile": "Error completing profile"
+    "errorCompleteProfile": "Error completing profile",
+    "watchTour": "Watch tour again",
+"watchTourSubtitle": "Rediscover what you can do in Lumen"
   },
   "archetype": {
     "revealTitle": "Your archetype is...",
@@ -602,7 +649,9 @@
     "weakPassword": "Password is too weak",
     "tooManyRequests": "Too many attempts. Wait a moment.",
     "saveFailed": "Error saving. Try again.",
-    "loadFailed": "Error loading data."
+    "loadFailed": "Error loading data.",
+    "tooManyRequests": "Too many attempts. Wait a moment and try again.",
+"sessionExpired": "Your session expired. Please log in again."
   },
   "dailyChallenges": {
     "categories": {
@@ -1327,7 +1376,9 @@
     "language": "Language",
     "languageSubtitle": "English",
     "languageEn": "English",
-    "languageEs": "Español"
+    "languageEs": "Español",
+    "watchTour": "Watch tour again",
+"watchTourSubtitle": "Rediscover what you can do in Lumen"
   },
   "moodHistory": {
     "title": "Mood history",

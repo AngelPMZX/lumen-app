@@ -62,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen>
 
       Future.microtask(() {
         if (!mounted) return;
-        Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
       });
     }
   }
@@ -294,17 +294,25 @@ class _ParticlePainter extends CustomPainter {
       final currentY = (p.y - progress * p.speed * 3) % 1.0;
       final currentX = (p.x + sin(progress * pi * 2 + p.drift) * 0.02);
 
-      final paint = Paint()
-        ..color = Colors.white.withValues(
-          alpha: p.opacity * (0.5 + 0.5 * sin(progress * pi * 2 + p.x * 10)),
-        )
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, p.size * 0.8);
+      final baseAlpha = p.opacity *
+    (0.5 + 0.5 * sin(progress * pi * 2 + p.x * 10));
+final center = Offset(
+  currentX * size.width,
+  currentY * size.height,
+);
 
-      canvas.drawCircle(
-        Offset(currentX * size.width, currentY * size.height),
-        p.size,
-        paint,
-      );
+// Simulación de blur con círculos concéntricos (safe en web)
+final glowOuter = Paint()
+  ..color = Colors.white.withValues(alpha: baseAlpha * 0.15);
+canvas.drawCircle(center, p.size * 2.4, glowOuter);
+
+final glowMid = Paint()
+  ..color = Colors.white.withValues(alpha: baseAlpha * 0.35);
+canvas.drawCircle(center, p.size * 1.6, glowMid);
+
+final core = Paint()
+  ..color = Colors.white.withValues(alpha: baseAlpha);
+canvas.drawCircle(center, p.size, core);
     }
   }
 

@@ -11,6 +11,7 @@ import '../../data/models/habit.dart';
 import '../../domain/services/achievement_service.dart';
 import '../providers/garden_provider.dart';
 import '../services/notification_service.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -22,6 +23,19 @@ class AuthProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  // ── Verificación de email ──────────────────────────────────────────────────
+bool _needsEmailVerification = false;
+bool get needsEmailVerification => _needsEmailVerification;
+
+String? _pendingVerificationEmail;
+String? get pendingVerificationEmail => _pendingVerificationEmail;
+
+void clearVerificationState() {
+  _needsEmailVerification = false;
+  _pendingVerificationEmail = null;
+  notifyListeners();
+}
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
@@ -370,6 +384,57 @@ try {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+// PASSWORD RESET
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Envía un correo de restablecimiento de contraseña.
+/// Por seguridad, siempre retorna éxito aunque el email no exista (evita
+/// que atacantes averigüen qué emails están registrados).
+Future<bool> sendPasswordResetEmail(String email, {String? languageCode}) async {
+  try {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    // Configurar idioma del email según el locale de la app
+    if (languageCode != null) {
+      await _auth.setLanguageCode(languageCode);
+    }
+
+    await _auth.sendPasswordResetEmail(email: email.trim());
+
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  } on FirebaseAuthException catch (e) {
+    // Errores que SÍ mostramos (invalid-email es útil para el usuario)
+    if (e.code == 'invalid-email') {
+      _errorMessage = _getErrorMessage(e.code);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+    // Para 'user-not-found' y otros, retornamos éxito silencioso
+    // (previene enumeración de cuentas — mejor práctica de seguridad)
+    if (e.code == 'user-not-found') {
+      _isLoading = false;
+      notifyListeners();
+      return true;  // Fingimos éxito
+    }
+    // Cualquier otro error real (rate limit, etc.)
+    _errorMessage = _getErrorMessage(e.code);
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  } catch (e) {
+    _errorMessage = 'auth.errors.generic'.tr();
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+}
+
   /// Restaura la racha al valor indicado (estilo TikTok con escudo).
 /// Llamar después de useStreakShield() en GardenProvider.
 Future<void> restoreStreakWithShield(int streakToRestore) async {
@@ -410,72 +475,155 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
   // ═══════════════════════════════════════════════════════════════════════════
   // AUTH — register, login, google, logout
   // ═══════════════════════════════════════════════════════════════════════════
-  Future<bool> registerWithEmail({
-    required String email,
-    required String password,
-    required String name,
-  }) async {
+ Future<bool> registerWithEmail({
+  required String email,
+  required String password,
+  required String name,
+}) async {
+  try {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final credential = await _auth.createUserWithEmailAndPassword(
+        email: email, password: password);
+    await credential.user?.updateDisplayName(name);
+
+    final userModel =
+        UserModel(uid: credential.user!.uid, name: name, email: email);
+    await _firestore
+        .collection('users').doc(credential.user!.uid)
+        .set(userModel.toFirestoreMap());
+    _userModel = userModel;
+
+    _userProgress = UserProgress();
+    await _firestore
+        .collection('users').doc(credential.user!.uid)
+        .collection('progress').doc('current')
+        .set(_userProgress!.toMap());
+
+    // ── Enviar email de verificación ─────────────────────────────
     try {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-
-      final credential = await _auth.createUserWithEmailAndPassword(
-          email: email, password: password);
-      await credential.user?.updateDisplayName(name);
-
-      final userModel =
-          UserModel(uid: credential.user!.uid, name: name, email: email);
-      await _firestore
-          .collection('users').doc(credential.user!.uid)
-          .set(userModel.toFirestoreMap());
-      _userModel = userModel;
-
-      _userProgress = UserProgress();
-      await _firestore
-          .collection('users').doc(credential.user!.uid)
-          .collection('progress').doc('current')
-          .set(_userProgress!.toMap());
-
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } on FirebaseAuthException catch (e) {
-      _errorMessage = _getErrorMessage(e.code);
-      _isLoading = false;
-      notifyListeners();
-      return false;
+      // Configurar idioma del email según el locale actual de la app
+      final locale = 'es'; // se sobreescribe abajo si viene contexto
+      await _auth.setLanguageCode(locale);
+      await credential.user!.sendEmailVerification();
     } catch (e) {
-      _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
-      _isLoading = false;
-      notifyListeners();
-      return false;
+      debugPrint('Error sending email verification: $e');
     }
+
+    // Marcar que necesita verificación (el UI navegará a /verify-email)
+    _pendingVerificationEmail = email.trim();
+    _needsEmailVerification = true;
+
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  } on FirebaseAuthException catch (e) {
+    _errorMessage = _getErrorMessage(e.code);
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  } catch (e) {
+    _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
+}
 
   Future<bool> loginWithEmail(
-      {required String email, required String password}) async {
-    try {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      await loadUserData();
+    {required String email, required String password}) async {
+  try {
+    _isLoading = true;
+    _errorMessage = null;
+    _needsEmailVerification = false;
+    _pendingVerificationEmail = null;
+    notifyListeners();
+
+    await _auth.signInWithEmailAndPassword(email: email, password: password);
+
+    // ── Bloquear login si el email NO está verificado ────────────
+    final user = _auth.currentUser;
+    if (user != null && !user.emailVerified) {
+      _pendingVerificationEmail = email.trim();
+      _needsEmailVerification = true;
       _isLoading = false;
       notifyListeners();
-      return true;
-    } on FirebaseAuthException catch (e) {
-      _errorMessage = _getErrorMessage(e.code);
-      _isLoading = false;
-      notifyListeners();
+      // Retornamos false pero el flag needsEmailVerification=true
+      // le dice al login_screen que redirija a /verify-email
       return false;
-    } catch (e) {
-      _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
-      _isLoading = false;
+    }
+
+    await loadUserData();
+    _isLoading = false;
+    notifyListeners();
+    return true;
+  } on FirebaseAuthException catch (e) {
+    _errorMessage = _getErrorMessage(e.code);
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  } catch (e) {
+    _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+}
+
+/// Recarga el usuario desde Firebase y verifica si ya confirmó su email.
+/// Retorna true si está verificado, false si aún no.
+/// Si retorna true, también carga user data y limpia el flag.
+Future<bool> checkEmailVerified() async {
+  try {
+    if (_auth.currentUser == null) return false;
+    await _auth.currentUser!.reload();
+    final verified = _auth.currentUser!.emailVerified;
+    if (verified) {
+      _needsEmailVerification = false;
+      _pendingVerificationEmail = null;
+      if (_userModel == null) {
+        await loadUserData();
+      }
+      notifyListeners();
+    }
+    return verified;
+  } catch (e) {
+    debugPrint('checkEmailVerified error: $e');
+    return false;
+  }
+}
+
+/// Reenvía el email de verificación al usuario actual.
+/// Requiere que haya sesión activa (el user acaba de registrarse o
+/// intentó hacer login pero no está verificado).
+Future<bool> resendEmailVerification({String? languageCode}) async {
+  try {
+    if (_auth.currentUser == null) {
+      _errorMessage = 'auth.errors.sessionExpired'.tr();
       notifyListeners();
       return false;
     }
+    if (languageCode != null) {
+      await _auth.setLanguageCode(languageCode);
+    }
+    await _auth.currentUser!.sendEmailVerification();
+    return true;
+  } on FirebaseAuthException catch (e) {
+    if (e.code == 'too-many-requests') {
+      _errorMessage = 'auth.errors.tooManyRequests'.tr();
+    } else {
+      _errorMessage = _getErrorMessage(e.code);
+    }
+    notifyListeners();
+    return false;
+  } catch (e) {
+    debugPrint('resendEmailVerification error: $e');
+    return false;
   }
+}
+
 
   Future<bool> loginWithGoogle() async {
     try {
@@ -535,6 +683,22 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
     _diaryVersion = 0;
     notifyListeners();
   }
+
+  Future<void> markOnboardingCompleted() async {
+  try {
+    if (firebaseUser == null) return;
+    await _firestore
+        .collection('users').doc(firebaseUser!.uid)
+        .update({'onboardingCompleted': true});
+    if (_userModel != null) {
+      _userModel = _userModel!.copyWith(onboardingCompleted: true);
+      notifyListeners();
+    }
+  } catch (e) {
+    debugPrint('markOnboardingCompleted error: $e');
+  }
+}
+
 
   // ═══════════════════════════════════════════════════════════════════════════
   // UPDATE USER PROFILE

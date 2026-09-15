@@ -47,5 +47,6 @@ flutter:
     - assets/images/boosters/
     - assets/images/decorations/
     - assets/images/currency/
+    - assets/images/onboarding/
     - assets/translations/
     - assets/lottie/

@@ -1,9 +1,76 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
+import '../../../domain/providers/auth_provider.dart';
+
+class _SlideData {
+  final String asset;
+  final String titleKey;
+  final String descriptionKey;
+  final Color topColor;
+  final Color midColor;
+  final Color bottomColor;
+  final Color accentColor;
+  final String fallbackEmoji;
+
+  const _SlideData({
+    required this.asset,
+    required this.titleKey,
+    required this.descriptionKey,
+    required this.topColor,
+    required this.midColor,
+    required this.bottomColor,
+    required this.accentColor,
+    required this.fallbackEmoji,
+  });
+}
+
+const List<_SlideData> _slides = [
+  _SlideData(
+    asset: 'assets/images/onboarding/slide_welcome.png',
+    titleKey: 'onboarding.slide1.title',
+    descriptionKey: 'onboarding.slide1.description',
+    topColor: Color(0xFF10B981),
+    midColor: Color(0xFF065F46),
+    bottomColor: Color(0xFF022C22),
+    accentColor: Color(0xFF34D399),
+    fallbackEmoji: '🌱',
+  ),
+  _SlideData(
+    asset: 'assets/images/onboarding/slide_routes.png',
+    titleKey: 'onboarding.slide2.title',
+    descriptionKey: 'onboarding.slide2.description',
+    topColor: Color(0xFFF97316),
+    midColor: Color(0xFF9A3412),
+    bottomColor: Color(0xFF431407),
+    accentColor: Color(0xFFFBBF24),
+    fallbackEmoji: '🔥',
+  ),
+  _SlideData(
+    asset: 'assets/images/onboarding/slide_diary.png',
+    titleKey: 'onboarding.slide3.title',
+    descriptionKey: 'onboarding.slide3.description',
+    topColor: Color(0xFF3B82F6),
+    midColor: Color(0xFF1E40AF),
+    bottomColor: Color(0xFF172554),
+    accentColor: Color(0xFF60A5FA),
+    fallbackEmoji: '📖',
+  ),
+  _SlideData(
+    asset: 'assets/images/onboarding/slide_garden.png',
+    titleKey: 'onboarding.slide4.title',
+    descriptionKey: 'onboarding.slide4.description',
+    topColor: Color(0xFF8B5CF6),
+    midColor: Color(0xFF6D28D9),
+    bottomColor: Color(0xFF2E1065),
+    accentColor: Color(0xFFC084FC),
+    fallbackEmoji: '🌿',
+  ),
+];
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,255 +80,254 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen>
-    with TickerProviderStateMixin {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-  late AnimationController _bgController;
-
-  // ── Ahora es un método que recibe context para poder usar .tr() ──
-  List<_OnboardingData> _buildPages() {
-    return [
-      _OnboardingData(
-        title: 'onboarding.title1'.tr(),
-        description: 'onboarding.desc1'.tr(),
-        gradientColors: [
-          const Color(0xFF6C63FF),
-          const Color(0xFF5A4FCF),
-          const Color(0xFF3D2DB5),
-        ],
-        iconData: Icons.spa_rounded,
-        orbitIcons: [
-          Icons.favorite_rounded,
-          Icons.star_rounded,
-          Icons.brightness_7_rounded,
-          Icons.water_drop_rounded,
-        ],
-        accentColor: const Color(0xFF9D97FF),
-      ),
-      _OnboardingData(
-        title: 'onboarding.title2'.tr(),
-        description: 'onboarding.desc2'.tr(),
-        gradientColors: [
-          const Color(0xFF10B981),
-          const Color(0xFF059669),
-          const Color(0xFF065F46),
-        ],
-        iconData: Icons.psychology_rounded,
-        orbitIcons: [
-          Icons.lightbulb_rounded,
-          Icons.auto_awesome_rounded,
-          Icons.emoji_objects_rounded,
-          Icons.hub_rounded,
-        ],
-        accentColor: const Color(0xFF6EE7B7),
-      ),
-      _OnboardingData(
-        title: 'onboarding.title3'.tr(),
-        description: 'onboarding.desc3'.tr(),
-        gradientColors: [
-          const Color(0xFFFF9500),
-          const Color(0xFFE8700A),
-          const Color(0xFFC2410C),
-        ],
-        iconData: Icons.local_fire_department_rounded,
-        orbitIcons: [
-          Icons.bolt_rounded,
-          Icons.military_tech_rounded,
-          Icons.trending_up_rounded,
-          Icons.diamond_rounded,
-        ],
-        accentColor: const Color(0xFFFCD34D),
-      ),
-    ];
-  }
+    with SingleTickerProviderStateMixin {
+  final PageController _pageCtrl = PageController();
+  late AnimationController _bgCtrl;
+  double _pageValue = 0.0;
+  bool _finishing = false;
 
   @override
   void initState() {
     super.initState();
-    _bgController = AnimationController(
+    _bgCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20),
+      duration: const Duration(seconds: 15),
     )..repeat();
+    _pageCtrl.addListener(() {
+      setState(() => _pageValue = _pageCtrl.page ?? 0.0);
+    });
   }
 
   @override
   void dispose() {
-    _pageController.dispose();
-    _bgController.dispose();
+    _pageCtrl.dispose();
+    _bgCtrl.dispose();
     super.dispose();
   }
 
-  void _nextPage() {
-    final pages = _buildPages();
-    if (_currentPage < pages.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutCubic,
-      );
+  // Interpola entre los colores del slide actual y el siguiente
+  Color _interpolatedColor(Color Function(_SlideData) getter) {
+    final currentIdx = _pageValue.floor().clamp(0, _slides.length - 1);
+    final nextIdx = (currentIdx + 1).clamp(0, _slides.length - 1);
+    final t = _pageValue - currentIdx;
+    return Color.lerp(getter(_slides[currentIdx]), getter(_slides[nextIdx]), t)!;
+  }
+
+  int get _currentPage => _pageValue.round().clamp(0, _slides.length - 1);
+  bool get _isLastPage => _currentPage == _slides.length - 1;
+
+  Future<void> _next() async {
+    HapticFeedback.lightImpact();
+    if (_isLastPage) {
+      await _finish();
     } else {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
+      _pageCtrl.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
-  void _skip() {
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
+  Future<void> _skip() async {
+    HapticFeedback.selectionClick();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'onboarding.skipConfirmTitle'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        content: Text('onboarding.skipConfirmMessage'.tr()),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'onboarding.skipConfirmNo'.tr(),
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: _interpolatedColor((s) => s.topColor),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('onboarding.skipConfirmYes'.tr()),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _finish();
+    }
+  }
+
+  Future<void> _finish() async {
+    if (_finishing) return;
+    setState(() => _finishing = true);
+    HapticFeedback.mediumImpact();
+    try {
+      await context.read<AuthProvider>().markOnboardingCompleted();
+    } catch (e) {
+      debugPrint('Error marking onboarding: $e');
+    }
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.home,
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final pages = _buildPages();
-    final data = pages[_currentPage];
+    final topColor = _interpolatedColor((s) => s.topColor);
+    final midColor = _interpolatedColor((s) => s.midColor);
+    final bottomColor = _interpolatedColor((s) => s.bottomColor);
+    final accentColor = _interpolatedColor((s) => s.accentColor);
 
     return Scaffold(
       body: Stack(
         children: [
-          // Fondo animado con gradiente
+          // Fondo con gradiente dinámico (interpolado según el slide)
           AnimatedContainer(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOut,
+            duration: const Duration(milliseconds: 250),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: data.gradientColors,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [topColor, midColor, bottomColor],
+                stops: const [0.0, 0.4, 1.0],
               ),
             ),
           ),
 
-          // Partículas de fondo
+          // Partículas flotantes
           AnimatedBuilder(
-            animation: _bgController,
+            animation: _bgCtrl,
             builder: (context, _) {
               return CustomPaint(
                 size: MediaQuery.of(context).size,
-                painter: _BgPatternPainter(
-                  progress: _bgController.value,
-                  color: data.accentColor,
-                ),
+                painter: _OnboardingBgPainter(progress: _bgCtrl.value),
               );
             },
           ),
 
-          // Contenido
           SafeArea(
             child: Column(
               children: [
-                // Skip button
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: TextButton(
-                      onPressed: _skip,
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                      ),
-                      child: Text(
-                        'onboarding.skip'.tr(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Pages
-                Expanded(
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: pages.length,
-                    onPageChanged: (index) {
-                      setState(() => _currentPage = index);
-                    },
-                    itemBuilder: (context, index) {
-                      return _buildPage(pages[index]);
-                    },
-                  ),
-                ),
-
-                // Bottom section
+                // ── HEADER: Skip button ─────────────────────────────
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 24,
-                  ),
-                  child: Column(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // Page indicators
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(
-                          pages.length,
-                          (index) => AnimatedContainer(
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeOutCubic,
-                            margin: const EdgeInsets.symmetric(horizontal: 5),
-                            width: _currentPage == index ? 36 : 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: _currentPage == index
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(5),
+                      AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: _isLastPage ? 0 : 1,
+                        child: TextButton(
+                          onPressed: _isLastPage ? null : _skip,
+                          child: Text(
+                            'onboarding.skip'.tr(),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 32),
-
-                      // Action button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 60,
-                        child: ElevatedButton(
-                          onPressed: _nextPage,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: data.gradientColors.first,
-                            elevation: 8,
-                            shadowColor: Colors.black.withValues(alpha: 0.2),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _currentPage < pages.length - 1
-                                    ? 'common.next'.tr()
-                                    : 'onboarding.getStarted'.tr(),
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                _currentPage < pages.length - 1
-                                    ? Icons.arrow_forward_rounded
-                                    : Icons.rocket_launch_rounded,
-                                size: 22,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
+
+                // ── PAGEVIEW ────────────────────────────────────────
+                Expanded(
+                  child: PageView.builder(
+                    controller: _pageCtrl,
+                    itemCount: _slides.length,
+                    itemBuilder: (context, i) => _buildSlide(_slides[i]),
+                  ),
+                ),
+
+                // ── INDICADORES DE PROGRESO ─────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_slides.length, (i) {
+                      final isActive = i == _currentPage;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 5),
+                        width: isActive ? 32 : 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+
+                // ── BOTÓN SIGUIENTE / EMPEZAR ───────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: FilledButton(
+                      onPressed: _finishing ? null : _next,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: midColor,
+                        elevation: 8,
+                        shadowColor: Colors.black.withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20)),
+                      ),
+                      child: _finishing
+                          ? SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: midColor,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _isLastPage
+                                      ? 'onboarding.start'.tr()
+                                      : 'onboarding.next'.tr(),
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: midColor,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  _isLastPage
+                                      ? Icons.rocket_launch_rounded
+                                      : Icons.arrow_forward_rounded,
+                                  color: midColor,
+                                  size: 22,
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -270,207 +336,131 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildPage(_OnboardingData data) {
+  Widget _buildSlide(_SlideData slide) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Ilustración compuesta con órbitas
-          SizedBox(
-            width: 260,
-            height: 260,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Anillo exterior
-                Container(
-                  width: 220,
-                  height: 220,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      width: 1,
-                    ),
-                  ),
+          const Spacer(),
+
+          // Ilustración con glow
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: slide.accentColor.withValues(alpha: 0.35),
+                  blurRadius: 60,
+                  spreadRadius: 10,
                 ),
-                // Anillo interior
-                Container(
-                  width: 160,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                // Íconos orbitando
-                ...List.generate(data.orbitIcons.length, (index) {
-                  final angle = (index * pi / 2) + (pi / 4);
-                  final radius = 100.0;
-                  return Positioned(
-                    left: 130 + cos(angle) * radius - 18,
-                    top: 130 + sin(angle) * radius - 18,
-                    child:
-                        Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                ),
-                              ),
-                              child: Icon(
-                                data.orbitIcons[index],
-                                color: Colors.white.withValues(alpha: 0.8),
-                                size: 18,
-                              ),
-                            )
-                            .animate(onPlay: (c) => c.repeat(reverse: true))
-                            .scaleXY(
-                              begin: 0.9,
-                              end: 1.1,
-                              duration: (1500 + index * 300).ms,
-                            )
-                            .fadeIn(
-                              delay: (300 + index * 150).ms,
-                              duration: 600.ms,
-                            ),
-                  );
-                }),
-                // Ícono central
-                Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(32),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.25),
-                            Colors.white.withValues(alpha: 0.08),
-                          ],
-                        ),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          width: 1.5,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: data.accentColor.withValues(alpha: 0.3),
-                            blurRadius: 30,
-                            spreadRadius: 5,
-                          ),
-                        ],
-                      ),
-                      child: Icon(data.iconData, size: 56, color: Colors.white),
-                    )
-                    .animate()
-                    .fadeIn(duration: 800.ms)
-                    .scale(
-                      begin: const Offset(0.5, 0.5),
-                      end: const Offset(1.0, 1.0),
-                      duration: 800.ms,
-                      curve: Curves.easeOutBack,
-                    ),
               ],
             ),
-          ),
-          const SizedBox(height: 48),
+            child: Image.asset(
+              slide.asset,
+              width: 280,
+              height: 280,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.15),
+                ),
+                child: Center(
+                  child: Text(
+                    slide.fallbackEmoji,
+                    style: const TextStyle(fontSize: 120),
+                  ),
+                ),
+              ),
+            ),
+          )
+              .animate(key: ValueKey(slide.asset))
+              .fadeIn(duration: 500.ms)
+              .scale(
+                begin: const Offset(0.7, 0.7),
+                end: const Offset(1, 1),
+                duration: 700.ms,
+                curve: Curves.easeOutBack,
+              ),
+
+          const SizedBox(height: 40),
 
           // Título
           Text(
-                data.title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  height: 1.2,
-                  letterSpacing: -0.5,
-                ),
-              )
-              .animate()
-              .fadeIn(delay: 300.ms, duration: 700.ms)
-              .slideY(begin: 0.3, end: 0, duration: 700.ms),
-          const SizedBox(height: 20),
+            slide.titleKey.tr(),
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              height: 1.2,
+              letterSpacing: -0.3,
+            ),
+            textAlign: TextAlign.center,
+          )
+              .animate(key: ValueKey('title-${slide.titleKey}'))
+              .fadeIn(delay: 200.ms, duration: 500.ms)
+              .slideY(begin: 0.15, end: 0),
+
+          const SizedBox(height: 16),
 
           // Descripción
           Text(
-                data.description,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 17,
-                  color: Colors.white.withValues(alpha: 0.8),
-                  height: 1.6,
-                  fontWeight: FontWeight.w300,
-                  letterSpacing: 0.3,
-                ),
-              )
-              .animate()
-              .fadeIn(delay: 500.ms, duration: 700.ms)
-              .slideY(begin: 0.3, end: 0, duration: 700.ms),
+            slide.descriptionKey.tr(),
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.white.withValues(alpha: 0.85),
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          )
+              .animate(key: ValueKey('desc-${slide.descriptionKey}'))
+              .fadeIn(delay: 350.ms, duration: 500.ms)
+              .slideY(begin: 0.15, end: 0),
+
+          const Spacer(flex: 2),
         ],
       ),
     );
   }
 }
 
-class _OnboardingData {
-  final String title;
-  final String description;
-  final List<Color> gradientColors;
-  final IconData iconData;
-  final List<IconData> orbitIcons;
-  final Color accentColor;
-
-  _OnboardingData({
-    required this.title,
-    required this.description,
-    required this.gradientColors,
-    required this.iconData,
-    required this.orbitIcons,
-    required this.accentColor,
-  });
-}
-
-// Painter para patrón de fondo
-class _BgPatternPainter extends CustomPainter {
+// ─── Fondo con partículas flotantes ──────────────────────────────────────────
+class _OnboardingBgPainter extends CustomPainter {
   final double progress;
-  final Color color;
-
-  _BgPatternPainter({required this.progress, required this.color});
+  _OnboardingBgPainter({required this.progress});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..style = PaintingStyle.fill;
-
     final random = Random(42);
-
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < 30; i++) {
       final x = random.nextDouble() * size.width;
       final baseY = random.nextDouble() * size.height;
-      final radius = 1.5 + random.nextDouble() * 3;
-      final speed = 0.3 + random.nextDouble() * 0.7;
+      final radius = 1.5 + random.nextDouble() * 4;
       final phase = random.nextDouble() * pi * 2;
 
-      final y = (baseY - progress * speed * size.height * 0.3) % size.height;
-      final currentOpacity = (0.08 + 0.12 * sin(progress * pi * 2 + phase))
-          .clamp(0.0, 1.0);
+      final y = baseY + sin(progress * pi * 2 + phase) * 25;
+      final baseOpacity =
+          (0.1 + 0.2 * sin(progress * pi * 2 + phase)).clamp(0.0, 1.0);
 
-      paint.color = color.withValues(alpha: currentOpacity);
-      paint.maskFilter = MaskFilter.blur(BlurStyle.normal, radius);
+      // Simulación de blur con círculos concéntricos (safe en web)
+      final glow = Paint()
+        ..color = Colors.white.withValues(alpha: baseOpacity * 0.15);
+      canvas.drawCircle(Offset(x, y), radius * 2.4, glow);
 
-      canvas.drawCircle(Offset(x, y), radius, paint);
+      final mid = Paint()
+        ..color = Colors.white.withValues(alpha: baseOpacity * 0.3);
+      canvas.drawCircle(Offset(x, y), radius * 1.5, mid);
+
+      final core = Paint()
+        ..color = Colors.white.withValues(alpha: baseOpacity);
+      canvas.drawCircle(Offset(x, y), radius, core);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _BgPatternPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _OnboardingBgPainter old) => true;
 }

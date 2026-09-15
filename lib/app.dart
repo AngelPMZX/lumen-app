@@ -11,6 +11,8 @@ import 'ui/screens/profile_setup/profile_setup_screen.dart';
 import 'ui/shell/main_shell.dart';
 import 'domain/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'ui/screens/auth/forgot_password_screen.dart';
+import 'ui/screens/auth/verify_email_screen.dart';
 
 class LumenApp extends StatelessWidget {
   const LumenApp({super.key});
@@ -25,19 +27,19 @@ class LumenApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeProvider.themeMode,
-      // ── easy_localization ──
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
-      // ──────────────────────
       initialRoute: AppRoutes.splash,
       routes: {
         AppRoutes.splash: (_) => const SplashScreen(),
-        AppRoutes.onboarding: (_) => const OnboardingScreen(),
         AppRoutes.login: (_) => const LoginScreen(),
         AppRoutes.register: (_) => const RegisterScreen(),
         AppRoutes.home: (_) => const MainShell(),
         AppRoutes.profileSetup: (_) => const ProfileSetupScreen(),
+        AppRoutes.forgotPassword: (_) => const ForgotPasswordScreen(),
+        AppRoutes.verifyEmail: (_) => const VerifyEmailScreen(),
+        AppRoutes.onboardingIntro: (_) => const OnboardingScreen(),
       },
     );
   }

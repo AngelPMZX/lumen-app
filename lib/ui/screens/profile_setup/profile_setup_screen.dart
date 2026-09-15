@@ -376,14 +376,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                         },
                       ),
                       ArchetypeResultStep(
-                        archetype: _calculateArchetype(),
-                        onContinue: () {
-                          Navigator.pushReplacementNamed(
-                            context,
-                            AppRoutes.home,
-                          );
-                        },
-                      ),
+  archetype: _calculateArchetype(),
+  onContinue: () {
+    Navigator.pushReplacementNamed(
+      context,
+      AppRoutes.onboardingIntro,
+    );
+  },
+),
                     ],
                   ),
                 ),

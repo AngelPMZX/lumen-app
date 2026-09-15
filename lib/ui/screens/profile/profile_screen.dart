@@ -489,6 +489,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ).animate().fadeIn(delay: 400.ms),
                   const SizedBox(height: 10),
 
+                  // Ver tour de nuevo
+_buildMenuCard(
+  icon: Icons.tour_rounded,
+  title: _tr('profileScreen.watchTour', fallback: 'Ver tour de nuevo'),
+  subtitle: _tr('profileScreen.watchTourSubtitle',
+      fallback: 'Redescubre qué puedes hacer en Lumen'),
+  color: const Color(0xFF10B981),
+  isDark: isDark,
+  onTap: () {
+    HapticFeedback.lightImpact();
+    Navigator.pushNamed(context, AppRoutes.onboardingIntro);
+  },
+).animate().fadeIn(delay: 535.ms),
+const SizedBox(height: 10),
+
                   // Mood history
                   _buildMenuCard(
                     icon: Icons.bar_chart_rounded,

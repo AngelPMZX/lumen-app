@@ -12,6 +12,7 @@ class UserModel {
   final String? archetype;
   final bool profileComplete;
   final DateTime createdAt;
+  final bool onboardingCompleted;
 
   UserModel({
     required this.uid,
@@ -24,6 +25,7 @@ class UserModel {
     this.musicGenres = const [],
     this.archetype,
     this.profileComplete = false,
+    this.onboardingCompleted = false,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -56,6 +58,7 @@ class UserModel {
         'archetype': archetype,
         'profileComplete': profileComplete,
         'createdAt': createdAt.toIso8601String(),
+        'onboardingCompleted': onboardingCompleted,
       };
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -71,6 +74,7 @@ class UserModel {
       archetype: map['archetype'],
       profileComplete: map['profileComplete'] ?? false,
       createdAt: _parseDateTime(map['createdAt']),
+      onboardingCompleted: map['onboardingCompleted'] ?? false,
     );
   }
 
@@ -93,6 +97,7 @@ class UserModel {
     List<String>? musicGenres,
     String? archetype,
     bool? profileComplete,
+    bool? onboardingCompleted,
   }) {
     return UserModel(
       uid: uid,
@@ -106,6 +111,7 @@ class UserModel {
       archetype: archetype ?? this.archetype,
       profileComplete: profileComplete ?? this.profileComplete,
       createdAt: createdAt,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
 }
