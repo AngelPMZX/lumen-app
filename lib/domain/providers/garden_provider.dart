@@ -38,6 +38,8 @@ class GardenProvider extends ChangeNotifier {
 
   // Racha que el escudo puede recuperar (estilo TikTok)
   int _lastStreakBeforeBreak = 0;
+  // Día (y-m-d local) en que se detectó la racha rota; el escudo solo vale ese día
+  String? _streakBreakDate;
   int get lastStreakBeforeBreak => _lastStreakBeforeBreak;
 
   XpMultiplierState? _activeMultiplier;
@@ -126,6 +128,7 @@ class GardenProvider extends ChangeNotifier {
           final data = doc.data() as Map<String, dynamic>;
           _streakShields = (data['streakShields'] as int? ?? 0).clamp(0, 3);
           _lastStreakBeforeBreak = data['lastStreakBeforeBreak'] as int? ?? 0;
+          _streakBreakDate = data['streakBreakDate'] as String?;
         }
       }
     } catch (e) {
@@ -282,34 +285,39 @@ class GardenProvider extends ChangeNotifier {
   // ESCUDO DE RACHA — estilo TikTok
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// Guarda la racha antes de que se rompa.
-  /// Llamar desde AuthProvider.recordCheckIn() cuando detecta racha rota.
-  Future<void> saveStreakBeforeBreak(int currentStreak) async {
-    if (currentStreak > 0) {
-      _lastStreakBeforeBreak = currentStreak;
-      await _saveMechanics();
-      notifyListeners();
+  static String _dateKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
+
+  /// Guarda la racha que se acaba de romper para que un escudo pueda
+  /// recuperarla hoy. HomeScreen la llama al detectar la racha rota.
+  Future<void> saveStreakBeforeBreak(int brokenStreak) async {
+    if (brokenStreak <= 0) return;
+    final today = _dateKey(DateTime.now());
+    if (_lastStreakBeforeBreak == brokenStreak && _streakBreakDate == today) {
+      return;
     }
+    _lastStreakBeforeBreak = brokenStreak;
+    _streakBreakDate = today;
+    await _saveMechanics();
+    notifyListeners();
   }
 
-  /// ¿Puede usarse el escudo ahora?
-  /// Solo si: tiene escudos, la racha está rota y hay una racha que recuperar.
-  bool canUseShield(bool streakBrokenToday) {
-    return _streakShields > 0 &&
-        streakBrokenToday &&
-        _lastStreakBeforeBreak > 0;
-  }
+  /// ¿Puede usarse el escudo ahora? Solo el día en que se detectó la racha
+  /// rota (antes o después del check-in de hoy), con escudos disponibles.
+  bool get canUseShield =>
+      _streakShields > 0 &&
+      _lastStreakBeforeBreak > 0 &&
+      _streakBreakDate == _dateKey(DateTime.now());
 
   /// Usa un escudo → devuelve el valor de racha a recuperar.
   /// Retorna 0 si no se pudo usar.
   Future<int> useStreakShield() async {
-    if (_streakShields <= 0) return 0;
-    if (_lastStreakBeforeBreak <= 0) return 0;
+    if (!canUseShield) return 0;
 
     try {
       final recoveredStreak = _lastStreakBeforeBreak;
       _streakShields = (_streakShields - 1).clamp(0, 3);
       _lastStreakBeforeBreak = 0;
+      _streakBreakDate = null;
       await _saveMechanics();
       notifyListeners();
       return recoveredStreak;
@@ -619,6 +627,7 @@ class GardenProvider extends ChangeNotifier {
       await _mechanicsDoc!.set({
         'streakShields': _streakShields,
         'lastStreakBeforeBreak': _lastStreakBeforeBreak,
+        'streakBreakDate': _streakBreakDate,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
@@ -671,6 +680,7 @@ class GardenProvider extends ChangeNotifier {
     _errorMessage = null;
     _streakShields = 0;
     _lastStreakBeforeBreak = 0;
+    _streakBreakDate = null;
     _activeMultiplier = null;
     _lastHarvest = null;
     notifyListeners();

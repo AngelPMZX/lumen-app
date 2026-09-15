@@ -9,6 +9,7 @@ import '../../../data/models/habit.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/services/notification_service.dart';
 import '../../widgets/animated_particles_background.dart';
+import '../../widgets/discovery_dialog.dart';
 import 'edit_reminder_screen.dart';
 import 'add_habit_screen.dart';
 
@@ -31,7 +32,11 @@ class _RemindersScreenState extends State<RemindersScreen> {
     _loadAll();
     // Pedir permisos de notificación al abrir esta pantalla.
     // Si ya están concedidos, no-op silencioso.
-    _requestNotificationPermissions();
+    _requestNotificationPermissions().then((_) {
+      if (mounted) {
+        DiscoveryDialog.maybeShow(context, DiscoveryFeature.reminders);
+      }
+    });
   }
 
   Future<void> _requestNotificationPermissions() async {

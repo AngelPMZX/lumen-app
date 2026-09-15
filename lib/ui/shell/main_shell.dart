@@ -7,6 +7,7 @@ import '../screens/diary/diary_screen.dart';
 import '../screens/routes/routes_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../widgets/celebration_dialog.dart';
+import '../widgets/discovery_dialog.dart';
 import '../../domain/providers/auth_provider.dart';
 
 class MainShell extends StatefulWidget {
@@ -95,6 +96,13 @@ class _MainShellState extends State<MainShell> {
         if (_currentIndex != index) {
           HapticFeedback.lightImpact();
           setState(() => _currentIndex = index);
+          // Diario y Rutas viven en el IndexedStack y se construyen al abrir la
+          // app, así que su discovery moment se dispara al tocar la pestaña.
+          if (index == 1) {
+            DiscoveryDialog.maybeShow(context, DiscoveryFeature.diary);
+          } else if (index == 2) {
+            DiscoveryDialog.maybeShow(context, DiscoveryFeature.routes);
+          }
         }
       },
       behavior: HitTestBehavior.opaque,

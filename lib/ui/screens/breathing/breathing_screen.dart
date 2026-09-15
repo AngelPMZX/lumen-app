@@ -6,8 +6,11 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/auth_provider.dart';
-import '../../widgets/seed_icon.dart';
+import '../../../domain/providers/garden_provider.dart';
+import '../../widgets/discovery_dialog.dart';
+import '../../widgets/reward_dialog.dart';
 
 // ─── Breathing technique model ────────────────────────────────────────────────
 class _BreathingTechnique {
@@ -159,10 +162,17 @@ class _BreathingScreenState extends State<BreathingScreen>
   late List<_StarData> _stars;
 
   static const int _xpReward = 15;
+  // Solo la primera sesión del día da XP y semillas
+  bool _rewardedToday = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        DiscoveryDialog.maybeShow(context, DiscoveryFeature.breathing);
+      }
+    });
     _breathController = AnimationController(
       vsync: this, duration: const Duration(seconds: 4));
     _pulseController = AnimationController(
@@ -274,14 +284,25 @@ class _BreathingScreenState extends State<BreathingScreen>
     await _stopAudio();
     _breathController.stop();
     HapticFeedback.heavyImpact();
+    final garden = context.read<GardenProvider>();
+    bool rewarded = false;
     try {
-      final auth = context.read<AuthProvider>();
-      if (auth.userProgress != null) {
-        await auth.completeLesson(
-            'breathing_session_${DateTime.now().day}', _xpReward);
-      }
-    } catch (e) { debugPrint('XP award error: $e'); }
-    if (mounted) setState(() { _sessionRunning = false; _step = _BreathingStep.completion; });
+      rewarded = await context
+          .read<AuthProvider>()
+          .completeBreathingSession(_xpReward, garden: garden);
+    } catch (e) { debugPrint('Breathing reward error: $e'); }
+    if (!mounted) return;
+    setState(() {
+      _sessionRunning = false;
+      _rewardedToday = rewarded;
+      _step = _BreathingStep.completion;
+    });
+    if (!rewarded) return;
+
+    // Semillas: el popup entra después de la animación de cierre
+    final reward = await garden.grantReward(RewardSource.breathing);
+    await Future.delayed(const Duration(milliseconds: 900));
+    if (mounted) await RewardDialog.show(context, reward);
   }
 
   void _stopSession() {
@@ -1039,13 +1060,24 @@ class _BreathingScreenState extends State<BreathingScreen>
                 )],
               ),
               child: Column(children: [
-                const Text('⚡', style: TextStyle(fontSize: 32)),
+                Text(_rewardedToday ? '⚡' : '✅',
+                    style: const TextStyle(fontSize: 32)),
                 const SizedBox(height: 6),
-                Text('+$_xpReward XP', style: TextStyle(
-                    fontSize: 34, fontWeight: FontWeight.w900,
-                    color: _selectedTechnique.color)),
-                Text('breathing.xpLabel'.tr(),
-                    style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5))),
+                Text(
+                  _rewardedToday
+                      ? '+$_xpReward XP'
+                      : 'breathing.rewardClaimed'.tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: _rewardedToday ? 34 : 20,
+                      fontWeight: FontWeight.w900,
+                      color: _selectedTechnique.color)),
+                Text(
+                  _rewardedToday
+                      ? 'breathing.xpLabel'.tr()
+                      : 'breathing.rewardClaimedHint'.tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5))),
               ]),
             )
                 .animate(delay: 400.ms)

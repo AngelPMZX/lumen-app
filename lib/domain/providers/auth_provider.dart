@@ -23,6 +23,12 @@ class AuthProvider extends ChangeNotifier {
   bool get isGoogleUser =>
       firebaseUser?.providerData.any((p) => p.providerId == 'google.com') ??
       false;
+  /// Tiene contraseña, aunque también haya vinculado Google con el mismo email.
+  bool get hasPassword =>
+      firebaseUser?.providerData.any((p) => p.providerId == 'password') ??
+      false;
+  /// Solo entra con Google: no hay contraseña que cambiar ni con qué confirmar.
+  bool get isGoogleOnly => isGoogleUser && !hasPassword;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -89,21 +95,16 @@ void clearVerificationState() {
     return '';
   }
 
-  // ── Getter: ¿se rompió la racha hoy? (para mostrar botón de escudo) ────────
-  /// true si el último check-in fue hace más de 1 día y hoy no se ha hecho.
+  // ── Racha ──────────────────────────────────────────────────────────────────
+  /// Racha a mostrar: 0 si ya se rompió, aunque aún no haya nuevo check-in
+  /// (currentStreak en Firestore solo se recalcula al hacer check-in).
+  int get currentStreak => _userProgress?.streakAt(DateTime.now()) ?? 0;
+
+  /// true si había una racha y se perdió (último check-in antes de ayer).
   bool get streakBrokenToday {
-    if (_userProgress == null) return false;
-    final lastCheckIn = _userProgress!.lastCheckIn;
-    if (lastCheckIn == null) return false;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final lastDate = DateTime(
-        lastCheckIn.year, lastCheckIn.month, lastCheckIn.day);
-    // Si ya hizo check-in hoy, la racha NO está rota
-    if (lastDate == today) return false;
-    // Si el último check-in fue antes de ayer, la racha está rota
-    final yesterday = today.subtract(const Duration(days: 1));
-    return lastDate.isBefore(yesterday);
+    final progress = _userProgress;
+    if (progress == null || progress.currentStreak == 0) return false;
+    return !progress.isStreakAlive(DateTime.now());
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -142,10 +143,45 @@ void clearVerificationState() {
       }
 
       await _loadCelebratedAchievements();
+      await _loadDiscoveries();
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading user data: $e');
     }
+  }
+
+  // ── Discovery moments (fuente de verdad = Firestore) ───────────────────────
+  /// null hasta que se cargan: así nunca se muestra un popup por error.
+  Set<String>? _discoveredFeatures;
+
+  Future<void> _loadDiscoveries() async {
+    if (firebaseUser == null) return;
+    try {
+      final doc = await _firestore
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('progress').doc('discoveries').get();
+      _discoveredFeatures =
+          Set<String>.from(doc.data()?['ids'] ?? const <String>[]);
+    } catch (e) {
+      debugPrint('Error loading discoveries: $e');
+    }
+  }
+
+  /// Marca [featureId] como descubierta. Retorna true solo la primera vez.
+  Future<bool> markDiscovered(String featureId) async {
+    final discovered = _discoveredFeatures;
+    if (firebaseUser == null || discovered == null) return false;
+    if (!discovered.add(featureId)) return false;
+    try {
+      await _firestore
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('progress').doc('discoveries')
+          .set({'ids': FieldValue.arrayUnion([featureId])},
+              SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Error saving discovery: $e');
+    }
+    return true;
   }
 
   Future<void> _loadCelebratedAchievements() async {
@@ -438,18 +474,24 @@ Future<bool> sendPasswordResetEmail(String email, {String? languageCode}) async 
   }
 }
 
-  /// Restaura la racha al valor indicado (estilo TikTok con escudo).
+  /// Restaura la racha perdida (estilo TikTok con escudo).
 /// Llamar después de useStreakShield() en GardenProvider.
+/// Si hoy ya hizo check-in (la racha se reinició a 1), hoy también cuenta.
+/// Si no, se marca ayer como cubierto para que el check-in de hoy sume.
 Future<void> restoreStreakWithShield(int streakToRestore) async {
   if (firebaseUser == null || _userProgress == null) return;
   try {
     final now = DateTime.now();
+    final checkedInToday = _userProgress!.hasCheckedInToday(now);
+    final restored = checkedInToday ? streakToRestore + 1 : streakToRestore;
     final updatedProgress = UserProgress(
-      currentStreak: streakToRestore,
-      longestStreak: _userProgress!.longestStreak > streakToRestore
+      currentStreak: restored,
+      longestStreak: _userProgress!.longestStreak > restored
           ? _userProgress!.longestStreak
-          : streakToRestore,
-      lastCheckIn: now,
+          : restored,
+      lastCheckIn: checkedInToday
+          ? _userProgress!.lastCheckIn
+          : DateTime(now.year, now.month, now.day - 1, 12),
       totalXp: _userProgress!.totalXp,
       level: _userProgress!.level,
     );
@@ -709,6 +751,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     _userProgress = null;
     _celebratedAchievementIds = {};
     _diaryVersion = 0;
+    _discoveredFeatures = null;
     _needsEmailVerification = false;
     _pendingVerificationEmail = null;
     _isLoading = false;
@@ -743,7 +786,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     try {
       // 1. Reautenticar primero: user.delete() exige login reciente, y así
       //    no se borra nada si la contraseña es incorrecta.
-      if (isGoogleUser) {
+      if (isGoogleOnly) {
         final googleUser = await _googleSignIn.signIn();
         if (googleUser == null) return (false, null);
         final googleAuth = await googleUser.authentication;
@@ -1194,35 +1237,70 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
         'xpEarned': xpReward,
       });
 
-      if (_userProgress != null) {
-        final oldProgress = _userProgress!;
-
-        // ── Aplicar multiplicador XP del jardín si está activo ──────────
-        final multiplier = garden?.currentXpMultiplier ?? 1.0;
-        final finalXp = multiplier > 1.0
-            ? (xpReward * multiplier).round()
-            : xpReward;
-        // ────────────────────────────────────────────────────────────────
-
-        final newXp = _userProgress!.totalXp + finalXp;
-        final newLevel = (newXp ~/ 100) + 1;
-        final updatedProgress = UserProgress(
-          currentStreak: _userProgress!.currentStreak,
-          longestStreak: _userProgress!.longestStreak,
-          lastCheckIn: _userProgress!.lastCheckIn,
-          totalXp: newXp,
-          level: newLevel,
-        );
-        await _firestore
-            .collection('users').doc(firebaseUser!.uid)
-            .collection('progress').doc('current')
-            .set(updatedProgress.toMap());
-        _userProgress = updatedProgress;
-        await _checkCelebrations(oldProgress, updatedProgress);
-      }
-
+      await _awardXp(xpReward, garden: garden);
       notifyListeners();
     } catch (e) { rethrow; }
+  }
+
+  /// Suma XP (con el multiplicador del jardín si hay uno activo), recalcula
+  /// el nivel, guarda el progreso y encola celebraciones.
+  Future<void> _awardXp(int xpReward, {GardenProvider? garden}) async {
+    if (firebaseUser == null || _userProgress == null) return;
+    final oldProgress = _userProgress!;
+
+    final multiplier = garden?.currentXpMultiplier ?? 1.0;
+    final finalXp =
+        multiplier > 1.0 ? (xpReward * multiplier).round() : xpReward;
+
+    final newXp = oldProgress.totalXp + finalXp;
+    final updatedProgress = UserProgress(
+      currentStreak: oldProgress.currentStreak,
+      longestStreak: oldProgress.longestStreak,
+      lastCheckIn: oldProgress.lastCheckIn,
+      totalXp: newXp,
+      level: (newXp ~/ 100) + 1,
+    );
+    await _firestore
+        .collection('users').doc(firebaseUser!.uid)
+        .collection('progress').doc('current')
+        .set(updatedProgress.toMap());
+    _userProgress = updatedProgress;
+    await _checkCelebrations(oldProgress, updatedProgress);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BREATHING — solo la primera sesión del día da recompensa
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Registra una sesión de respiración. La primera del día (hora del
+  /// servidor) da [xpReward] y retorna true para que la UI dé las semillas.
+  /// Se guarda en progress/breathing y no en completed_lessons, para que no
+  /// cuente como la lección del día.
+  Future<bool> completeBreathingSession(int xpReward,
+      {GardenProvider? garden}) async {
+    if (firebaseUser == null || _userProgress == null) return false;
+    try {
+      final now = await _getServerTimestamp();
+      final today = '${now.year}-${now.month}-${now.day}';
+      final ref = _firestore
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('progress').doc('breathing');
+      final alreadyRewarded = (await ref.get()).data()?['lastRewardDate'] == today;
+
+      await ref.set({
+        'totalSessions': FieldValue.increment(1),
+        'lastSessionAt': FieldValue.serverTimestamp(),
+        if (!alreadyRewarded) 'lastRewardDate': today,
+      }, SetOptions(merge: true));
+      if (alreadyRewarded) return false;
+
+      await _awardXp(xpReward, garden: garden);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error completing breathing session: $e');
+      return false;
+    }
   }
 
   Future<bool> hasCompletedLessonToday() async {

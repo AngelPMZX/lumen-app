@@ -9,10 +9,12 @@ import '../../../data/models/achievement.dart';
 import '../../../data/models/garden_mechanics.dart';
 import '../../../data/models/garden_item.dart';
 import '../../../data/models/garden_state.dart';
+import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
 import 'shop_screen.dart';
 import 'package:gimnasio_emocional/domain/services/notification_service.dart';
 import '../../widgets/aura_container.dart';
+import '../../widgets/discovery_dialog.dart';
 import '../../widgets/seed_icon.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -211,6 +213,8 @@ class _GardenScreenState extends State<GardenScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final garden = context.read<GardenProvider>();
       await garden.loadGarden();
+      if (!mounted) return;
+      DiscoveryDialog.maybeShow(context, DiscoveryFeature.garden);
       // Verificar si hay cosecha pendiente y notificar
 if (!mounted) return;
 final hasPending = garden.garden.any((p) {
@@ -2239,11 +2243,13 @@ if (hasPending) {
             style: const TextStyle(color: Colors.white60, fontSize: 13),
           ),
           const SizedBox(height: 20),
-          if (garden.streakShields > 0)
+          if (garden.canUseShield)
             FilledButton.icon(
               onPressed: () async {
   Navigator.pop(ctx);
+  final auth = context.read<AuthProvider>();
   final recoveredStreak = await garden.useStreakShield();
+  if (recoveredStreak > 0) await auth.restoreStreakWithShield(recoveredStreak);
   if (recoveredStreak > 0 && mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Row(children: [

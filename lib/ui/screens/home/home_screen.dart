@@ -96,7 +96,15 @@ void initState() {
   _checkProfileComplete();
   _loadChallengeState();
   _loadData();
-  context.read<GardenProvider>().loadGarden();
+  // Capturar la racha rota antes de cualquier check-in (que la reinicia a 1)
+  // y guardarla cuando carguen las mecánicas, para que un escudo la recupere.
+  final auth = context.read<AuthProvider>();
+  final garden = context.read<GardenProvider>();
+  final brokenStreak =
+      auth.streakBrokenToday ? auth.userProgress!.currentStreak : 0;
+  garden.loadGarden().then((_) {
+    if (brokenStreak > 0) garden.saveStreakBeforeBreak(brokenStreak);
+  });
   await NotificationService.instance.requestPermissions();
   await _scheduleDailyReminders();
 });
@@ -262,7 +270,7 @@ Future<void> _scheduleDailyReminders() async {
   final auth = context.read<AuthProvider>();
   
   // El escudo solo funciona si la racha está rota
-  if (!garden.canUseShield(auth.streakBrokenToday)) {
+  if (!garden.canUseShield) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Row(children: [
@@ -560,7 +568,7 @@ Future<void> _scheduleDailyReminders() async {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final greeting = _getGreeting();
     final progress = authProvider.userProgress;
-    final streak = progress?.currentStreak ?? 0;
+    final streak = authProvider.currentStreak;
     final bestStreak = progress?.longestStreak ?? 0;
     final totalXp = progress?.totalXp ?? 0;
     final level = progress?.level ?? 1;
@@ -570,7 +578,7 @@ Future<void> _scheduleDailyReminders() async {
     final nextLesson = _nextLessonInfo;
 
     // ── Estado del jardín para banners ─────────────────────────────────────
-    final streakBroken = authProvider.streakBrokenToday;
+    final canUseShield = gardenProvider.canUseShield;
     final shields = gardenProvider.streakShields;
     final activeMultiplier = gardenProvider.activeMultiplier;
 
@@ -940,7 +948,7 @@ Future<void> _scheduleDailyReminders() async {
                   const SizedBox(height: 12),
 
                   // ── BANNER: COMODÍN DE RACHA ────────────────────────────────
-                  if (streakBroken && shields > 0) ...[
+                  if (canUseShield) ...[
                     _buildShieldBanner(shields, isDark),
                     const SizedBox(height: 8),
                   ],

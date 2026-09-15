@@ -1569,6 +1569,30 @@
       }
     }
   },
+  "discovery": {
+    "cta": "Empezar a explorar",
+    "seedsBonus": "+{count} Semillas de Luz por tu curiosidad",
+    "garden": {
+      "title": "¡Descubriste el jardín!",
+      "message": "Cada lección, check-in y respiración te da semillas. Plántalas y mira crecer tu calma."
+    },
+    "breathing": {
+      "title": "¡Descubriste la respiración guiada!",
+      "message": "Unos minutos de respiración consciente bajan el estrés. Tu primera sesión de cada día te da XP y semillas."
+    },
+    "diary": {
+      "title": "¡Descubriste tu diario!",
+      "message": "Escribir lo que sientes te ayuda a entenderlo. Es un espacio solo para ti."
+    },
+    "routes": {
+      "title": "¡Descubriste las rutas de bienestar!",
+      "message": "Lecciones cortas para entrenar tu mente paso a paso. Completa una al día para avanzar."
+    },
+    "reminders": {
+      "title": "¡Descubriste hábitos y recordatorios!",
+      "message": "Crea hábitos y programa avisos para no perder el ritmo."
+    }
+  },
   "nav": {
     "home": "Inicio",
     "diary": "Diario",
@@ -1587,6 +1611,8 @@
     "continueBtn": "Continuar"
   },
   "breathing": {
+    "rewardClaimed": "Recompensa de hoy reclamada",
+    "rewardClaimedHint": "Vuelve mañana por más XP y semillas",
     "scienceTitle": "¿Por qué respirar conscientemente?",
     "scienceSource": "Fuente: Stanford Medicine · Harvard T.H. Chan",
     "startSession": "Comenzar sesión",

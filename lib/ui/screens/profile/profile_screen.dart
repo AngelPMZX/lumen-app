@@ -264,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final progress = auth.userProgress;
     final gradient = _getArchetypeGradient(auth.userModel?.archetype);
-    final streak = progress?.currentStreak ?? 0;
+    final streak = auth.currentStreak;
     final bestStreak = progress?.longestStreak ?? 0;
     final totalXp = progress?.totalXp ?? 0;
     final level = progress?.level ?? 1;

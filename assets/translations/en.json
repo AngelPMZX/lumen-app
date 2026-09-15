@@ -1569,6 +1569,30 @@
       }
     }
   },
+  "discovery": {
+    "cta": "Start exploring",
+    "seedsBonus": "+{count} Seeds of Light for being curious",
+    "garden": {
+      "title": "You found the garden!",
+      "message": "Every lesson, check-in and breathing session earns seeds. Plant them and watch your calm grow."
+    },
+    "breathing": {
+      "title": "You found guided breathing!",
+      "message": "A few minutes of mindful breathing lowers stress. Your first session each day earns XP and seeds."
+    },
+    "diary": {
+      "title": "You found your diary!",
+      "message": "Writing down how you feel helps you understand it. This space is just for you."
+    },
+    "routes": {
+      "title": "You found the wellness routes!",
+      "message": "Short lessons to train your mind step by step. Complete one a day to move forward."
+    },
+    "reminders": {
+      "title": "You found habits and reminders!",
+      "message": "Create habits and schedule reminders to keep your rhythm."
+    }
+  },
   "nav": {
     "home": "Home",
     "diary": "Diary",
@@ -1587,6 +1611,8 @@
     "continueBtn": "Continue"
   },
   "breathing": {
+    "rewardClaimed": "Today's reward claimed",
+    "rewardClaimedHint": "Come back tomorrow for more XP and seeds",
     "scienceTitle": "Why breathe consciously?",
     "scienceSource": "Source: Stanford Medicine · Harvard T.H. Chan",
     "startSession": "Start session",

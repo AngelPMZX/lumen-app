@@ -42,31 +42,31 @@ class UserProgress {
     return DateTime(2000);
   }
 
+  /// Número de día de calendario. Se calcula en UTC para que los días con
+  /// cambio de horario (23 o 25 h) no rompan la resta de días.
+  static int _dayNumber(DateTime d) =>
+      DateTime.utc(d.year, d.month, d.day).millisecondsSinceEpoch ~/
+      Duration.millisecondsPerDay;
+
+  /// Días de calendario desde el último check-in hasta [now] (0 = hoy).
+  int daysSinceCheckIn(DateTime now) =>
+      _dayNumber(now) - _dayNumber(lastCheckIn);
+
+  /// La racha sigue viva si el último check-in fue hoy o ayer.
+  bool isStreakAlive(DateTime now) => daysSinceCheckIn(now) <= 1;
+
+  /// Racha a mostrar en [now]. [currentStreak] solo se recalcula al hacer
+  /// check-in, así que si ya se rompió aquí se devuelve 0.
+  int streakAt(DateTime now) => isStreakAlive(now) ? currentStreak : 0;
+
   /// Calcula la nueva racha usando server timestamp (anti-trampa).
   /// [serverNow] viene de Firebase, NO del reloj del dispositivo.
   UserProgress calculateStreak(DateTime serverNow) {
-    final lastDate = DateTime(
-      lastCheckIn.year,
-      lastCheckIn.month,
-      lastCheckIn.day,
-    );
-    final todayDate = DateTime(
-      serverNow.year,
-      serverNow.month,
-      serverNow.day,
-    );
+    final diffDays = daysSinceCheckIn(serverNow);
 
-    final diffDays = todayDate.difference(lastDate).inDays;
+    if (diffDays <= 0) return this;
 
-    if (diffDays == 0) return this;
-
-    int newStreak;
-    if (diffDays == 1) {
-      newStreak = currentStreak + 1;
-    } else {
-      newStreak = 1;
-    }
-
+    final newStreak = diffDays == 1 ? currentStreak + 1 : 1;
     final newLongest = newStreak > longestStreak ? newStreak : longestStreak;
 
     return UserProgress(
@@ -79,11 +79,7 @@ class UserProgress {
   }
 
   /// Verifica si ya hizo check-in hoy (usando server time)
-  bool hasCheckedInToday(DateTime serverNow) {
-    return lastCheckIn.year == serverNow.year &&
-        lastCheckIn.month == serverNow.month &&
-        lastCheckIn.day == serverNow.day;
-  }
+  bool hasCheckedInToday(DateTime serverNow) => daysSinceCheckIn(serverNow) == 0;
 
   String get levelTitle {
     if (level <= 3) return 'Novato Emocional';

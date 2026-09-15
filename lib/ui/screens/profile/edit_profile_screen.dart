@@ -346,7 +346,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = context.watch<AuthProvider>();
     final userArchetype = auth.userModel?.archetype;
-    final isGoogleUser = auth.isGoogleUser;
+    final isGoogleOnly = auth.isGoogleOnly;
 
     return Scaffold(
       body: Stack(
@@ -544,7 +544,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        if (!isGoogleUser) ...[
+                        if (!isGoogleOnly) ...[
                           Container(
                             padding: const EdgeInsets.all(18),
                             decoration: BoxDecoration(
@@ -1050,9 +1050,9 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     return value == key ? (fallback ?? key) : value;
   }
 
-  bool _canDelete(bool isGoogleUser) =>
+  bool _canDelete(bool isGoogleOnly) =>
       !_isDeleting &&
-      (isGoogleUser || _passwordController.text.isNotEmpty);
+      (isGoogleOnly || _passwordController.text.isNotEmpty);
 
   Future<void> _delete() async {
     setState(() {
@@ -1061,7 +1061,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     });
     final auth = context.read<AuthProvider>();
     final (success, error) = await auth.deleteAccount(
-      password: auth.isGoogleUser ? null : _passwordController.text,
+      password: auth.isGoogleOnly ? null : _passwordController.text,
     );
     if (!mounted) return;
     if (success) {
@@ -1077,7 +1077,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isGoogleUser = context.read<AuthProvider>().isGoogleUser;
+    final isGoogleOnly = context.read<AuthProvider>().isGoogleOnly;
 
     return PopScope(
       canPop: !_isDeleting,
@@ -1098,7 +1098,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                       'Se borrarán tu progreso, racha, diario, hábitos, recordatorios y jardín. Esto no se puede deshacer.'),
             ),
             const SizedBox(height: 16),
-            if (isGoogleUser)
+            if (isGoogleOnly)
               Text(
                 _tr('editProfile.deleteAccountGoogleHint',
                     fallback:
@@ -1116,7 +1116,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                 autofocus: true,
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) {
-                  if (_canDelete(isGoogleUser)) _delete();
+                  if (_canDelete(isGoogleOnly)) _delete();
                 },
                 decoration: InputDecoration(
                   labelText: _tr('editProfile.deleteAccountPasswordHint',
@@ -1165,7 +1165,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
             ),
           ),
           FilledButton(
-            onPressed: _canDelete(isGoogleUser) ? _delete : null,
+            onPressed: _canDelete(isGoogleOnly) ? _delete : null,
             style: FilledButton.styleFrom(
               backgroundColor: _danger,
               disabledBackgroundColor: _danger.withValues(alpha: 0.3),
