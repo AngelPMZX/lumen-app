@@ -4,7 +4,9 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_routes.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/providers/garden_provider.dart';
 import '../../widgets/animated_particles_background.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -214,7 +216,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null || user.email == null) return;
+      if (user == null || user.email == null) {
+        setState(() => _isChangingPass = false);
+        return;
+      }
 
       final credential = EmailAuthProvider.credential(
         email: user.email!,
@@ -278,6 +283,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             'editProfile.wrongCurrentPassword',
             fallback: 'Contraseña actual incorrecta',
           );
+        } else if (e.code == 'weak-password') {
+          message = _tr(
+            'errors.weakPassword',
+            fallback: 'La contraseña es muy débil',
+          );
+        } else if (e.code == 'too-many-requests') {
+          message = _tr(
+            'errors.tooManyRequests',
+            fallback: 'Demasiados intentos. Espera un momento.',
+          );
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -297,14 +312,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<void> _confirmDeleteAccount() async {
+    HapticFeedback.mediumImpact();
+    final garden = context.read<GardenProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    final deleted = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _DeleteAccountDialog(),
+    );
+    if (deleted != true) return;
+
+    garden.resetOnLogout();
+    navigator.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          _tr('editProfile.accountDeleted', fallback: 'Cuenta eliminada'),
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = context.watch<AuthProvider>();
     final userArchetype = auth.userModel?.archetype;
-    final isGoogleUser = auth.firebaseUser?.providerData
-            .any((p) => p.providerId == 'google.com') ??
-        false;
+    final isGoogleUser = auth.isGoogleUser;
 
     return Scaffold(
       body: Stack(
@@ -868,6 +910,83 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             ),
                           );
                         }),
+                        const SizedBox(height: 14),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _confirmDeleteAccount,
+                            borderRadius: BorderRadius.circular(18),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444).withValues(
+                                  alpha: isDark ? 0.08 : 0.05,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: const Color(0xFFEF4444).withValues(
+                                    alpha: isDark ? 0.15 : 0.1,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFEF4444)
+                                          .withValues(
+                                        alpha: isDark ? 0.15 : 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.delete_forever_rounded,
+                                      color: Color(0xFFEF4444),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _tr(
+                                            'editProfile.deleteAccount',
+                                            fallback: 'Eliminar cuenta',
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFFEF4444),
+                                          ),
+                                        ),
+                                        Text(
+                                          _tr(
+                                            'editProfile.deleteAccountDesc',
+                                            fallback:
+                                                'Borra tu cuenta y todos tus datos para siempre',
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -900,6 +1019,176 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       ),
       contentPadding: const EdgeInsets.all(16),
+    );
+  }
+}
+
+/// Confirma y ejecuta la eliminación de la cuenta. Retorna true al terminar.
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  static const _danger = Color(0xFFEF4444);
+
+  final _passwordController = TextEditingController();
+  bool _obscure = true;
+  bool _isDeleting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  String _tr(String key, {String? fallback}) {
+    final value = key.tr();
+    return value == key ? (fallback ?? key) : value;
+  }
+
+  bool _canDelete(bool isGoogleUser) =>
+      !_isDeleting &&
+      (isGoogleUser || _passwordController.text.isNotEmpty);
+
+  Future<void> _delete() async {
+    setState(() {
+      _isDeleting = true;
+      _error = null;
+    });
+    final auth = context.read<AuthProvider>();
+    final (success, error) = await auth.deleteAccount(
+      password: auth.isGoogleUser ? null : _passwordController.text,
+    );
+    if (!mounted) return;
+    if (success) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+    setState(() {
+      _isDeleting = false;
+      _error = error;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isGoogleUser = context.read<AuthProvider>().isGoogleUser;
+
+    return PopScope(
+      canPop: !_isDeleting,
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          _tr('editProfile.deleteAccountTitle',
+              fallback: '¿Eliminar tu cuenta?'),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _tr('editProfile.deleteAccountWarning',
+                  fallback:
+                      'Se borrarán tu progreso, racha, diario, hábitos, recordatorios y jardín. Esto no se puede deshacer.'),
+            ),
+            const SizedBox(height: 16),
+            if (isGoogleUser)
+              Text(
+                _tr('editProfile.deleteAccountGoogleHint',
+                    fallback:
+                        'Para confirmar, elige tu cuenta de Google en el siguiente paso.'),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              )
+            else
+              TextField(
+                controller: _passwordController,
+                obscureText: _obscure,
+                enabled: !_isDeleting,
+                autofocus: true,
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (_) {
+                  if (_canDelete(isGoogleUser)) _delete();
+                },
+                decoration: InputDecoration(
+                  labelText: _tr('editProfile.deleteAccountPasswordHint',
+                      fallback: 'Escribe tu contraseña para confirmar'),
+                  labelStyle: const TextStyle(color: AppColors.textSecondary),
+                  filled: true,
+                  fillColor: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: _danger, width: 1.5),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscure
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                  ),
+                ),
+              ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                style: const TextStyle(fontSize: 13, color: _danger),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed:
+                _isDeleting ? null : () => Navigator.of(context).pop(false),
+            child: Text(
+              _tr('common.cancel', fallback: 'Cancelar'),
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          FilledButton(
+            onPressed: _canDelete(isGoogleUser) ? _delete : null,
+            style: FilledButton.styleFrom(
+              backgroundColor: _danger,
+              disabledBackgroundColor: _danger.withValues(alpha: 0.3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _isDeleting
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    _tr('editProfile.deleteAccount',
+                        fallback: 'Eliminar cuenta'),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -20,6 +20,9 @@ class AuthProvider extends ChangeNotifier {
 
   User? get firebaseUser => _auth.currentUser;
   bool get isLoggedIn => _auth.currentUser != null;
+  bool get isGoogleUser =>
+      firebaseUser?.providerData.any((p) => p.providerId == 'google.com') ??
+      false;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -677,11 +680,114 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   Future<void> logout() async {
     try { await _googleSignIn.signOut(); } catch (e) { debugPrint('Google sign out: $e'); }
     try { await _auth.signOut(); } catch (e) { debugPrint('Firebase sign out: $e'); }
+    _clearSessionState();
+  }
+
+  void _clearSessionState() {
     _userModel = null;
     _userProgress = null;
     _celebratedAchievementIds = {};
     _diaryVersion = 0;
+    _needsEmailVerification = false;
+    _pendingVerificationEmail = null;
+    _isLoading = false;
     notifyListeners();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DELETE ACCOUNT
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Subcolecciones bajo users/{uid}. Si agregas una nueva, agrégala aquí
+  /// o sus datos quedarán huérfanos al eliminar la cuenta.
+  static const _userSubcollections = [
+    'progress',
+    'moods',
+    'diary',
+    'habits',
+    'habit_checkins',
+    'reminders',
+    'completed_lessons',
+    'garden',
+    'garden_transactions',
+  ];
+
+  /// Elimina la cuenta y todos sus datos. Usuarios de email deben pasar
+  /// [password]; usuarios de Google confirman eligiendo su cuenta.
+  /// Retorna (false, null) si el usuario canceló el selector de Google.
+  Future<(bool, String?)> deleteAccount({String? password}) async {
+    final user = _auth.currentUser;
+    if (user == null) return (false, 'errors.sessionExpired'.tr());
+
+    try {
+      // 1. Reautenticar primero: user.delete() exige login reciente, y así
+      //    no se borra nada si la contraseña es incorrecta.
+      if (isGoogleUser) {
+        final googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) return (false, null);
+        final googleAuth = await googleUser.authentication;
+        await user.reauthenticateWithCredential(GoogleAuthProvider.credential(
+            accessToken: googleAuth.accessToken, idToken: googleAuth.idToken));
+      } else {
+        await user.reauthenticateWithCredential(EmailAuthProvider.credential(
+            email: user.email!, password: password ?? ''));
+      }
+
+      // 2. Borrar datos de Firestore antes que el usuario de Auth
+      //    (las reglas exigen sesión activa para escribir).
+      final userDoc = _firestore.collection('users').doc(user.uid);
+      for (final name in _userSubcollections) {
+        await _deleteCollection(userDoc.collection(name));
+      }
+      await userDoc.delete();
+      await _firestore.collection('_server_time').doc(user.uid).delete();
+
+      // 3. Notificaciones locales programadas
+      try {
+        await NotificationService.instance.cancelAllReminders();
+      } catch (e) {
+        debugPrint('Cancel notifications on delete: $e');
+      }
+
+      // 4. Usuario de Auth
+      await user.delete();
+      try { await _googleSignIn.signOut(); } catch (e) { debugPrint('Google sign out: $e'); }
+      _clearSessionState();
+      return (true, null);
+    } on FirebaseAuthException catch (e) {
+      debugPrint('deleteAccount error: ${e.code}');
+      switch (e.code) {
+        case 'wrong-password':
+        case 'invalid-credential':
+          return (false, 'errors.wrongPassword'.tr());
+        case 'user-mismatch':
+          return (false, 'editProfile.deleteAccountWrongGoogle'.tr());
+        case 'too-many-requests':
+          return (false, 'errors.tooManyRequests'.tr());
+        case 'requires-recent-login':
+          return (false, 'errors.sessionExpired'.tr());
+        default:
+          return (false, 'editProfile.deleteAccountError'.tr());
+      }
+    } catch (e) {
+      debugPrint('deleteAccount error: $e');
+      return (false, 'editProfile.deleteAccountError'.tr());
+    }
+  }
+
+  Future<void> _deleteCollection(
+      CollectionReference<Map<String, dynamic>> ref) async {
+    const batchSize = 400; // límite de Firestore: 500 operaciones por batch
+    while (true) {
+      final snapshot = await ref.limit(batchSize).get();
+      if (snapshot.docs.isEmpty) return;
+      final batch = _firestore.batch();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      if (snapshot.docs.length < batchSize) return;
+    }
   }
 
   Future<void> markOnboardingCompleted() async {

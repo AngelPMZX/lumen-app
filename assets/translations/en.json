@@ -1343,6 +1343,15 @@
     "emotionalArchetype": "Your emotional archetype",
     "archetypeLockedDesc": "Set during your initial setup. It cannot be changed.",
     "yourArchetype": "Your archetype",
+    "deleteAccount": "Delete account",
+    "deleteAccountDesc": "Permanently delete your account and all your data",
+    "deleteAccountTitle": "Delete your account?",
+    "deleteAccountWarning": "Your progress, streak, diary, habits, reminders and garden will be erased. This can't be undone.",
+    "deleteAccountPasswordHint": "Enter your password to confirm",
+    "deleteAccountGoogleHint": "To confirm, choose your Google account in the next step.",
+    "deleteAccountWrongGoogle": "Choose the same Google account you signed in with.",
+    "deleteAccountError": "Couldn't delete your account. Try again.",
+    "accountDeleted": "Account deleted",
     "archetypes": {
       "explorador": {
         "shortDesc": "Curious, reflective, seeks self-understanding"

@@ -1343,6 +1343,15 @@
     "emotionalArchetype": "Tu arquetipo emocional",
     "archetypeLockedDesc": "Determinado en tu registro inicial. No se puede cambiar.",
     "yourArchetype": "Tu arquetipo",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteAccountDesc": "Borra tu cuenta y todos tus datos para siempre",
+    "deleteAccountTitle": "¿Eliminar tu cuenta?",
+    "deleteAccountWarning": "Se borrarán tu progreso, racha, diario, hábitos, recordatorios y jardín. Esto no se puede deshacer.",
+    "deleteAccountPasswordHint": "Escribe tu contraseña para confirmar",
+    "deleteAccountGoogleHint": "Para confirmar, elige tu cuenta de Google en el siguiente paso.",
+    "deleteAccountWrongGoogle": "Elige la misma cuenta de Google con la que iniciaste sesión.",
+    "deleteAccountError": "No se pudo eliminar la cuenta. Intenta de nuevo.",
+    "accountDeleted": "Cuenta eliminada",
     "archetypes": {
       "explorador": {
         "shortDesc": "Curioso, reflexivo, busca entenderse"
