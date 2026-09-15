@@ -39,6 +39,8 @@ Clean architecture simplificada:
 4. **Los archivos siempre completos copy-paste** — nunca snippets parciales cuando modifico código.
 5. **Imports relativos** para archivos del proyecto (`../../widgets/...`), no `package:...`.
 6. **Reglas de Firestore NO cascadean a subcolecciones** — cada nivel necesita `match` explícito.
+7. **Nueva subcolección bajo `users/{uid}`** → agregarla a `_userSubcollections` en `AuthProvider`, o sus datos quedan huérfanos al eliminar la cuenta.
+8. **Imágenes grandes en WebP** (quality ~85), no PNG — los PNG ilustrados pesan ~2 MB cada uno.
 
 ## Features implementadas
 
@@ -46,8 +48,11 @@ Clean architecture simplificada:
 - Login/registro con email+password.
 - Google Sign-In (Android con SHA-1 registrado, web con `--web-port 8080`).
 - Recuperación de contraseña con cooldown de reenvío.
-- Verificación de email obligatoria (modo estricto) — Google exento.
+- Verificación de email obligatoria (modo estricto) — Google exento. También se exige al abrir la app con sesión guardada (splash).
+- Emails de verificación y reset en el idioma de la app.
 - Reset password funcional.
+- Cambiar contraseña desde Editar perfil (solo cuentas de email).
+- Eliminar cuenta desde Editar perfil: reautentica, borra todas las subcolecciones, `users/{uid}`, `_server_time` y el usuario de Auth.
 
 ### Home
 - Check-in de ánimo diario con 12 emojis.
@@ -155,10 +160,7 @@ flutter clean; flutter pub get
 
 ## Pendientes actuales
 
-- **Assets del jardín**: agregar assets de gardens (meadow, forest, etc.) si falta alguno.
 - **Discovery moments**: al descubrir features (ej. entrar al jardín por primera vez), popup "¡Descubriste el jardín! 🌱 Eres curioso...".
-- **Cambiar contraseña desde perfil** (para usuarios logueados).
-- **Eliminar cuenta** (requisito Google Play).
 - **RevenueCat activo** para monetización.
 - **Recompensa de semillas en respiración**.
 - **Polish visual de `lesson_screen.dart`** con personajes.
