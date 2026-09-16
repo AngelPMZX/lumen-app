@@ -797,17 +797,42 @@ class Lesson {
   int get totalSteps => steps.length;
 }
 
-/// Un paso dentro de una lección (lectura, quiz o ejercicio)
+/// Un paso dentro de una lección.
+///
+/// Tipos originales: reading, quiz, exercise.
+/// Tipos nuevos (scenario, reveal, slider, sort) existen para romper la
+/// monotonía de "leer y contestar": el contenido viejo sigue funcionando igual
+/// porque el parser cae en `reading` ante un tipo desconocido.
 class LessonStep {
   final LessonStepType type;
   final String title;
-  final String? content; // Para reading
-  final String? question; // Para quiz
-  final List<String>? options; // Para quiz
+  final String? content; // Para reading; en reveal, la idea revelada
+  final String? question; // Para quiz, reveal y slider
+  final List<String>? options; // Para quiz y scenario
   final int? correctIndex; // Para quiz
-  final String? explanation; // Para quiz
-  final String? instruction; // Para exercise
+  final String? explanation; // Para quiz y sort
+  final String? instruction; // Para exercise y sort
   final String? placeholder; // Para exercise
+
+  /// scenario: consecuencia de cada opción, en el mismo orden que [options].
+  /// Ninguna opción es "incorrecta": cada una explica a dónde lleva.
+  final List<String>? outcomes;
+
+  /// slider: etiquetas de los extremos de la escala.
+  final String? minLabel;
+  final String? maxLabel;
+
+  /// slider: tres respuestas según dónde caiga el valor (bajo, medio, alto).
+  final List<String>? responses;
+
+  /// sort: nombres de las categorías a las que se arrastran los items.
+  final List<String>? categories;
+
+  /// sort: los items que hay que clasificar.
+  final List<String>? items;
+
+  /// sort: índice de la categoría correcta de cada item, en el orden de [items].
+  final List<int>? itemCategory;
 
   const LessonStep._({
     required this.type,
@@ -819,6 +844,13 @@ class LessonStep {
     this.explanation,
     this.instruction,
     this.placeholder,
+    this.outcomes,
+    this.minLabel,
+    this.maxLabel,
+    this.responses,
+    this.categories,
+    this.items,
+    this.itemCategory,
   });
 
   const LessonStep.reading({
@@ -854,10 +886,75 @@ class LessonStep {
           instruction: instruction,
           placeholder: placeholder,
         );
+
+  /// Situación cotidiana con varias reacciones posibles. No hay respuesta
+  /// correcta: cada opción muestra su consecuencia.
+  const LessonStep.scenario({
+    required String title,
+    required String situation,
+    required List<String> options,
+    required List<String> outcomes,
+  }) : this._(
+          type: LessonStepType.scenario,
+          title: title,
+          content: situation,
+          options: options,
+          outcomes: outcomes,
+        );
+
+  /// Pregunta para pensar antes de ver la respuesta.
+  const LessonStep.reveal({
+    required String question,
+    required String answer,
+    String? title,
+  }) : this._(
+          type: LessonStepType.reveal,
+          title: title ?? question,
+          question: question,
+          content: answer,
+        );
+
+  /// Autoevaluación en una escala de 0 a 10 con respuesta según el tramo.
+  const LessonStep.slider({
+    required String question,
+    required String minLabel,
+    required String maxLabel,
+    required List<String> responses,
+    String? title,
+  }) : this._(
+          type: LessonStepType.slider,
+          title: title ?? question,
+          question: question,
+          minLabel: minLabel,
+          maxLabel: maxLabel,
+          responses: responses,
+        );
+
+  /// Clasificar items arrastrándolos a su categoría.
+  const LessonStep.sort({
+    required String title,
+    required String instruction,
+    required List<String> categories,
+    required List<String> items,
+    required List<int> itemCategory,
+    String? explanation,
+  }) : this._(
+          type: LessonStepType.sort,
+          title: title,
+          instruction: instruction,
+          categories: categories,
+          items: items,
+          itemCategory: itemCategory,
+          explanation: explanation,
+        );
 }
 
 enum LessonStepType {
   reading,
   quiz,
   exercise,
+  scenario,
+  reveal,
+  slider,
+  sort,
 }

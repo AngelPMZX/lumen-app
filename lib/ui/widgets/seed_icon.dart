@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 /// - [withGlow]: agrega un glow dorado sutil de fondo (default true).
 /// - Fallback automático al emoji ✨ si el asset no carga.
 ///
-/// Usa el asset: assets/images/currency/seed.png
+/// Usa el asset: assets/images/currency/seed.webp
 class SeedIcon extends StatefulWidget {
   final double size;
   final bool animated;
@@ -62,7 +62,7 @@ class _SeedIconState extends State<SeedIcon>
   @override
   Widget build(BuildContext context) {
     final img = Image.asset(
-      'assets/images/currency/seed.png',
+      'assets/images/currency/seed.webp',
       width: widget.size,
       height: widget.size,
       fit: BoxFit.contain,

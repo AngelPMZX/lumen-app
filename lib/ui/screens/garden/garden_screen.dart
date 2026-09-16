@@ -61,7 +61,7 @@ class GardensCatalog {
   static const GardenDef meadow = GardenDef(
     id: 'meadow',
     nameKey: 'garden.gardens.meadow',
-    assetPath: 'assets/images/gardens/garden_meadow.png',
+    assetPath: 'assets/images/gardens/garden_meadow.webp',
     isUnlocked: true,
     slots: [
       GardenSlot(slotIndex: 0, anchorX: 0.3542, anchorY: 0.2990),
@@ -76,7 +76,7 @@ class GardensCatalog {
   static const GardenDef mountain = GardenDef(
     id: 'mountain',
     nameKey: 'garden.gardens.mountain',
-    assetPath: 'assets/images/gardens/garden_mountain.png',
+    assetPath: 'assets/images/gardens/garden_mountain.webp',
     isUnlocked: true,
     slots: [
       GardenSlot(slotIndex: 0, anchorX: 0.3292, anchorY: 0.4023),
@@ -92,7 +92,7 @@ class GardensCatalog {
   static const GardenDef forest = GardenDef(
     id: 'forest',
     nameKey: 'garden.gardens.forest',
-    assetPath: 'assets/images/gardens/garden_forest.png',
+    assetPath: 'assets/images/gardens/garden_forest.webp',
     isUnlocked: false,
     slots: [],
   );
@@ -100,7 +100,7 @@ class GardensCatalog {
   static const GardenDef lake = GardenDef(
     id: 'lake',
     nameKey: 'garden.gardens.lake',
-    assetPath: 'assets/images/gardens/garden_lake.png',
+    assetPath: 'assets/images/gardens/garden_lake.webp',
     isUnlocked: false,
     slots: [],
   );
@@ -108,7 +108,7 @@ class GardensCatalog {
   static const GardenDef greenhouse = GardenDef(
     id: 'greenhouse',
     nameKey: 'garden.gardens.greenhouse',
-    assetPath: 'assets/images/gardens/garden_greenhouse.png',
+    assetPath: 'assets/images/gardens/garden_greenhouse.webp',
     isUnlocked: false,
     slots: [],
   );
@@ -130,15 +130,15 @@ String _plantAssetPath(String itemId, PlantStage stage) {
   // plant_clover → clover, plant_cactus → cactus, etc.
   final name = itemId.replaceFirst('plant_', '');
   final stageNum = stage.index + 1; // seed=1, sprout=2, young=3, adult=4
-  return 'assets/images/plants/${name}_${stageNum}_${stage.name}.png';
+  return 'assets/images/plants/${name}_${stageNum}_${stage.name}.webp';
 }
 
 /// Ruta del PNG de una decoración.
-/// deco_zen_stone → assets/images/decorations/zen_stone.png
-/// deco_lantern   → assets/images/decorations/lantern.png
+/// deco_zen_stone → assets/images/decorations/zen_stone.webp
+/// deco_lantern   → assets/images/decorations/lantern.webp
 String _decoAssetPath(String itemId) {
   final name = itemId.replaceFirst('deco_', '');
-  return 'assets/images/decorations/$name.png';
+  return 'assets/images/decorations/$name.webp';
 }
 
 /// Tamaño visual de cada decoración en el jardín (px lógicos).
@@ -1126,7 +1126,7 @@ if (hasPending) {
                 SizedBox(
   width: 18, height: 18,
   child: Image.asset(
-    'assets/images/boosters/${booster.id.replaceFirst('boost_', '')}.png',
+    'assets/images/boosters/${booster.id.replaceFirst('boost_', '')}.webp',
     fit: BoxFit.contain,
     errorBuilder: (_, _, _) => Text(
       booster.emoji,

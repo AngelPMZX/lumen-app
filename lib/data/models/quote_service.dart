@@ -1,97 +1,28 @@
-import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-
+/// Frase del día.
+///
+/// El catálogo es local y bilingüe: cada frase lleva su `textKey`, que se
+/// traduce con easy_localization según el idioma activo.
+///
+/// Antes esto consultaba ZenQuotes.io, pero esa API solo devuelve frases en
+/// inglés y llegaban sin clave de traducción, así que se mostraban en inglés
+/// aunque la app estuviera en español. Además se cacheaban por día sin
+/// guardar el idioma, así que al cambiar de idioma la frase no cambiaba hasta
+/// el día siguiente.
+///
+/// Ahora la frase se elige de forma determinista por día del año: no hay red,
+/// no hay caché que invalidar, funciona sin internet y es igual en web y en
+/// móvil.
 class QuoteService {
-  static const _cacheKey = 'cached_quotes';
-  static const _cacheTimestampKey = 'cached_quotes_timestamp';
-  static const _todayQuoteKey = 'today_quote';
-  static const _todayQuoteDateKey = 'today_quote_date';
-  static const _cacheDuration = Duration(hours: 6);
+  const QuoteService._();
 
-  static Future<Quote> getQuoteOfTheDay() async {
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().substring(0, 10);
-    final cachedDate = prefs.getString(_todayQuoteDateKey);
-
-    if (cachedDate == today) {
-      final cached = prefs.getString(_todayQuoteKey);
-      if (cached != null) {
-        try {
-          return Quote.fromJson(jsonDecode(cached));
-        } catch (_) {}
-      }
-    }
-
-    Quote? quote;
-
-    if (!kIsWeb) {
-      quote = await _fetchFromApi(prefs);
-    }
-
-    quote ??= _getLocalQuote();
-
-    await prefs.setString(_todayQuoteKey, jsonEncode(quote.toJson()));
-    await prefs.setString(_todayQuoteDateKey, today);
-
-    return quote;
-  }
-
-  static Future<Quote?> _fetchFromApi(SharedPreferences prefs) async {
-    try {
-      final cachedTimestamp = prefs.getInt(_cacheTimestampKey) ?? 0;
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final cachedQuotes = prefs.getString(_cacheKey);
-
-      if (cachedQuotes != null &&
-          now - cachedTimestamp < _cacheDuration.inMilliseconds) {
-        final List<dynamic> quotes = jsonDecode(cachedQuotes);
-        if (quotes.isNotEmpty) {
-          final dayIndex = DateTime.now().day % quotes.length;
-          final q = quotes[dayIndex];
-          return Quote(
-            text: q['q'] ?? '',
-            author: q['a'] ?? 'Desconocido',
-            authorKey: q['a'] == null ? 'quoteService.unknownAuthor' : null,
-            source: 'ZenQuotes.io',
-          );
-        }
-      }
-
-      final response = await http
-          .get(Uri.parse('https://zenquotes.io/api/quotes'))
-          .timeout(const Duration(seconds: 8));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        await prefs.setString(_cacheKey, response.body);
-        await prefs.setInt(_cacheTimestampKey, now);
-
-        if (data.isNotEmpty) {
-          final dayIndex = DateTime.now().day % data.length;
-          final q = data[dayIndex];
-          return Quote(
-            text: q['q'] ?? '',
-            author: q['a'] ?? 'Desconocido',
-            authorKey: q['a'] == null ? 'quoteService.unknownAuthor' : null,
-            source: 'ZenQuotes.io',
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('ZenQuotes API error: $e');
-    }
-    return null;
-  }
-
-  static Quote _getLocalQuote() {
+  /// Frase de hoy. Es estable durante todo el día y cambia a medianoche.
+  static Quote getQuoteOfTheDay() {
     final now = DateTime.now();
     final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays;
-    final index = dayOfYear % _localQuotes.length;
-    return _localQuotes[index];
+    return _localQuotes[dayOfYear % _localQuotes.length];
   }
+
+  static int get quoteCount => _localQuotes.length;
 
   static const List<Quote> _localQuotes = [
     Quote(
@@ -249,6 +180,11 @@ class QuoteService {
       textKey: 'quoteService.localQuotes.30.text',
       author: 'Lumen',
     ),
+    Quote(
+      text: 'La felicidad no es la ausencia de problemas, sino la habilidad de lidiar con ellos.',
+      textKey: 'quoteService.localQuotes.31.text',
+      author: 'Steve Maraboli',
+    ),
   ];
 }
 
@@ -256,7 +192,12 @@ class Quote {
   final String text;
   final String author;
   final String source;
+
+  /// Clave i18n del texto. Si existe, se prefiere sobre [text].
   final String? textKey;
+
+  /// Clave i18n del autor. Solo para autores genéricos ("Desconocido");
+  /// los nombres propios no se traducen.
   final String? authorKey;
 
   const Quote({

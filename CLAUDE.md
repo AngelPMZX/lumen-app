@@ -54,7 +54,7 @@ Clean architecture simplificada:
 5. **Imports relativos** para archivos del proyecto (`../../widgets/...`), no `package:...`.
 6. **Reglas de Firestore NO cascadean a subcolecciones** — cada nivel necesita `match` explícito.
 7. **Nueva subcolección bajo `users/{uid}`** → agregarla a `_userSubcollections` en `AuthProvider`, o sus datos quedan huérfanos al eliminar la cuenta.
-8. **Imágenes grandes en WebP** (quality ~85), no PNG — los PNG ilustrados pesan ~2 MB cada uno.
+8. **Todos los assets de imagen son `.webp`** (quality 85) — no volver a meter PNG. La conversión de los 42 PNG originales bajó `assets/` de 91 MB a 8.4 MB (92% menos) y el APK release de 151 MB a un tamaño publicable. Un PNG ilustrado pesaba hasta 8.7 MB; su WebP pesa 0.68 MB.
 9. **Días de racha**: usar `UserProgress.daysSinceCheckIn` (días de calendario en UTC), nunca `difference().inDays` entre fechas locales — falla en días con cambio de horario.
 10. **`progress/current` se sobrescribe completo** con `.set(toMap())` en varios lugares: no guardar campos extra ahí. Datos auxiliares van en su propio doc de `progress/` (`celebrated_achievements`, `discoveries`, `breathing`).
 11. **PowerShell 5.1 parte los argumentos con comillas dobles** al llamar ejecutables (`git commit -m "..."`, `python -c "..."`): usar `git commit -F archivo.txt` y scripts `.py` en archivo.
@@ -81,7 +81,14 @@ Clean architecture simplificada:
 - Timeline emocional semanal.
 
 ### Rutas de bienestar (Wellness Routes)
-- 7 rutas × 24 lecciones × 72 pasos bilingües en Firestore.
+- 7 rutas, 19 lecciones, 57 pasos bilingües en Firestore (verificado 2026-09-16; el dato viejo de "24 lecciones × 72 pasos" era incorrecto).
+- **Tipos de paso**: `reading`, `quiz`, `exercise` (originales) + `scenario`, `reveal`, `slider`, `sort` (nuevos). `RoutesService._parseStep` cae en `reading` ante un tipo desconocido, así que agregar tipos no rompe contenido viejo.
+  - `scenario`: situación + opciones + `outcomes` (una consecuencia por opción, ninguna incorrecta).
+  - `reveal`: pregunta + respuesta oculta tras una tarjeta que gira.
+  - `slider`: pregunta 0-10 + `responses` de 3 tramos (0-3, 4-6, 7-10).
+  - `sort`: `categories` + `items` + `itemCategory` (índice correcto por item) + `explanation`.
+- Antes las 19 lecciones tenían exactamente la misma estructura (1 reading + 1 quiz + 1 exercise), que es la causa de que se sintieran repetitivas.
+- `seed_route_emociones.js` reescribe los pasos de la ruta `emociones` con los tipos nuevos. Acepta `--dry-run`. Borra y reemplaza los `steps` de esas lecciones; no toca `users/{uid}`.
 - Path curvo estilo Duolingo con nodos de lecciones desbloqueables.
 - Contenido cargado dinámicamente por locale (`title_es`/`title_en`, etc.).
 
@@ -139,6 +146,7 @@ Clean architecture simplificada:
 8. **Racha mostrada que no bajaba**: mostrar `progress.currentStreak` directo deja ver la racha vieja tras perder días. Usar `AuthProvider.currentStreak`.
 9. **Escudo de racha inservible**: `saveStreakBeforeBreak` nunca se llamaba y el escudo del jardín no restauraba la racha. Ambos flujos deben terminar en `restoreStreakWithShield`.
 10. **Respiración guardada como lección** (`completed_lessons/breathing_session_<día>`): bloqueaba XP el mismo día del mes siguiente y contaba como lección del día.
+12. **Frase del día en inglés**: `QuoteService` consultaba ZenQuotes.io, que solo devuelve frases en inglés y sin `textKey`, así que se mostraban sin traducir. Además se cacheaban por día sin guardar el idioma. Ahora el catálogo es local y bilingüe, elegido de forma determinista por día del año: sin red, sin caché, igual en web y móvil.
 11. **Recompensa doble de respiración**: la tarjeta del home daba semillas (SharedPreferences) al volver de `BreathingScreen`, aunque no se completara la sesión, además de la de `_finishSession`. La única fuente es `BreathingScreen` vía `completeBreathingSession`.
 
 ## Reglas de Firestore vigentes

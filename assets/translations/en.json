@@ -180,9 +180,7 @@
     "selectAtLeast2": "Select at least 2 genres",
     "discoverArchetype": "Discover my archetype",
     "errorSaveProfile": "Error saving your profile",
-    "errorCompleteProfile": "Error completing profile",
-    "watchTour": "Watch tour again",
-    "watchTourSubtitle": "Rediscover what you can do in Lumen"
+    "errorCompleteProfile": "Error completing profile"
   },
   "archetype": {
     "revealTitle": "Your archetype is...",
@@ -533,7 +531,15 @@
     "exerciseMinChars": "Minimum 10 characters to continue",
     "xpEarned": "earned in this lesson",
     "backToMap": "Back to map",
-    "multiplierActive": "⚡ ×{mult} XP — Multiplier active!"
+    "multiplierActive": "⚡ ×{mult} XP — Multiplier active!",
+    "scenarioLabel": "Situation",
+    "scenarioPrompt": "WHAT WOULD YOU DO?",
+    "revealLabel": "Think about it",
+    "revealTap": "Take a moment to think.\nTap to see an idea.",
+    "sliderLabel": "Thermometer",
+    "sortLabel": "Sort it out",
+    "sortAllPlaced": "Done! Everything is sorted",
+    "streakInLesson": "{count} in a row"
   },
   "profile": {
     "title": "My Profile",
@@ -979,132 +985,6 @@
       }
     }
   },
-  "motivationalQuotes": {
-    "0": {
-      "text": "Peace comes from within. Do not seek it outside.",
-      "author": "Buda"
-    },
-    "1": {
-      "text": "You do not have to control everything. Sometimes you only need to let go.",
-      "author": "Lumen"
-    },
-    "2": {
-      "text": "Every day is a new opportunity to be kinder to yourself.",
-      "author": "Lumen"
-    },
-    "3": {
-      "text": "Vulnerability is not weakness. It is the greatest measure of courage.",
-      "author": "Brené Brown"
-    },
-    "4": {
-      "text": "Your mind is a garden. Your thoughts are the seeds.",
-      "author": "Lumen"
-    },
-    "5": {
-      "text": "It is not the load that breaks you down, it is how you carry it.",
-      "author": "Lou Holtz"
-    },
-    "6": {
-      "text": "Breathe. You are exactly where you need to be.",
-      "author": "Lumen"
-    },
-    "7": {
-      "text": "Happiness is not the absence of problems, but the ability to deal with them.",
-      "author": "Steve Maraboli"
-    },
-    "8": {
-      "text": "Today you deserve your own kindness as much as anyone else does.",
-      "author": "Lumen"
-    },
-    "9": {
-      "text": "Self-care is not selfish. You cannot serve from an empty cup.",
-      "author": "Eleanor Brownn"
-    },
-    "10": {
-      "text": "Emotions are like waves. Watch them come and go.",
-      "author": "Lumen"
-    },
-    "11": {
-      "text": "One small step today is a giant leap for your wellbeing.",
-      "author": "Lumen"
-    },
-    "12": {
-      "text": "You do not have to be perfect to deserve love and acceptance.",
-      "author": "Lumen"
-    },
-    "13": {
-      "text": "Gratitude turns what you have into enough.",
-      "author": "Melody Beattie"
-    },
-    "14": {
-      "text": "Your worth does not decrease because someone cannot see your light.",
-      "author": "Lumen"
-    },
-    "15": {
-      "text": "It is okay not to be okay. What matters is not staying there.",
-      "author": "Lumen"
-    },
-    "16": {
-      "text": "Calm is a superpower in a world full of noise.",
-      "author": "Lumen"
-    },
-    "17": {
-      "text": "Do not compare your chapter 1 to someone else's chapter 20.",
-      "author": "Lumen"
-    },
-    "18": {
-      "text": "Be patient with yourself. Growth takes time.",
-      "author": "Lumen"
-    },
-    "19": {
-      "text": "The best relationship you can have is the one you have with yourself.",
-      "author": "Diane Von Furstenberg"
-    },
-    "20": {
-      "text": "Choose compassion today. Start with yourself.",
-      "author": "Lumen"
-    },
-    "21": {
-      "text": "Rest is not giving up. It is getting ready to continue.",
-      "author": "Lumen"
-    },
-    "22": {
-      "text": "You do not need a reason to deserve inner peace.",
-      "author": "Lumen"
-    },
-    "23": {
-      "text": "Every breath is a chance to begin again.",
-      "author": "Lumen"
-    },
-    "24": {
-      "text": "Your mental health is a priority, not a luxury.",
-      "author": "Lumen"
-    },
-    "25": {
-      "text": "Today's small victories are tomorrow's great achievements.",
-      "author": "Lumen"
-    },
-    "26": {
-      "text": "Allow yourself to feel. Emotions are not your enemy.",
-      "author": "Lumen"
-    },
-    "27": {
-      "text": "What nourishes your soul is never a waste of time.",
-      "author": "Lumen"
-    },
-    "28": {
-      "text": "You are not your thoughts. You are the one who observes them.",
-      "author": "Eckhart Tolle"
-    },
-    "29": {
-      "text": "Today is a good day to take care of yourself.",
-      "author": "Lumen"
-    },
-    "30": {
-      "text": "True strength appears in moments of vulnerability.",
-      "author": "Lumen"
-    }
-  },
   "quoteService": {
     "unknownAuthor": "Unknown",
     "localQuotes": {
@@ -1231,6 +1111,10 @@
       "30": {
         "text": "Your journey matters. Every step counts.",
         "author": "Lumen"
+      },
+      "31": {
+        "text": "Happiness is not the absence of problems, but the ability to deal with them.",
+        "author": "Steve Maraboli"
       }
     }
   },

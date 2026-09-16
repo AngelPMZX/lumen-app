@@ -49,11 +49,11 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
   if (item.type == ItemType.plant) {
     final name = item.id.replaceFirst('plant_', '');
     baseVisual = Image.asset(
-      'assets/images/plants/${name}_4_adult.png',
+      'assets/images/plants/${name}_4_adult.webp',
       width: size, height: size,
       fit: BoxFit.contain,
       errorBuilder: (_, _, _) => Image.asset(
-        'assets/images/plants/${name}_1_seed.png',
+        'assets/images/plants/${name}_1_seed.webp',
         width: size, height: size,
         fit: BoxFit.contain,
         errorBuilder: (_, _, _) =>
@@ -63,7 +63,7 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
   } else if (item.type == ItemType.decoration) {
     final name = item.id.replaceFirst('deco_', '');
     baseVisual = Image.asset(
-      'assets/images/decorations/$name.png',
+      'assets/images/decorations/$name.webp',
       width: size, height: size,
       fit: BoxFit.contain,
       errorBuilder: (_, _, _) =>
@@ -72,7 +72,7 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
   } else if (item.type == ItemType.booster) {
     final name = item.id.replaceFirst('boost_', '');
     baseVisual = Image.asset(
-      'assets/images/boosters/$name.png',
+      'assets/images/boosters/$name.webp',
       width: size, height: size,
       fit: BoxFit.contain,
       errorBuilder: (_, _, _) =>

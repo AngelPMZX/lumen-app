@@ -143,6 +143,36 @@ debugPrint('StackTrace: ${StackTrace.current}');
           instruction: _localized(data, 'instruction', locale),
           placeholder: _localizedNullable(data, 'placeholder', locale),
         );
+      case 'scenario':
+        return LessonStep.scenario(
+          title: _localized(data, 'title', locale),
+          situation: _localized(data, 'situation', locale),
+          options: _localizedList(data, 'options', locale),
+          outcomes: _localizedList(data, 'outcomes', locale),
+        );
+      case 'reveal':
+        return LessonStep.reveal(
+          question: _localized(data, 'question', locale),
+          answer: _localized(data, 'answer', locale),
+          title: _localizedNullable(data, 'title', locale),
+        );
+      case 'slider':
+        return LessonStep.slider(
+          question: _localized(data, 'question', locale),
+          minLabel: _localized(data, 'minLabel', locale),
+          maxLabel: _localized(data, 'maxLabel', locale),
+          responses: _localizedList(data, 'responses', locale),
+          title: _localizedNullable(data, 'title', locale),
+        );
+      case 'sort':
+        return LessonStep.sort(
+          title: _localized(data, 'title', locale),
+          instruction: _localized(data, 'instruction', locale),
+          categories: _localizedList(data, 'categories', locale),
+          items: _localizedList(data, 'items', locale),
+          itemCategory: List<int>.from(data['itemCategory'] ?? const []),
+          explanation: _localizedNullable(data, 'explanation', locale),
+        );
       case 'reading':
       default:
         return LessonStep.reading(

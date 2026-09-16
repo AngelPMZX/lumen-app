@@ -152,7 +152,7 @@ Future<void> _loadChallengeState() async {
     if (!mounted) return;
 
     try {
-      final quote = await QuoteService.getQuoteOfTheDay();
+      final quote = QuoteService.getQuoteOfTheDay();
       if (!mounted) return;
       setState(() { _quote = quote; _isLoadingQuote = false; });
     } catch (e) {

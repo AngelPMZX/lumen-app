@@ -341,6 +341,23 @@ class _LessonScreenState extends State<LessonScreen>
   int _currentStep = 0;
   int? _selectedQuizOption;
   bool _quizAnswered = false;
+
+  // ── Estado de los tipos de paso nuevos ─────────────────────────────────────
+  /// scenario: opción elegida (no hay correcta, solo consecuencias).
+  int? _scenarioChoice;
+
+  /// reveal: si ya giró la tarjeta.
+  bool _revealed = false;
+
+  /// slider: valor 0-10 y si ya lo movió (para no dar por válido el 5 inicial).
+  double _sliderValue = 5;
+  bool _sliderTouched = false;
+
+  /// sort: item → categoría a la que lo arrastró.
+  final Map<int, int> _sortAssignments = {};
+
+  /// Aciertos seguidos dentro de la lección, para la racha.
+  int _streakInLesson = 0;
   final _exerciseController = TextEditingController();
   bool _isSaving = false;
   _CharacterState _charState = _CharacterState.idle;
@@ -379,6 +396,14 @@ class _LessonScreenState extends State<LessonScreen>
         return _quizAnswered;
       case LessonStepType.exercise:
         return _exerciseController.text.trim().length >= 10;
+      case LessonStepType.scenario:
+        return _scenarioChoice != null;
+      case LessonStepType.reveal:
+        return _revealed;
+      case LessonStepType.slider:
+        return _sliderTouched;
+      case LessonStepType.sort:
+        return _sortAssignments.length == (_step.items?.length ?? 0);
     }
   }
 
@@ -393,6 +418,11 @@ class _LessonScreenState extends State<LessonScreen>
         _quizAnswered = false;
         _charState = _CharacterState.idle;
         _exerciseController.clear();
+        _scenarioChoice = null;
+        _revealed = false;
+        _sliderValue = 5;
+        _sliderTouched = false;
+        _sortAssignments.clear();
       });
     }
   }
@@ -406,6 +436,7 @@ class _LessonScreenState extends State<LessonScreen>
       _quizAnswered = true;
       _charState = isCorrect ? _CharacterState.correct : _CharacterState.wrong;
       _xpEarned += isCorrect ? 5 : 0;
+      _registerAnswer(isCorrect);
     });
     _triggerFlash(isCorrect);
   }
@@ -640,6 +671,16 @@ class _LessonScreenState extends State<LessonScreen>
                   const SizedBox(width: 10),
                   Expanded(child: _buildProgressNodes()),
                   const SizedBox(width: 10),
+                  // Racha de aciertos seguidos dentro de la lección
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _streakInLesson >= 2
+                        ? Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _buildStreakBadge(),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                   _buildXpBadge(),
                 ],
               ),
@@ -813,7 +854,68 @@ class _LessonScreenState extends State<LessonScreen>
         return _buildQuiz(isDark);
       case LessonStepType.exercise:
         return _buildExercise(isDark);
+      case LessonStepType.scenario:
+        return _buildScenario(isDark);
+      case LessonStepType.reveal:
+        return _buildReveal(isDark);
+      case LessonStepType.slider:
+        return _buildSlider(isDark);
+      case LessonStepType.sort:
+        return _buildSort(isDark);
     }
+  }
+
+  /// Registra un acierto o fallo para la racha interna de la lección.
+  void _registerAnswer(bool correct) {
+    if (correct) {
+      _streakInLesson++;
+    } else {
+      _streakInLesson = 0;
+    }
+  }
+
+  /// Badge de racha dentro de la lección. Aparece a partir de 2 aciertos
+  /// seguidos y late cada vez que sube.
+  Widget _buildStreakBadge() {
+    return Container(
+      key: ValueKey('streak_$_streakInLesson'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.45),
+            blurRadius: 12,
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🔥', style: TextStyle(fontSize: 13)),
+          const SizedBox(width: 5),
+          Text(
+            'routes.streakInLesson'.tr(namedArgs: {'count': '$_streakInLesson'}),
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    )
+        .animate()
+        .scale(
+          begin: const Offset(0.5, 0.5),
+          end: const Offset(1, 1),
+          duration: 350.ms,
+          curve: Curves.easeOutBack,
+        )
+        .fadeIn(duration: 250.ms);
   }
 
   Widget _buildBottomButton(bool isDark) {
@@ -855,6 +957,710 @@ class _LessonScreenState extends State<LessonScreen>
         ),
       ),
     );
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SCENARIO — situación real, varias reacciones, ninguna "incorrecta"
+  // ══════════════════════════════════════════════════════════════════════════
+  Widget _buildScenario(bool isDark) {
+    final options = _step.options ?? const [];
+    final outcomes = _step.outcomes ?? const [];
+
+    return Column(
+      key: ValueKey('scenario_$_currentStep'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTypeChip(
+          icon: Icons.forum_rounded,
+          label: 'routes.scenarioLabel'.tr(),
+          color: const Color(0xFFF59E0B),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _step.title,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            height: 1.2,
+            color: Colors.white,
+            shadows: [
+              Shadow(color: widget.routeColor.withValues(alpha: 0.5), blurRadius: 14),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        // La situación, presentada como si alguien te la contara
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+              bottomRight: Radius.circular(20),
+              bottomLeft: Radius.circular(4),
+            ),
+            border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            _step.content ?? '',
+            style: TextStyle(
+              fontSize: 15.5,
+              height: 1.7,
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'routes.scenarioPrompt'.tr(),
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.8,
+            color: Colors.white38,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ...List.generate(options.length, (i) {
+          final chosen = _scenarioChoice == i;
+          final decided = _scenarioChoice != null;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: GestureDetector(
+              onTap: decided ? null : () => _chooseScenario(i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutBack,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: chosen
+                      ? widget.routeColor.withValues(alpha: 0.22)
+                      : Colors.white.withValues(alpha: decided ? 0.03 : 0.07),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: chosen
+                        ? widget.routeColor
+                        : Colors.white.withValues(alpha: decided ? 0.06 : 0.14),
+                    width: chosen ? 2 : 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 280),
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: chosen
+                                ? widget.routeColor
+                                : Colors.white.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: chosen
+                              ? const Icon(Icons.check_rounded, size: 16, color: Colors.white)
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            options[i],
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              height: 1.4,
+                              color: Colors.white.withValues(alpha: decided && !chosen ? 0.45 : 1),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // La consecuencia se despliega solo en la opción elegida
+                    if (chosen && i < outcomes.length) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(13),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.arrow_forward_rounded,
+                                size: 15, color: Colors.white54),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Text(
+                                outcomes[i],
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  height: 1.55,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.15, end: 0),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ).animate(delay: (i * 70).ms).fadeIn(duration: 300.ms).slideX(begin: 0.05, end: 0);
+        }),
+      ],
+    ).animate().fadeIn(duration: 400.ms);
+  }
+
+  void _chooseScenario(int index) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _scenarioChoice = index;
+      // No hay opción incorrecta: reflexionar ya cuenta.
+      _charState = _CharacterState.correct;
+      _xpEarned += 5;
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // REVEAL — piensa primero, luego gira la tarjeta
+  // ══════════════════════════════════════════════════════════════════════════
+  Widget _buildReveal(bool isDark) {
+    return Column(
+      key: ValueKey('reveal_$_currentStep'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTypeChip(
+          icon: Icons.psychology_rounded,
+          label: 'routes.revealLabel'.tr(),
+          color: const Color(0xFF8B5CF6),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _step.question ?? _step.title,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            height: 1.3,
+            color: Colors.white,
+            shadows: [
+              Shadow(color: widget.routeColor.withValues(alpha: 0.5), blurRadius: 14),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: _revealed ? null : _revealAnswer,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: _revealed ? 1 : 0),
+            duration: const Duration(milliseconds: 620),
+            curve: Curves.easeInOutCubic,
+            builder: (context, t, _) {
+              // Giro 3D: a mitad del recorrido se cambia la cara visible.
+              final angle = t * math.pi;
+              final mostrandoReverso = t > 0.5;
+              return Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.0012)
+                  ..rotateY(angle),
+                child: mostrandoReverso
+                    ? Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()..rotateY(math.pi),
+                        child: _revealCard(revelada: true),
+                      )
+                    : _revealCard(revelada: false),
+              );
+            },
+          ),
+        ),
+      ],
+    ).animate().fadeIn(duration: 400.ms);
+  }
+
+  Widget _revealCard({required bool revelada}) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 190),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: revelada
+              ? [
+                  const Color(0xFF8B5CF6).withValues(alpha: 0.28),
+                  widget.routeColor.withValues(alpha: 0.16),
+                ]
+              : [
+                  Colors.white.withValues(alpha: 0.09),
+                  Colors.white.withValues(alpha: 0.04),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: revelada
+              ? const Color(0xFF8B5CF6).withValues(alpha: 0.6)
+              : Colors.white.withValues(alpha: 0.16),
+          width: revelada ? 2 : 1,
+        ),
+        boxShadow: revelada
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.28),
+                  blurRadius: 24,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+      child: revelada
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lightbulb_rounded, color: Color(0xFFFBBF24), size: 26),
+                const SizedBox(height: 12),
+                Text(
+                  _step.content ?? '',
+                  style: TextStyle(
+                    fontSize: 16,
+                    height: 1.75,
+                    color: Colors.white.withValues(alpha: 0.92),
+                  ),
+                ),
+              ],
+            )
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.touch_app_rounded,
+                        size: 34, color: Colors.white.withValues(alpha: 0.5))
+                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .moveY(begin: 0, end: -7, duration: 1100.ms, curve: Curves.easeInOut),
+                const SizedBox(height: 14),
+                Text(
+                  'routes.revealTap'.tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    height: 1.5,
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  void _revealAnswer() {
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _revealed = true;
+      _charState = _CharacterState.correct;
+      _xpEarned += 3;
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SLIDER — termómetro del 0 al 10
+  // ══════════════════════════════════════════════════════════════════════════
+  Widget _buildSlider(bool isDark) {
+    final v = _sliderValue.round();
+    final responses = _step.responses ?? const [];
+    // 0-3 bajo, 4-6 medio, 7-10 alto
+    final tramo = v <= 3 ? 0 : (v <= 6 ? 1 : 2);
+    final colorTramo = [
+      const Color(0xFF10B981),
+      const Color(0xFFF59E0B),
+      const Color(0xFFEF4444),
+    ][tramo];
+
+    return Column(
+      key: ValueKey('slider_$_currentStep'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTypeChip(
+          icon: Icons.thermostat_rounded,
+          label: 'routes.sliderLabel'.tr(),
+          color: const Color(0xFF3B82F6),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _step.question ?? _step.title,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            height: 1.3,
+            color: Colors.white,
+            shadows: [
+              Shadow(color: widget.routeColor.withValues(alpha: 0.5), blurRadius: 14),
+            ],
+          ),
+        ),
+        const SizedBox(height: 26),
+        // Número grande que cambia de color con el valor
+        Center(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            transitionBuilder: (child, anim) => ScaleTransition(
+              scale: anim,
+              child: FadeTransition(opacity: anim, child: child),
+            ),
+            child: Text(
+              '$v',
+              key: ValueKey(v),
+              style: TextStyle(
+                fontSize: 64,
+                fontWeight: FontWeight.w900,
+                height: 1,
+                color: _sliderTouched ? colorTramo : Colors.white24,
+                shadows: _sliderTouched
+                    ? [BoxShadow(color: colorTramo.withValues(alpha: 0.5), blurRadius: 26)]
+                    : null,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 8,
+            activeTrackColor: colorTramo,
+            inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
+            thumbColor: Colors.white,
+            overlayColor: colorTramo.withValues(alpha: 0.2),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 13),
+          ),
+          child: Slider(
+            value: _sliderValue,
+            min: 0,
+            max: 10,
+            divisions: 10,
+            onChanged: (val) {
+              if (!_sliderTouched || val.round() != _sliderValue.round()) {
+                HapticFeedback.selectionClick();
+              }
+              setState(() {
+                _sliderValue = val;
+                _sliderTouched = true;
+              });
+            },
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  _step.minLabel ?? '0',
+                  style: const TextStyle(fontSize: 12, color: Colors.white38),
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  _step.maxLabel ?? '10',
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(fontSize: 12, color: Colors.white38),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 22),
+        // La respuesta cambia según el tramo en el que caiga
+        if (_sliderTouched && tramo < responses.length)
+          Container(
+            key: ValueKey('resp_$tramo'),
+            width: double.infinity,
+            padding: const EdgeInsets.all(17),
+            decoration: BoxDecoration(
+              color: colorTramo.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: colorTramo.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.favorite_rounded, color: colorTramo, size: 19),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Text(
+                    responses[tramo],
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      height: 1.6,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.12, end: 0),
+      ],
+    ).animate().fadeIn(duration: 400.ms);
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SORT — arrastrar cada item a su categoría
+  // ══════════════════════════════════════════════════════════════════════════
+  Widget _buildSort(bool isDark) {
+    final items = _step.items ?? const [];
+    final categories = _step.categories ?? const [];
+    final pendientes = [
+      for (int i = 0; i < items.length; i++)
+        if (!_sortAssignments.containsKey(i)) i
+    ];
+    final terminado = pendientes.isEmpty && items.isNotEmpty;
+
+    return Column(
+      key: ValueKey('sort_$_currentStep'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildTypeChip(
+          icon: Icons.drag_indicator_rounded,
+          label: 'routes.sortLabel'.tr(),
+          color: const Color(0xFF06B6D4),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _step.title,
+          style: TextStyle(
+            fontSize: 23,
+            fontWeight: FontWeight.w800,
+            height: 1.25,
+            color: Colors.white,
+            shadows: [
+              Shadow(color: widget.routeColor.withValues(alpha: 0.5), blurRadius: 14),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          _step.instruction ?? '',
+          style: TextStyle(
+            fontSize: 14.5,
+            height: 1.6,
+            color: Colors.white.withValues(alpha: 0.72),
+          ),
+        ),
+        const SizedBox(height: 18),
+
+        // Items por clasificar
+        Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 76),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.1),
+              // Línea discontinua no existe de fábrica; el borde suave basta.
+            ),
+          ),
+          child: pendientes.isEmpty
+              ? Center(
+                  child: Text(
+                    'routes.sortAllPlaced'.tr(),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF10B981),
+                    ),
+                  ),
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: pendientes.map((i) {
+                    final chip = _sortChip(items[i], const Color(0xFF06B6D4));
+                    return Draggable<int>(
+                      data: i,
+                      feedback: Material(
+                        color: Colors.transparent,
+                        child: Transform.scale(
+                          scale: 1.08,
+                          child: _sortChip(items[i], const Color(0xFF06B6D4), elevado: true),
+                        ),
+                      ),
+                      childWhenDragging: Opacity(opacity: 0.25, child: chip),
+                      onDragStarted: () => HapticFeedback.selectionClick(),
+                      child: chip,
+                    );
+                  }).toList(),
+                ),
+        ),
+        const SizedBox(height: 16),
+
+        // Categorías destino
+        ...List.generate(categories.length, (c) {
+          final asignados = _sortAssignments.entries
+              .where((e) => e.value == c)
+              .map((e) => e.key)
+              .toList();
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: DragTarget<int>(
+              onWillAcceptWithDetails: (_) => true,
+              onAcceptWithDetails: (details) => _assignSortItem(details.data, c),
+              builder: (context, candidatos, _) {
+                final resaltado = candidatos.isNotEmpty;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: resaltado
+                        ? const Color(0xFF06B6D4).withValues(alpha: 0.18)
+                        : Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: resaltado
+                          ? const Color(0xFF06B6D4)
+                          : Colors.white.withValues(alpha: 0.12),
+                      width: resaltado ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        categories[c],
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (asignados.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: asignados.map((i) {
+                            final correcto = (_step.itemCategory != null &&
+                                    i < _step.itemCategory!.length)
+                                ? _step.itemCategory![i] == c
+                                : true;
+                            return _sortChip(
+                              items[i],
+                              correcto ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              icono: correcto
+                                  ? Icons.check_rounded
+                                  : Icons.close_rounded,
+                            ).animate().scale(
+                                  begin: const Offset(0.7, 0.7),
+                                  end: const Offset(1, 1),
+                                  duration: 280.ms,
+                                  curve: Curves.easeOutBack,
+                                );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        }),
+
+        if (terminado && _step.explanation != null) ...[
+          const SizedBox(height: 4),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.school_rounded, color: Color(0xFF10B981), size: 19),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _step.explanation!,
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.6,
+                      color: Colors.white.withValues(alpha: 0.88),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+        ],
+      ],
+    ).animate().fadeIn(duration: 400.ms);
+  }
+
+  Widget _sortChip(String texto, Color color,
+      {IconData? icono, bool elevado = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: elevado ? 0.35 : 0.18),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: color.withValues(alpha: 0.55)),
+        boxShadow: elevado
+            ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 16)]
+            : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icono != null) ...[
+            Icon(icono, size: 14, color: Colors.white),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Text(
+              texto,
+              style: const TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _assignSortItem(int itemIndex, int categoryIndex) {
+    final esperado = (_step.itemCategory != null &&
+            itemIndex < _step.itemCategory!.length)
+        ? _step.itemCategory![itemIndex]
+        : categoryIndex;
+    final correcto = esperado == categoryIndex;
+
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _sortAssignments[itemIndex] = categoryIndex;
+      _charState = correcto ? _CharacterState.correct : _CharacterState.wrong;
+      if (correcto) _xpEarned += 3;
+      _registerAnswer(correcto);
+    });
+    _triggerFlash(correcto);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
