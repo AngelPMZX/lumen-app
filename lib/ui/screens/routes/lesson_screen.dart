@@ -6,9 +6,18 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lottie/lottie.dart';
 import 'package:confetti/confetti.dart';
+import '../../../data/models/diary_entry.dart';
+import '../../../data/models/mood_entry.dart';
 import '../../../data/models/wellness_route.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
+import 'steps/commit_step.dart';
+import 'steps/myth_fact_step.dart';
+import 'steps/order_step.dart';
+import 'steps/pick_step.dart';
+import 'steps/practice_step.dart';
+import 'steps/step_common.dart';
+import 'steps/story_step.dart';
 
 // ─── Character state ──────────────────────────────────────────────────────────
 enum _CharacterState { idle, correct, wrong }
@@ -356,6 +365,16 @@ class _LessonScreenState extends State<LessonScreen>
   /// sort: item → categoría a la que lo arrastró.
   final Map<int, int> _sortAssignments = {};
 
+  /// Pasos con widget propio (mythFact, practice, order, pick, story,
+  /// commit): avisan con [StepCallbacks.onReady] cuando ya se puede seguir.
+  bool _stepReady = false;
+
+  /// commit: el micro-reto elegido, se muestra al completar la lección.
+  String? _commitment;
+
+  /// exercise: guardar también la respuesta en el diario.
+  bool _saveExerciseToDiary = false;
+
   /// Aciertos seguidos dentro de la lección, para la racha.
   int _streakInLesson = 0;
   final _exerciseController = TextEditingController();
@@ -404,11 +423,21 @@ class _LessonScreenState extends State<LessonScreen>
         return _sliderTouched;
       case LessonStepType.sort:
         return _sortAssignments.length == (_step.items?.length ?? 0);
+      case LessonStepType.mythFact:
+      case LessonStepType.practice:
+      case LessonStepType.order:
+      case LessonStepType.pick:
+      case LessonStepType.story:
+      case LessonStepType.commit:
+        return _stepReady;
     }
   }
 
   void _nextStep() {
     HapticFeedback.mediumImpact();
+    if (_step.type == LessonStepType.exercise && _saveExerciseToDiary) {
+      _saveExerciseEntry();
+    }
     if (_isLastStep) {
       _completeLesson();
     } else {
@@ -423,9 +452,58 @@ class _LessonScreenState extends State<LessonScreen>
         _sliderValue = 5;
         _sliderTouched = false;
         _sortAssignments.clear();
+        _stepReady = false;
       });
     }
   }
+
+  /// Guarda la respuesta del ejercicio como entrada del diario.
+  /// Sin XP extra: la lección ya da XP y así no se puede farmear repitiendo.
+  void _saveExerciseEntry() {
+    final text = _exerciseController.text.trim();
+    if (text.length < 10) return;
+    final auth = context.read<AuthProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final entry = DiaryEntry(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      mood: MoodType.calm,
+      text: text,
+      prompt: '${widget.lesson.title} · ${_step.title}',
+    );
+    auth.saveDiaryEntry(entry, awardXp: false).then((_) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('routes.savedToDiary'.tr()),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ));
+    }).catchError((Object e) {
+      debugPrint('Error saving exercise to diary: $e');
+    });
+  }
+
+  // ── Callbacks de los pasos con widget propio ──────────────────────────────
+  StepCallbacks get _stepCallbacks => StepCallbacks(
+        onAnswer: (correct, xp) {
+          if (!mounted) return;
+          setState(() {
+            _charState =
+                correct ? _CharacterState.correct : _CharacterState.wrong;
+            _xpEarned += xp;
+            _registerAnswer(correct);
+          });
+          _triggerFlash(correct);
+        },
+        onReflect: (xp) {
+          if (!mounted) return;
+          setState(() {
+            _charState = _CharacterState.correct;
+            _xpEarned += xp;
+          });
+        },
+        onReady: () {
+          if (mounted) setState(() => _stepReady = true);
+        },
+      );
 
   void _selectQuizOption(int index) {
     if (_quizAnswered) return;
@@ -862,6 +940,50 @@ class _LessonScreenState extends State<LessonScreen>
         return _buildSlider(isDark);
       case LessonStepType.sort:
         return _buildSort(isDark);
+      case LessonStepType.mythFact:
+        return MythFactStep(
+          key: ValueKey('mythfact_$_currentStep'),
+          step: _step,
+          routeColor: widget.routeColor,
+          callbacks: _stepCallbacks,
+        );
+      case LessonStepType.practice:
+        return PracticeStep(
+          key: ValueKey('practice_$_currentStep'),
+          step: _step,
+          routeColor: widget.routeColor,
+          callbacks: _stepCallbacks,
+        );
+      case LessonStepType.order:
+        return OrderStep(
+          key: ValueKey('order_$_currentStep'),
+          step: _step,
+          routeColor: widget.routeColor,
+          callbacks: _stepCallbacks,
+        );
+      case LessonStepType.pick:
+        return PickStep(
+          key: ValueKey('pick_$_currentStep'),
+          step: _step,
+          routeColor: widget.routeColor,
+          callbacks: _stepCallbacks,
+        );
+      case LessonStepType.story:
+        return StoryStep(
+          key: ValueKey('story_$_currentStep'),
+          step: _step,
+          routeColor: widget.routeColor,
+          fallbackSpeaker: widget.routeEmoji,
+          callbacks: _stepCallbacks,
+        );
+      case LessonStepType.commit:
+        return CommitStep(
+          key: ValueKey('commit_$_currentStep'),
+          step: _step,
+          routeColor: widget.routeColor,
+          callbacks: _stepCallbacks,
+          onCommitted: (text) => _commitment = text,
+        );
     }
   }
 
@@ -1938,6 +2060,35 @@ class _LessonScreenState extends State<LessonScreen>
             ),
           ],
         ),
+        const SizedBox(height: 10),
+        GestureDetector(
+          onTap: () => setState(() => _saveExerciseToDiary = !_saveExerciseToDiary),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.book_rounded, size: 18, color: Colors.white60),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'routes.saveToDiary'.tr(),
+                    style: const TextStyle(fontSize: 13.5, color: Colors.white70),
+                  ),
+                ),
+                Switch(
+                  value: _saveExerciseToDiary,
+                  activeThumbColor: widget.routeColor,
+                  onChanged: (v) => setState(() => _saveExerciseToDiary = v),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.05, end: 0);
   }
@@ -2091,6 +2242,50 @@ class _LessonScreenState extends State<LessonScreen>
                   end: const Offset(1.0, 1.0),
                   curve: Curves.easeOutBack,
                 ),
+            if (_commitment != null) ...[
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFBBF24).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                      color: const Color(0xFFFBBF24).withValues(alpha: 0.35)),
+                ),
+                child: Row(
+                  children: [
+                    const Text('🤝', style: TextStyle(fontSize: 26)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'routes.yourCommitment'.tr(),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.6,
+                              color: Color(0xFFFBBF24),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _commitment!,
+                            style: const TextStyle(
+                              fontSize: 14.5,
+                              height: 1.45,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
+            ],
             const SizedBox(height: 36),
             SizedBox(
               width: double.infinity,

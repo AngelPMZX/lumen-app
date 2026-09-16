@@ -81,14 +81,25 @@ Clean architecture simplificada:
 - Timeline emocional semanal.
 
 ### Rutas de bienestar (Wellness Routes)
-- 7 rutas, 19 lecciones, 57 pasos bilingües en Firestore (verificado 2026-09-16; el dato viejo de "24 lecciones × 72 pasos" era incorrecto).
-- **Tipos de paso**: `reading`, `quiz`, `exercise` (originales) + `scenario`, `reveal`, `slider`, `sort` (nuevos). `RoutesService._parseStep` cae en `reading` ante un tipo desconocido, así que agregar tipos no rompe contenido viejo.
+- 7 rutas. Meta: **10 lecciones por ruta, 6-7 pasos cada una**, sin dos lecciones con la misma secuencia de tipos. Antes eran 19 lecciones con la misma forma (reading + quiz + exercise), por eso se sentían repetitivas.
+- **Contenido fuente**: `seed/routes/<id>.js` (un archivo por ruta). Hechas: `emociones` (10 lecciones, 61 pasos) y `autoconocimiento` (10, 60). Pendientes: mindfulness, resiliencia, autoestima, relaciones, amor.
+- **Subir contenido**: `node seed/seed_routes.js <ruta> --dry-run` (valida y resume), sin `--dry-run` escribe; `--all` para todas; `--prune` borra lecciones que ya no estén en el archivo. Si hay un error de validación (campos ES/EN faltantes, listas de distinto largo, índices fuera de rango) no escribe nada. Las advertencias de variedad no bloquean.
+- **Nunca renombrar el `id` de una lección existente**: el progreso (`completed_lessons`) se guarda por id. El `order` lo calcula el script por posición.
+- `seed_wellness_routes.js` es legado y exige `--legacy-overwrite`: correrlo pisaría el contenido nuevo.
+- **13 tipos de paso**. `RoutesService._parseStep` cae en `reading` ante un tipo desconocido.
+  - Originales: `reading`, `quiz`, `exercise` (este último tiene switch "Guardar también en mi diario", sin XP extra: `saveDiaryEntry(awardXp: false)`).
   - `scenario`: situación + opciones + `outcomes` (una consecuencia por opción, ninguna incorrecta).
   - `reveal`: pregunta + respuesta oculta tras una tarjeta que gira.
-  - `slider`: pregunta 0-10 + `responses` de 3 tramos (0-3, 4-6, 7-10).
-  - `sort`: `categories` + `items` + `itemCategory` (índice correcto por item) + `explanation`.
-- Antes las 19 lecciones tenían exactamente la misma estructura (1 reading + 1 quiz + 1 exercise), que es la causa de que se sintieran repetitivas.
-- `seed_route_emociones.js` reescribe los pasos de la ruta `emociones` con los tipos nuevos. Acepta `--dry-run`. Borra y reemplaza los `steps` de esas lecciones; no toca `users/{uid}`.
+  - `slider`: pregunta 0-10 + `responses` de 3 tramos (0-3 verde, 4-6 ámbar, 7-10 rojo): formular la pregunta para que "alto" sea lo difícil.
+  - `sort`: `categories` + `items` + `itemCategory` (índice correcto por item) + `explanation`. Solo para cosas con respuesta objetiva.
+  - `mythfact`: `statements` + `truths` (bool) + `feedbacks`. Deslizar o tocar Mito/Realidad. Mezclar verdaderas y falsas.
+  - `practice`: práctica guiada con temporizador. `intro` + `prompts` + `durations` (seg) + `motions` (`in`/`out`/`hold`/`still`, mueve el orbe) + `outro`.
+  - `order`: `items` en el orden correcto (la app los desordena) + `explanation`. El orden debe ser inequívoco.
+  - `pick`: selección múltiple reflexiva sin respuesta correcta. `options` + `explanation` o `responses` de 3 (según cuántas marque).
+  - `story`: burbujas de chat al tocar. `lines`: `> ` = el usuario, `* ` = narración, resto = `speaker` (emoji).
+  - `commit`: micro-reto; elegir uno de `options` y mantener presionado. Se muestra en la pantalla de lección completada.
+- Los tipos nuevos (desde `mythfact`) viven en `lib/ui/screens/routes/steps/` y avisan a `LessonScreen` con `StepCallbacks` (`onAnswer`, `onReflect`, `onReady`).
+- **Contenido de salud mental**: no afirmar datos sin respaldo (p. ej. "21 días para un hábito" o "golpear una almohada libera el enojo" son mitos). Los temas delicados (tristeza persistente, ansiedad) mencionan buscar ayuda profesional.
 - Path curvo estilo Duolingo con nodos de lecciones desbloqueables.
 - Contenido cargado dinámicamente por locale (`title_es`/`title_en`, etc.).
 

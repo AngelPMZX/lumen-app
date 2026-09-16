@@ -5,6 +5,14 @@
 // Requiere: npm install firebase-admin
 // ═══════════════════════════════════════════════════════════════
 
+// ⚠ LEGADO: el contenido vigente vive en seed/routes/*.js y se sube con
+// seed/seed_routes.js. Correr este script reemplaza las rutas nuevas por las
+// viejas (3 pasos por lección), así que exige una bandera explícita.
+if (!process.argv.includes('--legacy-overwrite')) {
+  console.error('Script legado. Usa: node seed/seed_routes.js <ruta> --dry-run');
+  process.exit(1);
+}
+
 const admin = require('firebase-admin');
 
 // Inicializar Firebase Admin

@@ -832,7 +832,26 @@ class LessonStep {
   final List<String>? items;
 
   /// sort: índice de la categoría correcta de cada item, en el orden de [items].
+  /// order: no se usa; [items] ya viene en el orden correcto.
   final List<int>? itemCategory;
+
+  /// mythFact: afirmaciones, si cada una es verdadera y por qué.
+  final List<String>? statements;
+  final List<bool>? truths;
+  final List<String>? feedbacks;
+
+  /// practice: indicaciones guiadas, segundos de cada una y el movimiento
+  /// del orbe (`in`, `out`, `hold`, `still`).
+  final List<String>? prompts;
+  final List<int>? durations;
+  final List<String>? motions;
+
+  /// story: líneas de la conversación. `> ` al inicio = lo dice el usuario,
+  /// `* ` = narración.
+  final List<String>? lines;
+
+  /// story: emoji de quien habla.
+  final String? speaker;
 
   const LessonStep._({
     required this.type,
@@ -851,6 +870,14 @@ class LessonStep {
     this.categories,
     this.items,
     this.itemCategory,
+    this.statements,
+    this.truths,
+    this.feedbacks,
+    this.prompts,
+    this.durations,
+    this.motions,
+    this.lines,
+    this.speaker,
   });
 
   const LessonStep.reading({
@@ -947,6 +974,94 @@ class LessonStep {
           itemCategory: itemCategory,
           explanation: explanation,
         );
+
+  /// Tarjetas rápidas de "¿mito o realidad?".
+  const LessonStep.mythFact({
+    required String title,
+    required List<String> statements,
+    required List<bool> truths,
+    required List<String> feedbacks,
+  }) : this._(
+          type: LessonStepType.mythFact,
+          title: title,
+          statements: statements,
+          truths: truths,
+          feedbacks: feedbacks,
+        );
+
+  /// Práctica guiada con temporizador (respiración, grounding, escaneo).
+  const LessonStep.practice({
+    required String title,
+    required String intro,
+    required List<String> prompts,
+    required List<int> durations,
+    List<String>? motions,
+    String? outro,
+  }) : this._(
+          type: LessonStepType.practice,
+          title: title,
+          content: intro,
+          prompts: prompts,
+          durations: durations,
+          motions: motions,
+          explanation: outro,
+        );
+
+  /// Tocar los pasos de un proceso en el orden correcto.
+  /// [items] viene en el orden correcto; la pantalla los desordena.
+  const LessonStep.order({
+    required String title,
+    required String instruction,
+    required List<String> items,
+    String? explanation,
+  }) : this._(
+          type: LessonStepType.order,
+          title: title,
+          instruction: instruction,
+          items: items,
+          explanation: explanation,
+        );
+
+  /// Selección múltiple reflexiva: no hay respuestas correctas.
+  /// [responses] opcional: tres respuestas según cuántas marque.
+  const LessonStep.pick({
+    required String question,
+    required List<String> options,
+    String? explanation,
+    List<String>? responses,
+    String? title,
+  }) : this._(
+          type: LessonStepType.pick,
+          title: title ?? question,
+          question: question,
+          options: options,
+          explanation: explanation,
+          responses: responses,
+        );
+
+  /// Mini historia en burbujas de chat que se revelan al tocar.
+  const LessonStep.story({
+    required String title,
+    required List<String> lines,
+    String? speaker,
+  }) : this._(
+          type: LessonStepType.story,
+          title: title,
+          lines: lines,
+          speaker: speaker,
+        );
+
+  /// Micro-reto para hoy: elige uno y mantén presionado para comprometerte.
+  const LessonStep.commit({
+    required String title,
+    required String content,
+    required List<String> options,
+  }) : this._(
+          type: LessonStepType.commit,
+          title: title,
+          content: content,
+          options: options,
+        );
 }
 
 enum LessonStepType {
@@ -957,4 +1072,10 @@ enum LessonStepType {
   reveal,
   slider,
   sort,
+  mythFact,
+  practice,
+  order,
+  pick,
+  story,
+  commit,
 }

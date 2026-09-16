@@ -173,6 +173,52 @@ debugPrint('StackTrace: ${StackTrace.current}');
           itemCategory: List<int>.from(data['itemCategory'] ?? const []),
           explanation: _localizedNullable(data, 'explanation', locale),
         );
+      case 'mythfact':
+        return LessonStep.mythFact(
+          title: _localized(data, 'title', locale),
+          statements: _localizedList(data, 'statements', locale),
+          truths: List<bool>.from(data['truths'] ?? const []),
+          feedbacks: _localizedList(data, 'feedbacks', locale),
+        );
+      case 'practice':
+        return LessonStep.practice(
+          title: _localized(data, 'title', locale),
+          intro: _localized(data, 'intro', locale),
+          prompts: _localizedList(data, 'prompts', locale),
+          durations: List<int>.from(data['durations'] ?? const []),
+          motions: data['motions'] == null
+              ? null
+              : List<String>.from(data['motions']),
+          outro: _localizedNullable(data, 'outro', locale),
+        );
+      case 'order':
+        return LessonStep.order(
+          title: _localized(data, 'title', locale),
+          instruction: _localized(data, 'instruction', locale),
+          items: _localizedList(data, 'items', locale),
+          explanation: _localizedNullable(data, 'explanation', locale),
+        );
+      case 'pick':
+        final responses = _localizedList(data, 'responses', locale);
+        return LessonStep.pick(
+          question: _localized(data, 'question', locale),
+          options: _localizedList(data, 'options', locale),
+          explanation: _localizedNullable(data, 'explanation', locale),
+          responses: responses.isEmpty ? null : responses,
+          title: _localizedNullable(data, 'title', locale),
+        );
+      case 'story':
+        return LessonStep.story(
+          title: _localized(data, 'title', locale),
+          lines: _localizedList(data, 'lines', locale),
+          speaker: data['speaker'] as String?,
+        );
+      case 'commit':
+        return LessonStep.commit(
+          title: _localized(data, 'title', locale),
+          content: _localized(data, 'content', locale),
+          options: _localizedList(data, 'options', locale),
+        );
       case 'reading':
       default:
         return LessonStep.reading(

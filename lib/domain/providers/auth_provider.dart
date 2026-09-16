@@ -946,14 +946,18 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   // ═══════════════════════════════════════════════════════════════════════════
   // DIARY
   // ═══════════════════════════════════════════════════════════════════════════
-  Future<void> saveDiaryEntry(DiaryEntry entry) async {
+  /// [awardXp] en false para entradas que ya dieron XP por otro lado
+  /// (p. ej. un ejercicio de lección guardado en el diario).
+  Future<void> saveDiaryEntry(DiaryEntry entry, {bool awardXp = true}) async {
     if (firebaseUser == null) return;
     try {
       await _firestore
           .collection('users').doc(firebaseUser!.uid).collection('diary')
           .doc(entry.id).set(entry.toMap());
 
-      if (_userProgress != null) {
+      if (!awardXp) _diaryEntryCount++;
+
+      if (awardXp && _userProgress != null) {
         final oldProgress = _userProgress!;
         int xpGain = 20;
         if (entry.gratitude != null && entry.gratitude!.isNotEmpty) xpGain += 5;
