@@ -20,6 +20,17 @@ App Flutter para bienestar emocional. Estilo "Duolingo del bienestar" con rachas
 - **Persistencia moneda del jardín**: Firestore
 - **Monetización planeada**: RevenueCat (aún no activo)
 
+## Identidad de la app
+
+- **Estudio**: TheDarking Studios. **Nombre visible**: Lumen (Android, iOS y web).
+- **applicationId / namespace / bundle id**: `com.thedarkingstudios.lumen`. **Permanente**: una vez publicado en Google Play no se puede cambiar.
+- **Paquete Dart**: sigue siendo `gimnasio_emocional` (interno, no visible; cambiarlo obligaría a tocar todos los `import 'package:gimnasio_emocional/...'`).
+- **Firebase**: mismo proyecto `lumen-app-5bcda`. `google-services.json` contiene **dos** apps Android: la vieja (`com.example.gimnasio_emocional`, sin uso) y la nueva. No borrar la vieja sin revisar.
+  - App ID Android nuevo: `1:190336343882:android:c8619d6ea07db43d41ebb3` (también en `firebase_options.dart`).
+  - SHA-1 de debug ya registrado: `1D:81:1B:F7:87:C4:D9:65:42:F4:9B:57:BA:84:3B:A7:3E:B9:DB:60`.
+  - Al cambiar de máquina o generar el keystore de release, registrar su SHA-1 o Google Sign-In falla en Android.
+- **Firma release**: `android/app/build.gradle.kts` lee `android/key.properties` si existe; si no, usa la llave de debug. `key.properties`, `*.jks` y `*.keystore` están en `.gitignore` y **nunca** se suben.
+
 ## Arquitectura
 
 Clean architecture simplificada:
@@ -186,7 +197,7 @@ flutter clean; flutter pub get
 - **Polish visual de `lesson_screen.dart`** con personajes.
 - **Panel admin** de rutas de bienestar (sin script Node.js).
 - **Guía de batería para Xiaomi/Huawei/Oppo** al detectar el fabricante.
-- **Pre-publicación**: firma release keystore, íconos, screenshots, política de privacidad.
+- **Pre-publicación**: generar keystore de release + `key.properties` + registrar su SHA-1 en Firebase, íconos, screenshots, política de privacidad.
 - **Spam del email de reset**: requiere plan Blaze + dominio propio + SPF/DKIM.
 
 ## Historial de git

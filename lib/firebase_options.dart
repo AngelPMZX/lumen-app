@@ -60,7 +60,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAQRZ40nOGDl41dOWSqu5Xz2Kg-jwfRKsM',
-    appId: '1:190336343882:android:3e23af43d872e85b41ebb3',
+    appId: '1:190336343882:android:c8619d6ea07db43d41ebb3',
     messagingSenderId: '190336343882',
     projectId: 'lumen-app-5bcda',
     storageBucket: 'lumen-app-5bcda.firebasestorage.app',

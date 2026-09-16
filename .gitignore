@@ -45,7 +45,12 @@ app.*.map.json
 /android/app/release
 
 
-# Agrega esto a tu .gitignore
-echo "serviceAccountKey.json" >> .gitignore
 node_modules/
 serviceAccountKey.json
+
+# Firma de release — NUNCA subir: contiene las contraseñas y la llave con la
+# que se firma la app. Si se pierde la llave, no se puede actualizar la app
+# publicada en Google Play.
+/android/key.properties
+*.jks
+*.keystore

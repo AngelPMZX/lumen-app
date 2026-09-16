@@ -41,6 +41,43 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:190336343882:android:c8619d6ea07db43d41ebb3",
+        "android_client_info": {
+          "package_name": "com.thedarkingstudios.lumen"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "190336343882-c7genmjg9qv6io6d2s3g8veegmc1f0as.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.thedarkingstudios.lumen",
+            "certificate_hash": "1d811bf787c4d96542f49b57ba843ba73eb9db60"
+          }
+        },
+        {
+          "client_id": "190336343882-lfsrg6vqjgsooaq96b006muk5milmohl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQRZ40nOGDl41dOWSqu5Xz2Kg-jwfRKsM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "190336343882-lfsrg6vqjgsooaq96b006muk5milmohl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
