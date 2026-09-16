@@ -142,6 +142,7 @@ void clearVerificationState() {
         debugPrint('Error loading counters: $e');
       }
 
+      await _ensureUsernameReserved();
       await _loadCelebratedAchievements();
       await _loadDiscoveries();
       notifyListeners();
@@ -572,7 +573,7 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
     notifyListeners();
     return false;
   } catch (e) {
-    _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
+    _errorMessage = 'errors.generic'.tr();
     _isLoading = false;
     notifyListeners();
     return false;
@@ -612,7 +613,7 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
     notifyListeners();
     return false;
   } catch (e) {
-    _errorMessage = 'Ocurrió un error. Intenta de nuevo.';
+    _errorMessage = 'errors.generic'.tr();
     _isLoading = false;
     notifyListeners();
     return false;
@@ -804,6 +805,15 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       for (final name in _userSubcollections) {
         await _deleteCollection(userDoc.collection(name));
       }
+      final username = _userModel?.username?.toLowerCase();
+      if (username != null && username.isNotEmpty) {
+        try {
+          final reserved = await _usernameDoc(username).get();
+          if (reserved.data()?['uid'] == user.uid) await reserved.reference.delete();
+        } catch (e) {
+          debugPrint('Release username on delete: $e');
+        }
+      }
       await userDoc.delete();
       await _firestore.collection('_server_time').doc(user.uid).delete();
 
@@ -874,19 +884,39 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   // ═══════════════════════════════════════════════════════════════════════════
   // UPDATE USER PROFILE
   // ═══════════════════════════════════════════════════════════════════════════
+  /// Reserva de nombres: `usernames/{username}` → `{uid}`. Es la única forma de
+  /// saber si un nombre está ocupado sin poder leer perfiles ajenos (las
+  /// reglas solo dejan a cada usuario leer su propio `users/{uid}`).
+  DocumentReference<Map<String, dynamic>> _usernameDoc(String username) =>
+      _firestore.collection('usernames').doc(username.toLowerCase());
+
   Future<bool> isUsernameTaken(String username) async {
-  try {
-    final query = await _firestore
-        .collection('users')
-        .where('username', isEqualTo: username.toLowerCase())
-        .limit(1)
-        .get();
-    return query.docs.isNotEmpty;
-  } catch (e) {
-    debugPrint('Error checking username: $e');
-    return false; // ← si falla la consulta, permitir continuar
+    try {
+      final doc = await _usernameDoc(username).get();
+      return doc.exists && doc.data()?['uid'] != firebaseUser?.uid;
+    } catch (e) {
+      debugPrint('Error checking username: $e');
+      // Solo es una ayuda para el formulario: la reserva real ocurre en la
+      // transacción de updateUserProfile, que sí rechaza duplicados.
+      return false;
+    }
   }
-}
+
+  /// Cuentas creadas antes de la reserva de nombres: reclama el suyo al cargar.
+  Future<void> _ensureUsernameReserved() async {
+    final uid = firebaseUser?.uid;
+    final name = _userModel?.username?.toLowerCase();
+    if (uid == null || name == null || name.isEmpty) return;
+    try {
+      final ref = _usernameDoc(name);
+      final snap = await ref.get();
+      if (!snap.exists) {
+        await ref.set({'uid': uid, 'createdAt': FieldValue.serverTimestamp()});
+      }
+    } catch (e) {
+      debugPrint('Error reserving existing username: $e');
+    }
+  }
 
   Future<(bool, String?)> updateUserProfile({
     String? name,
@@ -898,7 +928,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     String? archetype,
     bool markComplete = false,
   }) async {
-    if (firebaseUser == null) return (false, 'No hay sesión activa');
+    if (firebaseUser == null) return (false, 'errors.noSession'.tr());
     try {
       _isLoading = true;
       notifyListeners();
@@ -919,16 +949,50 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
         final currentHobbies = hobbies ?? _userModel?.hobbies ?? [];
         final currentMusic = musicGenres ?? _userModel?.musicGenres ?? [];
 
-        if (currentGender == null || currentGender.isEmpty) { _isLoading = false; notifyListeners(); return (false, 'El género es obligatorio'); }
-        if (currentAge == null) { _isLoading = false; notifyListeners(); return (false, 'La edad es obligatoria'); }
-        if (currentUsername == null || currentUsername.isEmpty) { _isLoading = false; notifyListeners(); return (false, 'El nombre de usuario es obligatorio'); }
-        if (currentHobbies.length < 3) { _isLoading = false; notifyListeners(); return (false, 'Selecciona al menos 3 hobbies'); }
-        if (currentMusic.length < 2) { _isLoading = false; notifyListeners(); return (false, 'Selecciona al menos 2 géneros musicales'); }
+        if (currentGender == null || currentGender.isEmpty) { _isLoading = false; notifyListeners(); return (false, 'profileSetup.genderRequired'.tr()); }
+        if (currentAge == null) { _isLoading = false; notifyListeners(); return (false, 'profileSetup.ageRequired'.tr()); }
+        if (currentUsername == null || currentUsername.isEmpty) { _isLoading = false; notifyListeners(); return (false, 'profileSetup.usernameRequired'.tr()); }
+        if (currentHobbies.length < 3) { _isLoading = false; notifyListeners(); return (false, 'profileSetup.hobbiesMin'.tr(namedArgs: {'count': '3'})); }
+        if (currentMusic.length < 2) { _isLoading = false; notifyListeners(); return (false, 'profileSetup.musicMin'.tr(namedArgs: {'count': '2'})); }
 
         updates['profileComplete'] = true;
       }
 
-      await _firestore.collection('users').doc(firebaseUser!.uid).update(updates);
+      final uid = firebaseUser!.uid;
+      final userRef = _firestore.collection('users').doc(uid);
+      final newName = username?.toLowerCase();
+      final oldName = _userModel?.username?.toLowerCase();
+
+      if (newName != null && newName != oldName) {
+        // Reservar el nombre nuevo, liberar el anterior y guardar el perfil en
+        // una sola transacción: si otra persona lo tomó un instante antes, no
+        // se guarda nada.
+        final taken = await _firestore.runTransaction<bool>((tx) async {
+          final newRef = _usernameDoc(newName);
+          final newSnap = await tx.get(newRef);
+          DocumentSnapshot<Map<String, dynamic>>? oldSnap;
+          if (oldName != null && oldName.isNotEmpty) {
+            oldSnap = await tx.get(_usernameDoc(oldName));
+          }
+          if (newSnap.exists && newSnap.data()?['uid'] != uid) return true;
+
+          if (!newSnap.exists) {
+            tx.set(newRef, {'uid': uid, 'createdAt': FieldValue.serverTimestamp()});
+          }
+          if (oldSnap != null && oldSnap.exists && oldSnap.data()?['uid'] == uid) {
+            tx.delete(oldSnap.reference);
+          }
+          tx.update(userRef, updates);
+          return false;
+        });
+        if (taken) {
+          _isLoading = false;
+          notifyListeners();
+          return (false, 'profileSetup.usernameTaken'.tr());
+        }
+      } else {
+        await userRef.update(updates);
+      }
       await loadUserData();
       _isLoading = false;
       notifyListeners();
@@ -936,11 +1000,11 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     } on FirebaseException {
       _isLoading = false;
       notifyListeners();
-      return (false, 'Error al guardar. Verifica tu conexión.');
+      return (false, 'errors.saveCheckConnection'.tr());
     } catch (e) {
       _isLoading = false;
       notifyListeners();
-      return (false, 'Ocurrió un error inesperado.');
+      return (false, 'errors.generic'.tr());
     }
   }
 
@@ -1335,14 +1399,15 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
 
   String _getErrorMessage(String code) {
     switch (code) {
-      case 'email-already-in-use': return 'Este correo ya está registrado';
-      case 'invalid-email': return 'Correo electrónico inválido';
-      case 'weak-password': return 'La contraseña es muy débil (mínimo 6 caracteres)';
-      case 'user-not-found': return 'No existe una cuenta con este correo';
-      case 'wrong-password': return 'Contraseña incorrecta';
-      case 'invalid-credential': return 'Credenciales inválidas. Verifica tu correo y contraseña';
-      case 'too-many-requests': return 'Demasiados intentos. Espera un momento';
-      default: return 'Ocurrió un error. Intenta de nuevo.';
+      case 'email-already-in-use': return 'errors.emailInUse'.tr();
+      case 'invalid-email': return 'errors.invalidEmail'.tr();
+      case 'weak-password': return 'errors.weakPassword'.tr();
+      case 'user-not-found': return 'errors.userNotFound'.tr();
+      case 'wrong-password': return 'errors.wrongPassword'.tr();
+      case 'invalid-credential': return 'errors.invalidCredential'.tr();
+      case 'too-many-requests': return 'errors.tooManyRequests'.tr();
+      case 'network-request-failed': return 'errors.network'.tr();
+      default: return 'errors.generic'.tr();
     }
   }
 }

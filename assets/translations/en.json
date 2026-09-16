@@ -180,7 +180,12 @@
     "selectAtLeast2": "Select at least 2 genres",
     "discoverArchetype": "Discover my archetype",
     "errorSaveProfile": "Error saving your profile",
-    "errorCompleteProfile": "Error completing profile"
+    "errorCompleteProfile": "Error completing profile",
+    "genderRequired": "Gender is required",
+    "ageRequired": "Age is required",
+    "usernameRequired": "Username is required",
+    "hobbiesMin": "Select at least {count} hobbies",
+    "musicMin": "Select at least {count} music genres"
   },
   "archetype": {
     "revealTitle": "Your archetype is...",
@@ -574,7 +579,9 @@
     "savedToDiary": "Saved to your diary",
     "startLesson": "Start",
     "trophyLocked": "Finish the route",
-    "halfway": "Halfway there"
+    "halfway": "Halfway there",
+    "multiplierBanner": "×{mult} XP — Multiplier active!",
+    "multiplierApplied": "⚡ ×{mult} multiplier applied"
   },
   "profile": {
     "title": "My Profile",
@@ -690,7 +697,11 @@
     "tooManyRequests": "Too many attempts. Wait a moment and try again.",
     "saveFailed": "Error saving. Try again.",
     "loadFailed": "Error loading data.",
-    "sessionExpired": "Your session expired. Please log in again."
+    "sessionExpired": "Your session expired. Please log in again.",
+    "noSession": "No active session. Please sign in again.",
+    "invalidEmail": "Invalid email address",
+    "invalidCredential": "Invalid credentials. Check your email and password.",
+    "saveCheckConnection": "Could not save. Check your connection."
   },
   "dailyChallenges": {
     "categories": {
@@ -1807,6 +1818,18 @@
         "title": "🧪 Notification test",
         "body": "If you see this, notifications work correctly on your device."
       }
+    },
+    "errors": {
+      "notForSeeds": "This item is not available for seeds",
+      "notAvailableNow": "This item is not available right now",
+      "buyFailed": "Could not complete the purchase. Try again.",
+      "notInInventory": "You do not have this item in your inventory",
+      "plantFailed": "Could not plant. Try again.",
+      "invalidItem": "Invalid item",
+      "noBooster": "You do not have this booster",
+      "plantNotFound": "Plant not found",
+      "alreadyAdult": "This plant is already fully grown",
+      "boosterFailed": "Could not apply the booster. Try again."
     }
   },
   "crisis": {

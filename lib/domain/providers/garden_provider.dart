@@ -8,6 +8,7 @@ import '../../data/models/garden_item.dart';
 import '../../data/models/garden_state.dart';
 import '../../data/models/reward_service.dart';
 import '../../data/models/garden_mechanics.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class GardenProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -381,27 +382,27 @@ class GardenProvider extends ChangeNotifier {
   // ═══════════════════════════════════════════════════════════════════════════
 
   Future<(bool, String?)> buyItem(GardenItem item) async {
-    if (_user == null) return (false, 'No hay sesión activa');
+    if (_user == null) return (false, 'errors.noSession'.tr());
     if (!item.canBuyWithSeeds) {
-      return (false, 'Este item no está disponible con semillas');
+      return (false, 'garden.errors.notForSeeds'.tr());
     }
     if (!item.isCurrentlyAvailable) {
-      return (false, 'Este item no está disponible ahora');
+      return (false, 'garden.errors.notAvailableNow'.tr());
     }
     if (_state.seeds < item.seedCost) {
-      return (false, 'No tienes suficientes semillas');
+      return (false, 'garden.notEnoughSeeds'.tr());
     }
 
     try {
       final spent = await spendSeeds(item.seedCost);
-      if (!spent) return (false, 'No tienes suficientes semillas');
+      if (!spent) return (false, 'garden.notEnoughSeeds'.tr());
       _addToInventory(item.id, 1);
       await _saveToFirestore();
       notifyListeners();
       return (true, null);
     } catch (e) {
       debugPrint('Error buying item: $e');
-      return (false, 'Error al comprar. Intenta de nuevo.');
+      return (false, 'garden.errors.buyFailed'.tr());
     }
   }
 
@@ -432,12 +433,12 @@ class GardenProvider extends ChangeNotifier {
 
   Future<(bool, String?)> plantItemInSlot(
       String itemId, String gardenId, int slotIndex) async {
-    if (_user == null) return (false, 'No hay sesión activa');
+    if (_user == null) return (false, 'errors.noSession'.tr());
     if (!_state.hasInInventory(itemId)) {
-      return (false, 'No tienes este item en tu inventario');
+      return (false, 'garden.errors.notInInventory'.tr());
     }
     if (!_isSlotFree(gardenId, slotIndex)) {
-      return (false, 'Este lugar ya está ocupado');
+      return (false, 'garden.positionOccupied'.tr());
     }
 
     try {
@@ -456,29 +457,29 @@ class GardenProvider extends ChangeNotifier {
       return (true, null);
     } catch (e) {
       debugPrint('Error planting item: $e');
-      return (false, 'Error al plantar. Intenta de nuevo.');
+      return (false, 'garden.errors.plantFailed'.tr());
     }
   }
 
   Future<(bool, String?)> applyBooster(
       String boosterItemId, String plantInstanceId) async {
-    if (_user == null) return (false, 'No hay sesión activa');
+    if (_user == null) return (false, 'errors.noSession'.tr());
     final booster = GardenCatalog.findById(boosterItemId);
     if (booster == null || booster.type != ItemType.booster) {
-      return (false, 'Item inválido');
+      return (false, 'garden.errors.invalidItem'.tr());
     }
     if (!_state.hasInInventory(boosterItemId)) {
-      return (false, 'No tienes este booster');
+      return (false, 'garden.errors.noBooster'.tr());
     }
 
     final plantIndex =
         _state.garden.indexWhere((p) => p.instanceId == plantInstanceId);
-    if (plantIndex == -1) return (false, 'Planta no encontrada');
+    if (plantIndex == -1) return (false, 'garden.errors.plantNotFound'.tr());
 
     final plant = _state.garden[plantIndex];
     final plantItem = GardenCatalog.findById(plant.itemId);
-    if (plantItem == null) return (false, 'Item de planta no encontrado');
-    if (plant.isAdult(plantItem)) return (false, 'Esta planta ya está adulta');
+    if (plantItem == null) return (false, 'garden.errors.plantNotFound'.tr());
+    if (plant.isAdult(plantItem)) return (false, 'garden.errors.alreadyAdult'.tr());
 
     try {
       final boost = booster.boostDuration ?? Duration.zero;
@@ -495,7 +496,7 @@ class GardenProvider extends ChangeNotifier {
       return (true, null);
     } catch (e) {
       debugPrint('Error applying booster: $e');
-      return (false, 'Error al aplicar booster.');
+      return (false, 'garden.errors.boosterFailed'.tr());
     }
   }
 

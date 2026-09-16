@@ -180,7 +180,12 @@
     "selectAtLeast2": "Selecciona al menos 2 géneros",
     "discoverArchetype": "Descubrir mi arquetipo",
     "errorSaveProfile": "Error al guardar tu perfil",
-    "errorCompleteProfile": "Error al completar perfil"
+    "errorCompleteProfile": "Error al completar perfil",
+    "genderRequired": "El género es obligatorio",
+    "ageRequired": "La edad es obligatoria",
+    "usernameRequired": "El nombre de usuario es obligatorio",
+    "hobbiesMin": "Selecciona al menos {count} hobbies",
+    "musicMin": "Selecciona al menos {count} géneros musicales"
   },
   "archetype": {
     "revealTitle": "Tu arquetipo es...",
@@ -574,7 +579,9 @@
     "savedToDiary": "Guardado en tu diario",
     "startLesson": "Empezar",
     "trophyLocked": "Completa la ruta",
-    "halfway": "Mitad del camino"
+    "halfway": "Mitad del camino",
+    "multiplierBanner": "×{mult} XP — ¡Multiplicador activo!",
+    "multiplierApplied": "⚡ ×{mult} multiplicador aplicado"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -690,7 +697,11 @@
     "tooManyRequests": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
     "saveFailed": "Error al guardar. Intenta de nuevo.",
     "loadFailed": "Error al cargar los datos.",
-    "sessionExpired": "Tu sesión expiró. Vuelve a iniciar sesión."
+    "sessionExpired": "Tu sesión expiró. Vuelve a iniciar sesión.",
+    "noSession": "No hay sesión activa. Vuelve a iniciar sesión.",
+    "invalidEmail": "Correo electrónico inválido",
+    "invalidCredential": "Credenciales inválidas. Verifica tu correo y contraseña.",
+    "saveCheckConnection": "Error al guardar. Verifica tu conexión."
   },
   "dailyChallenges": {
     "categories": {
@@ -1807,6 +1818,18 @@
         "title": "🧪 Prueba de notificación",
         "body": "Si ves esto, las notificaciones funcionan correctamente en tu dispositivo."
       }
+    },
+    "errors": {
+      "notForSeeds": "Este item no está disponible con semillas",
+      "notAvailableNow": "Este item no está disponible ahora",
+      "buyFailed": "Error al comprar. Intenta de nuevo.",
+      "notInInventory": "No tienes este item en tu inventario",
+      "plantFailed": "Error al plantar. Intenta de nuevo.",
+      "invalidItem": "Item inválido",
+      "noBooster": "No tienes este booster",
+      "plantNotFound": "Planta no encontrada",
+      "alreadyAdult": "Esta planta ya está adulta",
+      "boosterFailed": "Error al aplicar el booster. Intenta de nuevo."
     }
   },
   "crisis": {

@@ -1,0 +1,71 @@
+rules_version = '2';
+
+// Reglas de Firestore de Lumen.
+// Fuente de verdad: este archivo. Publicar copiándolo en Firebase Console →
+// Firestore Database → Reglas (o con `firebase deploy --only firestore:rules`).
+//
+// Principios:
+// - Cada usuario solo puede leer y escribir SUS datos: la app guarda
+//   información de salud mental (ánimo, diario, retos).
+// - Las reglas NO cascadean a subcolecciones: cada nivel necesita su match.
+// - Lo que no aparece aquí queda denegado.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // ── Datos de cada usuario ──────────────────────────────────────────────
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /{subcollection}/{docId} {
+        allow read, write: if isOwner(userId);
+      }
+      match /{subcollection}/{docId}/{nestedCol}/{nestedDoc} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ── Reserva de nombres de usuario ──────────────────────────────────────
+    // Permite comprobar si un nombre está ocupado sin poder leer perfiles
+    // ajenos. Solo expone el uid dueño del nombre.
+    match /usernames/{username} {
+      allow read: if signedIn();
+      // Crear solo para uno mismo, con formato válido (3-20 caracteres,
+      // minúsculas, números, punto o guion bajo; sin punto al inicio o final).
+      // `create` no aplica si el documento ya existe: no se puede robar un nombre.
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && username.matches('^[a-z0-9_][a-z0-9._]{1,18}[a-z0-9_]$');
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
+    // ── Contenido de rutas (solo lectura; se escribe con seed/seed_routes.js) ─
+    // Incluye wellness_routes/_meta (versión para la caché de la app).
+    match /wellness_routes/{routeId} {
+      allow read: if signedIn();
+      allow write: if false;
+      match /lessons/{lessonId} {
+        allow read: if signedIn();
+        allow write: if false;
+        match /steps/{stepId} {
+          allow read: if signedIn();
+          allow write: if false;
+        }
+      }
+    }
+
+    // ── Hora del servidor para validar la racha ─────────────────────────────
+    match /_server_time/{userId} {
+      allow read, write, delete: if isOwner(userId);
+    }
+  }
+}

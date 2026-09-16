@@ -58,7 +58,8 @@ Clean architecture simplificada:
 9. **Días de racha**: usar `UserProgress.daysSinceCheckIn` (días de calendario en UTC), nunca `difference().inDays` entre fechas locales — falla en días con cambio de horario.
 10. **`progress/current` se sobrescribe completo** con `.set(toMap())` en varios lugares: no guardar campos extra ahí. Datos auxiliares van en su propio doc de `progress/` (`celebrated_achievements`, `discoveries`, `breathing`).
 11. **PowerShell 5.1 parte los argumentos con comillas dobles** al llamar ejecutables (`git commit -m "..."`, `python -c "..."`): usar `git commit -F archivo.txt` y scripts `.py` en archivo.
-12. **`flutter analyze` está en 0 issues** — mantenerlo así: `withValues(alpha: x)` en vez de `withOpacity(x)`, `activeThumbColor` en `Switch`, `toARGB32()` en vez de `Color.value`, y tras un `await` leer providers antes del `await` o chequear `mounted` (`context.mounted` dentro de closures del `build`).
+12. **Nada de textos visibles hardcodeados, tampoco en providers**: los mensajes de error que devuelven `AuthProvider` y `GardenProvider` también van con `.tr()` (antes el login mostraba "Contraseña incorrecta" en inglés).
+13. **`flutter analyze` está en 0 issues** — mantenerlo así: `withValues(alpha: x)` en vez de `withOpacity(x)`, `activeThumbColor` en `Switch`, `toARGB32()` en vez de `Color.value`, y tras un `await` leer providers antes del `await` o chequear `mounted` (`context.mounted` dentro de closures del `build`).
 
 ## Features implementadas
 
@@ -189,38 +190,14 @@ Clean architecture simplificada:
 
 ## Reglas de Firestore vigentes
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-      match /{subcollection}/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-      match /{subcollection}/{docId}/{nestedCol}/{nestedDoc} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-    match /wellness_routes/{routeId} {
-      allow read: if request.auth != null;
-      allow write: if false;
-      match /lessons/{lessonId} {
-        allow read: if request.auth != null;
-        allow write: if false;
-        match /steps/{stepId} {
-          allow read: if request.auth != null;
-          allow write: if false;
-        }
-      }
-    }
-    match /_server_time/{userId} {
-      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
+La fuente de verdad es **`firestore.rules`** en la raíz del repo; publicar copiándolo en Firebase Console → Firestore Database → Reglas. Resumen:
+
+- `users/{userId}` y todas sus subcolecciones (2 niveles): solo el dueño lee y escribe. Nadie puede leer perfiles ajenos.
+- `usernames/{username}` → `{uid, createdAt}`: lectura con sesión; crear solo para uno mismo y con formato válido; borrar solo el dueño; sin update. Es la única forma de comprobar si un nombre está ocupado. `updateUserProfile` reserva el nombre nuevo, libera el anterior y guarda el perfil en **una transacción**; `loadUserData` reclama el nombre de cuentas anteriores a la reserva (`_ensureUsernameReserved`); borrar la cuenta lo libera.
+- `wellness_routes` (+ `lessons`, `steps`, `_meta`): solo lectura con sesión.
+- `_server_time/{userId}`: solo el dueño.
+- Todo lo demás, denegado.
+- **Si agregas una colección de nivel superior, agrégala a `firestore.rules`** (sin match queda denegada). Las subcolecciones nuevas de `users/{uid}` ya quedan cubiertas, pero van en `_userSubcollections`.
 
 ## Comandos frecuentes
 
@@ -246,7 +223,6 @@ flutter clean; flutter pub get
 
 - **RevenueCat activo** para monetización.
 - **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
-- **Reglas de Firestore**: restringir lectura de `users/{userId}` al dueño antes de publicar (hoy cualquier usuario autenticado puede leer perfiles ajenos).
 - **Polish visual de `lesson_screen.dart`** con personajes.
 - **Panel admin** de rutas de bienestar (sin script Node.js).
 - **Guía de batería para Xiaomi/Huawei/Oppo** al detectar el fabricante.
@@ -267,7 +243,6 @@ flutter clean; flutter pub get
 9. Rutas nuevas **Ansiedad y Estrés** y **Sueño**, candidatas a contenido premium (la ayuda en crisis siempre gratis).
 
 **Pulido**:
-- `lesson_screen.dart` tiene textos en español hardcodeados: "¡Multiplicador activo!" y "Multiplicador aplicado". Pasarlos a i18n.
 - La pantalla de lección solo tiene modo oscuro.
 - Accesibilidad: opción "reducir animaciones" y revisar TalkBack en los pasos nuevos.
 - `lesson_screen.dart` (~2 200 líneas): mover quiz, sort, reveal y slider a `steps/`, como los tipos nuevos.

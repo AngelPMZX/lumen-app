@@ -834,7 +834,7 @@ class _LessonScreenState extends State<LessonScreen>
                     const Text('⚡', style: TextStyle(fontSize: 13)),
                     const SizedBox(width: 6),
                     Text(
-                      '×${mult.toStringAsFixed(1)} XP — ¡Multiplicador activo!',
+                      'routes.multiplierBanner'.tr(namedArgs: {'mult': mult.toStringAsFixed(1)}),
                       style: const TextStyle(
                         color: Color(0xFF8B5CF6),
                         fontSize: 12,
@@ -2321,7 +2321,7 @@ class _LessonScreenState extends State<LessonScreen>
                         border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.4)),
                       ),
                       child: Text(
-                        '⚡ ×${_appliedMultiplier.toStringAsFixed(1)} Multiplicador aplicado',
+                        'routes.multiplierApplied'.tr(namedArgs: {'mult': _appliedMultiplier.toStringAsFixed(1)}),
                         style: const TextStyle(
                           color: Color(0xFF8B5CF6), fontSize: 11, fontWeight: FontWeight.w700,
                         ),
