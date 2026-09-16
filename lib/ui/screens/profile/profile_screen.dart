@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../data/models/achievement.dart';
+import '../../../domain/services/sound_service.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
 import '../../../domain/providers/theme_provider.dart';
@@ -545,6 +546,25 @@ const SizedBox(height: 10),
                       activeThumbColor: const Color(0xFF6366F1),
                     ),
                   ).animate().fadeIn(delay: 500.ms),
+                  const SizedBox(height: 10),
+
+                  // Efectos de sonido
+                  _buildMenuCard(
+                    icon: Icons.volume_up_rounded,
+                    title: _tr('profileScreen.soundEffects', fallback: 'Efectos de sonido'),
+                    subtitle: _tr('profileScreen.soundEffectsSubtitle',
+                        fallback: 'Aciertos, lecciones y celebraciones'),
+                    color: const Color(0xFFF59E0B), isDark: isDark,
+                    trailing: Switch.adaptive(
+                      value: SoundService.instance.effectsEnabled,
+                      onChanged: (v) async {
+                        await SoundService.instance.setEffectsEnabled(v);
+                        if (v) SoundService.instance.play(Sfx.pop);
+                        if (mounted) setState(() {});
+                      },
+                      activeThumbColor: const Color(0xFFF59E0B),
+                    ),
+                  ).animate().fadeIn(delay: 510.ms),
                   const SizedBox(height: 10),
 
                   // Language selector

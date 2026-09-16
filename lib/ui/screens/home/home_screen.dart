@@ -28,6 +28,12 @@ import '../../../domain/services/routes_service.dart';
 import '../../../data/models/garden_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gimnasio_emocional/domain/services/notification_service.dart';
+import '../../../domain/services/sound_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../../data/models/commitment.dart';
+import '../../../domain/services/commitment_service.dart';
+import '../../widgets/commitment_check_card.dart';
+import '../../../domain/services/analytics_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,6 +55,9 @@ class _HomeScreenState extends State<HomeScreen>
   List<WellnessRoute> _dynamicRoutes = [];
   bool _challengeCompletedToday = false;
   bool _crisisCardDismissedToday = false;
+
+  /// Reto de una lección por el que hay que preguntar hoy.
+  Commitment? _pendingCommitment;
 
   static const Map<String, String> _quoteTextKeys = {
     'La paz viene de adentro. No la busques afuera.': 'quoteService.localQuotes.0.text',
@@ -204,6 +213,15 @@ Future<void> _loadChallengeState() async {
       setState(() { _completedLessons = completed; _hasLessonToday = hasLesson; });
     } catch (e) { debugPrint('Error loading completed lessons: $e'); }
 
+    if (!mounted) return;
+    try {
+      final uid = context.read<AuthProvider>().firebaseUser?.uid;
+      if (uid != null) {
+        final pending = await CommitmentService.instance.pendingToAsk(uid);
+        if (mounted) setState(() => _pendingCommitment = pending);
+      }
+    } catch (e) { debugPrint('Error loading commitment: $e'); }
+
   
   }
 
@@ -282,6 +300,34 @@ Future<void> _scheduleDailyReminders() async {
     } catch (e) {
       debugPrint('Error dismissing crisis card: $e');
     }
+  }
+
+  // ── Reto de lección ────────────────────────────────────────────────────────
+
+  Future<void> _answerCommitment(CommitmentStatus status) async {
+    final commitment = _pendingCommitment;
+    final uid = context.read<AuthProvider>().firebaseUser?.uid;
+    if (commitment == null || uid == null) return;
+    await CommitmentService.instance.answer(uid, commitment.id, status);
+    AnalyticsService.instance.commitmentAnswered(status.name, commitment.daysAgo(DateTime.now()));
+    if (!kIsWeb) {
+      NotificationService.instance.cancelCommitmentReminder().catchError((_) {});
+    }
+    if (status == CommitmentStatus.skipped) return;
+    SoundService.instance.play(
+      status == CommitmentStatus.done ? Sfx.achievement : Sfx.habit,
+      volume: 0.6,
+    );
+    await Future.delayed(const Duration(milliseconds: 900));
+    await _grantGardenReward(RewardSource.commitment);
+  }
+
+  Future<void> _retryCommitment() async {
+    final commitment = _pendingCommitment;
+    final uid = context.read<AuthProvider>().firebaseUser?.uid;
+    if (commitment == null || uid == null) return;
+    await CommitmentService.instance.retryToday(uid, commitment.id);
+    AnalyticsService.instance.commitmentRetried();
   }
 
   // ── Garden reward ──────────────────────────────────────────────────────────
@@ -366,6 +412,7 @@ Future<void> _scheduleDailyReminders() async {
                   lesson: lesson,
                   routeColor: route.color,
                   routeEmoji: route.emoji,
+                  routeId: route.id,
                 ),
               ),
             );
@@ -470,6 +517,8 @@ Future<void> _scheduleDailyReminders() async {
           id: DateTime.now().millisecondsSinceEpoch.toString(), mood: mood);
       try {
         final isFirstToday = await auth.saveMoodEntry(entry);
+        SoundService.instance.play(Sfx.checkin, volume: 0.6);
+        AnalyticsService.instance.moodCheckIn();
         setState(() => _weeklyMoods[DateTime.now().weekday] = mood);
         if (mounted) {
           ScaffoldMessenger.of(context)
@@ -1059,6 +1108,19 @@ Future<void> _scheduleDailyReminders() async {
                     ),
                   ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 20),
+
+                  // ── ¿CUMPLISTE TU RETO? ────────────────────────────────────
+                  if (_pendingCommitment != null) ...[
+                    CommitmentCheckCard(
+                      key: ValueKey(_pendingCommitment!.id),
+                      commitment: _pendingCommitment!,
+                      isDark: isDark,
+                      onAnswer: _answerCommitment,
+                      onRetry: _retryCommitment,
+                      onClose: () => setState(() => _pendingCommitment = null),
+                    ).animate().fadeIn(delay: 520.ms, duration: 500.ms),
+                    const SizedBox(height: 20),
+                  ],
 
                   // ── APOYO EN CRISIS (varios días difíciles) ────────────────
                   if (_shouldOfferCrisisSupport) ...[

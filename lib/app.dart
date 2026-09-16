@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'ui/screens/auth/forgot_password_screen.dart';
 import 'ui/screens/auth/verify_email_screen.dart';
 import 'ui/screens/crisis/crisis_support_screen.dart';
+import 'domain/services/analytics_service.dart';
 
 class LumenApp extends StatelessWidget {
   const LumenApp({super.key});
@@ -20,6 +21,11 @@ class LumenApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
+    AnalyticsService.instance.setLanguage(context.locale.languageCode);
+    final analyticsObserver = AnalyticsService.instance.observer(
+      // La ayuda en crisis nunca se registra: es un dato de salud.
+      excludedRoutes: {AppRoutes.crisisSupport},
+    );
 
     return MaterialApp(
       title: 'app.name'.tr(),
@@ -31,6 +37,7 @@ class LumenApp extends StatelessWidget {
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       initialRoute: AppRoutes.splash,
+      navigatorObservers: [?analyticsObserver],
       routes: {
         AppRoutes.splash: (_) => const SplashScreen(),
         AppRoutes.login: (_) => const LoginScreen(),

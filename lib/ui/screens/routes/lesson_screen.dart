@@ -11,6 +11,7 @@ import '../../../data/models/mood_entry.dart';
 import '../../../data/models/wellness_route.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
+import '../../../domain/services/sound_service.dart';
 import 'steps/commit_step.dart';
 import 'steps/myth_fact_step.dart';
 import 'steps/order_step.dart';
@@ -18,6 +19,10 @@ import 'steps/pick_step.dart';
 import 'steps/practice_step.dart';
 import 'steps/step_common.dart';
 import 'steps/story_step.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../../domain/services/commitment_service.dart';
+import '../../../domain/services/notification_service.dart';
+import '../../../domain/services/analytics_service.dart';
 
 // ─── Character state ──────────────────────────────────────────────────────────
 enum _CharacterState { idle, correct, wrong }
@@ -333,11 +338,23 @@ class LessonScreen extends StatefulWidget {
   final Color routeColor;
   final String routeEmoji;
 
+  /// Define el ambiente sonoro de la lección (cada ruta tiene el suyo).
+  final String? routeId;
+
+  /// Si existe, la pantalla final ofrece "Siguiente lección" y la pantalla
+  /// devuelve [LessonScreen.nextResult] al cerrarse.
+  final Lesson? nextLesson;
+
+  /// Resultado de `Navigator.pop` cuando el usuario eligió seguir.
+  static const nextResult = 'next';
+
   const LessonScreen({
     super.key,
     required this.lesson,
     required this.routeColor,
     required this.routeEmoji,
+    this.routeId,
+    this.nextLesson,
   });
 
   @override
@@ -398,12 +415,26 @@ class _LessonScreenState extends State<LessonScreen>
     super.initState();
     _confettiController =
         ConfettiController(duration: const Duration(seconds: 3));
+    SoundService.instance.setBaseAmbient(
+      SoundService.ambientForRoute(widget.routeId),
+      volume: 0.18,
+    );
+    AnalyticsService.instance.lessonStart(widget.routeId, widget.lesson.id);
   }
 
   @override
   void dispose() {
     _exerciseController.dispose();
     _confettiController.dispose();
+    SoundService.instance.clearBaseAmbient();
+    if (!_showCompletion) {
+      AnalyticsService.instance.lessonAbandoned(
+        widget.routeId,
+        widget.lesson.id,
+        _currentStep,
+        widget.lesson.steps.length,
+      );
+    }
     super.dispose();
   }
 
@@ -457,6 +488,28 @@ class _LessonScreenState extends State<LessonScreen>
     }
   }
 
+  /// Guarda el micro-reto para preguntarle al usuario mañana si lo cumplió.
+  void _saveCommitment(String text) {
+    final uid = context.read<AuthProvider>().firebaseUser?.uid;
+    if (uid == null) return;
+    AnalyticsService.instance.commitmentCreated(widget.routeId, widget.lesson.id);
+    CommitmentService.instance.save(
+      uid: uid,
+      text: text,
+      lessonId: widget.lesson.id,
+      lessonTitle: widget.lesson.title,
+      routeId: widget.routeId,
+    );
+    if (!kIsWeb) {
+      NotificationService.instance
+          .scheduleCommitmentReminder(
+            title: 'commitments.notificationTitle'.tr(),
+            body: 'commitments.notificationBody'.tr(namedArgs: {'text': text}),
+          )
+          .catchError((Object e) => debugPrint('Commitment reminder error: $e'));
+    }
+  }
+
   /// Guarda la respuesta del ejercicio como entrada del diario.
   /// Sin XP extra: la lección ya da XP y así no se puede farmear repitiendo.
   void _saveExerciseEntry() {
@@ -470,6 +523,7 @@ class _LessonScreenState extends State<LessonScreen>
       text: text,
       prompt: '${widget.lesson.title} · ${_step.title}',
     );
+    AnalyticsService.instance.exerciseSavedToDiary(widget.lesson.id);
     auth.saveDiaryEntry(entry, awardXp: false).then((_) {
       messenger.showSnackBar(SnackBar(
         content: Text('routes.savedToDiary'.tr()),
@@ -483,13 +537,13 @@ class _LessonScreenState extends State<LessonScreen>
 
   // ── Callbacks de los pasos con widget propio ──────────────────────────────
   StepCallbacks get _stepCallbacks => StepCallbacks(
-        onAnswer: (correct, xp) {
+        onAnswer: (correct, xp, {bool sound = true}) {
           if (!mounted) return;
           setState(() {
             _charState =
                 correct ? _CharacterState.correct : _CharacterState.wrong;
             _xpEarned += xp;
-            _registerAnswer(correct);
+            _registerAnswer(correct, sound: sound, volume: 0.45);
           });
           _triggerFlash(correct);
         },
@@ -550,6 +604,7 @@ class _LessonScreenState extends State<LessonScreen>
         baseXp,
         garden: garden, // ← FIX: multiplicador XP aplicado aquí
       );
+      AnalyticsService.instance.lessonComplete(widget.routeId, widget.lesson.id, finalXp);
 
       if (mounted) {
         setState(() {
@@ -562,6 +617,7 @@ class _LessonScreenState extends State<LessonScreen>
         });
         await Future.delayed(const Duration(milliseconds: 150));
         if (mounted) {
+          SoundService.instance.play(Sfx.complete, volume: 0.7);
           _confettiController.play();
           HapticFeedback.heavyImpact();
         }
@@ -759,6 +815,8 @@ class _LessonScreenState extends State<LessonScreen>
                           )
                         : const SizedBox.shrink(),
                   ),
+                  _buildAmbientToggle(),
+                  const SizedBox(width: 8),
                   _buildXpBadge(),
                 ],
               ),
@@ -829,6 +887,39 @@ class _LessonScreenState extends State<LessonScreen>
           ),
         );
       }),
+    );
+  }
+
+  /// Activa o silencia el ambiente de la ruta. Se recuerda entre lecciones.
+  Widget _buildAmbientToggle() {
+    final on = SoundService.instance.lessonAmbientEnabled;
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.selectionClick();
+        await SoundService.instance.setLessonAmbientEnabled(!on);
+        if (mounted) setState(() {});
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: on
+              ? widget.routeColor.withValues(alpha: 0.2)
+              : Colors.white.withValues(alpha: 0.08),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: on
+                ? widget.routeColor.withValues(alpha: 0.5)
+                : Colors.white.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Icon(
+          on ? Icons.music_note_rounded : Icons.music_off_rounded,
+          size: 16,
+          color: on ? Colors.white : Colors.white38,
+        ),
+      ),
     );
   }
 
@@ -982,17 +1073,30 @@ class _LessonScreenState extends State<LessonScreen>
           step: _step,
           routeColor: widget.routeColor,
           callbacks: _stepCallbacks,
-          onCommitted: (text) => _commitment = text,
+          onCommitted: (text) {
+            _commitment = text;
+            SoundService.instance.play(Sfx.commit, volume: 0.7);
+            _saveCommitment(text);
+          },
         );
     }
   }
 
-  /// Registra un acierto o fallo para la racha interna de la lección.
-  void _registerAnswer(bool correct) {
+  /// Registra un acierto o fallo para la racha interna de la lección y toca
+  /// su sonido: desde el segundo acierto seguido, cada uno suena más agudo.
+  void _registerAnswer(bool correct, {bool sound = true, double volume = 0.6}) {
     if (correct) {
       _streakInLesson++;
     } else {
       _streakInLesson = 0;
+    }
+    if (!sound) return;
+    if (!correct) {
+      SoundService.instance.play(Sfx.wrong, volume: volume * 0.85);
+    } else if (_streakInLesson >= 2) {
+      SoundService.instance.combo(_streakInLesson - 2, volume: volume);
+    } else {
+      SoundService.instance.play(Sfx.correct, volume: volume);
     }
   }
 
@@ -1244,6 +1348,7 @@ class _LessonScreenState extends State<LessonScreen>
 
   void _chooseScenario(int index) {
     HapticFeedback.lightImpact();
+    SoundService.instance.play(Sfx.pop);
     setState(() {
       _scenarioChoice = index;
       // No hay opción incorrecta: reflexionar ya cuenta.
@@ -1387,6 +1492,7 @@ class _LessonScreenState extends State<LessonScreen>
 
   void _revealAnswer() {
     HapticFeedback.mediumImpact();
+    SoundService.instance.play(Sfx.flip, volume: 0.8);
     setState(() {
       _revealed = true;
       _charState = _CharacterState.correct;
@@ -1472,6 +1578,7 @@ class _LessonScreenState extends State<LessonScreen>
             onChanged: (val) {
               if (!_sliderTouched || val.round() != _sliderValue.round()) {
                 HapticFeedback.selectionClick();
+                SoundService.instance.play(Sfx.tick, volume: 0.35);
               }
               setState(() {
                 _sliderValue = val;
@@ -1780,7 +1887,7 @@ class _LessonScreenState extends State<LessonScreen>
       _sortAssignments[itemIndex] = categoryIndex;
       _charState = correcto ? _CharacterState.correct : _CharacterState.wrong;
       if (correcto) _xpEarned += 3;
-      _registerAnswer(correcto);
+      _registerAnswer(correcto, volume: 0.45);
     });
     _triggerFlash(correcto);
   }
@@ -2287,28 +2394,86 @@ class _LessonScreenState extends State<LessonScreen>
               ).animate(delay: 500.ms).fadeIn(duration: 400.ms),
             ],
             const SizedBox(height: 36),
-            SizedBox(
-              width: double.infinity,
-              height: 58,
-              child: FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: FilledButton.styleFrom(
-                  backgroundColor: widget.routeColor,
-                  elevation: 8,
-                  shadowColor: widget.routeColor.withValues(alpha: 0.6),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                ),
-                child: Text(
-                  'routes.backToMap'.tr(),
-                  style: const TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: 0.3,
+            if (widget.nextLesson != null) ...[
+              // Seguir sin pasar por el mapa: menos fricción, sesiones más largas
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: FilledButton(
+                  onPressed: () {
+                    AnalyticsService.instance.nextLessonTapped(widget.routeId);
+                    Navigator.pop(context, LessonScreen.nextResult);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: widget.routeColor,
+                    elevation: 8,
+                    shadowColor: widget.routeColor.withValues(alpha: 0.6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'routes.nextLesson'.tr(),
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, size: 20),
+                    ],
                   ),
                 ),
-              ),
-            )
-                .animate(delay: 600.ms)
-                .fadeIn(duration: 400.ms)
-                .slideY(begin: 0.15, end: 0),
+              )
+                  .animate(delay: 600.ms)
+                  .fadeIn(duration: 400.ms)
+                  .slideY(begin: 0.15, end: 0),
+              const SizedBox(height: 6),
+              Text(
+                widget.nextLesson!.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.55)),
+              ).animate(delay: 650.ms).fadeIn(duration: 400.ms),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  'routes.backToMap'.tr(),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.7),
+                  ),
+                ),
+              ).animate(delay: 700.ms).fadeIn(duration: 400.ms),
+            ] else
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: widget.routeColor,
+                    elevation: 8,
+                    shadowColor: widget.routeColor.withValues(alpha: 0.6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  ),
+                  child: Text(
+                    'routes.backToMap'.tr(),
+                    style: const TextStyle(
+                      fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              )
+                  .animate(delay: 600.ms)
+                  .fadeIn(duration: 400.ms)
+                  .slideY(begin: 0.15, end: 0),
           ],
         ),
       ),

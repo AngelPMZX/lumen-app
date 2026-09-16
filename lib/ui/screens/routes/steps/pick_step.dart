@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import 'step_common.dart';
+import '../../../../domain/services/sound_service.dart';
 
 /// PICK — "marca todas las que te pasen". No hay respuestas correctas.
 ///
@@ -36,6 +37,8 @@ class _PickStepState extends State<PickStep> {
   void _toggle(int i) {
     if (_confirmed) return;
     HapticFeedback.selectionClick();
+    final turningOn = !_selected.contains(i);
+    SoundService.instance.play(turningOn ? Sfx.toggleOn : Sfx.toggleOff, volume: 0.5);
     setState(() {
       if (!_selected.remove(i)) _selected.add(i);
     });
@@ -43,6 +46,7 @@ class _PickStepState extends State<PickStep> {
 
   void _confirm() {
     HapticFeedback.mediumImpact();
+    SoundService.instance.play(Sfx.pop, volume: 0.5);
     setState(() => _confirmed = true);
     widget.callbacks.onReflect(3);
     widget.callbacks.onReady();

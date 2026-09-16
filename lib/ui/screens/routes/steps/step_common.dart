@@ -7,8 +7,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 /// pantalla solo se entera de aciertos, reflexiones y de cuándo puede
 /// habilitar "Continuar".
 class StepCallbacks {
-  /// Respuesta con correcta/incorrecta: flash, racha y personaje.
-  final void Function(bool correct, int xp) onAnswer;
+  /// Respuesta con correcta/incorrecta: flash, racha, personaje y sonido.
+  /// [sound] en false cuando el paso toca su propio sonido (p. ej. las notas
+  /// de `order`).
+  final void Function(bool correct, int xp, {bool sound}) onAnswer;
 
   /// Participación sin respuesta correcta (reflexionar, practicar).
   final void Function(int xp) onReflect;

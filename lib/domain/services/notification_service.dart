@@ -17,6 +17,7 @@ class NotificationService {
 
   static const int _harvestNotificationId = 2000;
   static const int _streakNotificationId = 3000;
+  static const int _commitmentNotificationId = 4000;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // INICIALIZACIÓN
@@ -338,6 +339,48 @@ class NotificationService {
   Future<void> cancelStreakReminder() async {
     await initialize();
     await _plugin.cancel(_streakNotificationId);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RETO DE LECCIÓN — una sola vez, al día siguiente
+  // ═══════════════════════════════════════════════════════════════════════════
+  /// Recordatorio único para el día siguiente (no se repite): pregunta por el
+  /// micro-reto que el usuario eligió en una lección.
+  Future<void> scheduleCommitmentReminder({
+    required String title,
+    required String body,
+    int hour = 10,
+    int minute = 0,
+  }) async {
+    await initialize();
+
+    final now = tz.TZDateTime.now(tz.local);
+    final tomorrow = now.add(const Duration(days: 1));
+    final scheduledDate = tz.TZDateTime(
+      tz.local,
+      tomorrow.year, tomorrow.month, tomorrow.day,
+      hour, minute,
+    );
+
+    await _plugin.zonedSchedule(
+      _commitmentNotificationId,
+      title,
+      body,
+      scheduledDate,
+      _notificationDetails(
+        channelId: 'lesson_commitment',
+        channelName: 'Retos de lecciones',
+      ),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'commitment:check',
+    );
+  }
+
+  Future<void> cancelCommitmentReminder() async {
+    await initialize();
+    await _plugin.cancel(_commitmentNotificationId);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

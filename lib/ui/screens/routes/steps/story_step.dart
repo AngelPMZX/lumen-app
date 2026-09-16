@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
+import '../../../../domain/services/sound_service.dart';
 import 'step_common.dart';
 
 /// STORY — una mini historia en burbujas de chat que se revelan al tocar.
@@ -56,6 +57,7 @@ class _StoryStepState extends State<StoryStep> {
   void _showNext() {
     if (_finished) return;
     HapticFeedback.selectionClick();
+    SoundService.instance.play(Sfx.bubble, volume: 0.55);
     setState(() => _shown++);
     if (_finished) _complete();
     // Mantener visible el botón de "toca para seguir".

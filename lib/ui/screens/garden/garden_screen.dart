@@ -15,6 +15,8 @@ import 'package:gimnasio_emocional/domain/services/notification_service.dart';
 import '../../widgets/aura_container.dart';
 import '../../widgets/discovery_dialog.dart';
 import '../../widgets/seed_icon.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../../domain/services/analytics_service.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GARDEN CONFIG — slots hardcodeados por jardín
@@ -2403,6 +2405,8 @@ if (hasPending) {
     final harvest = await garden.harvestPlant(instanceId);
     if (!mounted) return;
     if (harvest != null && harvest.hasAnything) {
+      SoundService.instance.play(Sfx.harvest, volume: 0.65);
+      AnalyticsService.instance.gardenAction('harvest');
       _showHarvestDialog(harvest);
     }
   }
@@ -2436,6 +2440,8 @@ if (hasPending) {
         await garden.plantItemInSlot(_itemToPlant!, gardenId, slotIndex);
 
     if (success) {
+      SoundService.instance.play(Sfx.plant, volume: 0.65);
+      AnalyticsService.instance.gardenAction('plant', itemId: _itemToPlant);
       _cancelPlanting();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -2473,6 +2479,8 @@ if (hasPending) {
     final garden = context.read<GardenProvider>();
     final (success, error) =
         await garden.applyBooster(boosterId, plantInstanceId);
+    SoundService.instance.play(success ? Sfx.booster : Sfx.wrong, volume: 0.6);
+    if (success) AnalyticsService.instance.gardenAction('booster', itemId: boosterId);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

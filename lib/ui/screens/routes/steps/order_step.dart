@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import 'step_common.dart';
+import '../../../../domain/services/sound_service.dart';
 
 /// ORDER — tocar los pasos de un proceso en el orden correcto.
 ///
@@ -60,11 +61,13 @@ class _OrderStepState extends State<OrderStep> {
     if (_finished) return;
     if (itemIndex == _placed) {
       HapticFeedback.lightImpact();
+      // Cada acierto es la siguiente nota de la escala: se arma una melodía.
+      SoundService.instance.note(_placed);
       setState(() {
         _placed++;
         _wrongIndex = null;
       });
-      widget.callbacks.onAnswer(true, 2);
+      widget.callbacks.onAnswer(true, 2, sound: false);
       if (_finished) widget.callbacks.onReady();
     } else {
       HapticFeedback.heavyImpact();

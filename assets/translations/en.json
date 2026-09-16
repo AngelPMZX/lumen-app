@@ -571,7 +571,10 @@
     "commitDone": "Deal! Small steps, big changes.",
     "yourCommitment": "YOUR CHALLENGE FOR TODAY",
     "saveToDiary": "Also save to my diary",
-    "savedToDiary": "Saved to your diary"
+    "savedToDiary": "Saved to your diary",
+    "startLesson": "Start",
+    "trophyLocked": "Finish the route",
+    "halfway": "Halfway there"
   },
   "profile": {
     "title": "My Profile",
@@ -1301,7 +1304,9 @@
     "languageEn": "English",
     "languageEs": "Español",
     "watchTour": "Watch tour again",
-    "watchTourSubtitle": "Rediscover what you can do in Lumen"
+    "watchTourSubtitle": "Rediscover what you can do in Lumen",
+    "soundEffects": "Sound effects",
+    "soundEffectsSubtitle": "Correct answers, lessons and celebrations"
   },
   "moodHistory": {
     "title": "Mood history",
@@ -1584,14 +1589,20 @@
       "rain": "Rain",
       "forest": "Forest",
       "ocean": "Ocean",
-      "white": "White noise"
+      "white": "White noise",
+      "music": "Calm music",
+      "stream": "Stream",
+      "night": "Night",
+      "chimes": "Wind chimes"
     },
     "motivational": {
       "0": "Your nervous system thanks you 🙏",
       "1": "Every conscious breath is an act of self-care ✨",
       "2": "You just reduced your cortisol. That is how powerful you are 💪",
       "3": "Calm is not the absence of chaos — it is mastery of the breath 🌊"
-    }
+    },
+    "cuesLabel": "Sound cues",
+    "cuesSubtitle": "A soft tone when you inhale, hold and exhale"
   },
   "garden": {
     "title": "My Zen Garden",
@@ -1831,5 +1842,22 @@
       "cl4141": "24-hour support with psychologists, free from mobile phones.",
       "cl4141Note": "From a landline dial 131."
     }
+  },
+  "commitments": {
+    "questionYesterday": "Did you complete yesterday’s challenge?",
+    "questionDaysAgo": "Did you complete your challenge from {n} days ago?",
+    "done": "Yes, I did",
+    "partial": "Sort of",
+    "skipped": "I could not",
+    "doneTitle": "You did it!",
+    "doneBody": "You took what you learned into real life, and that is what truly changes things.",
+    "partialTitle": "That counts too",
+    "partialBody": "Half a step is still a step. What matters is that you tried.",
+    "skippedTitle": "That is okay",
+    "skippedBody": "Some days there is just not room for everything, and that is fine. Want to try today?",
+    "retryToday": "Try today",
+    "letGo": "Let it go",
+    "notificationTitle": "🤝 How did your challenge go?",
+    "notificationBody": "Yesterday you chose: \"{text}\". Come tell us."
   }
 }

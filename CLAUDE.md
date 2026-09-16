@@ -81,8 +81,9 @@ Clean architecture simplificada:
 - Timeline emocional semanal.
 
 ### Rutas de bienestar (Wellness Routes)
-- 7 rutas. Meta: **10 lecciones por ruta, 6-7 pasos cada una**, sin dos lecciones con la misma secuencia de tipos. Antes eran 19 lecciones con la misma forma (reading + quiz + exercise), por eso se sentían repetitivas.
-- **Contenido fuente**: `seed/routes/<id>.js` (un archivo por ruta). Hechas: `emociones` (10 lecciones, 61 pasos) y `autoconocimiento` (10, 60). Pendientes: mindfulness, resiliencia, autoestima, relaciones, amor.
+- 7 rutas. Meta: **10 lecciones por ruta, 5-7 pasos cada una**, sin dos lecciones con la misma secuencia de tipos. Antes eran 19 lecciones con la misma forma (reading + quiz + exercise), por eso se sentían repetitivas.
+- **Contenido fuente**: `seed/routes/<id>.js` (un archivo por ruta). Las 7 rutas tienen 10 lecciones: 70 lecciones y 396 pasos en total (emociones 61, autoconocimiento 60, mindfulness 55, resiliencia 56, autoestima 54, relaciones 56, amor 54).
+- **Temas delicados remiten a ayuda**: tristeza persistente, ansiedad, relaciones controladoras, rupturas y falta de sentido mencionan buscar un profesional y las líneas de Perfil → "¿Necesitas ayuda ahora?". Mantenerlo al editar contenido.
 - **Subir contenido**: `node seed/seed_routes.js <ruta> --dry-run` (valida y resume), sin `--dry-run` escribe; `--all` para todas; `--prune` borra lecciones que ya no estén en el archivo. Si hay un error de validación (campos ES/EN faltantes, listas de distinto largo, índices fuera de rango) no escribe nada. Las advertencias de variedad no bloquean.
 - **Nunca renombrar el `id` de una lección existente**: el progreso (`completed_lessons`) se guarda por id. El `order` lo calcula el script por posición.
 - `seed_wellness_routes.js` es legado y exige `--legacy-overwrite`: correrlo pisaría el contenido nuevo.
@@ -100,7 +101,8 @@ Clean architecture simplificada:
   - `commit`: micro-reto; elegir uno de `options` y mantener presionado. Se muestra en la pantalla de lección completada.
 - Los tipos nuevos (desde `mythfact`) viven en `lib/ui/screens/routes/steps/` y avisan a `LessonScreen` con `StepCallbacks` (`onAnswer`, `onReflect`, `onReady`).
 - **Contenido de salud mental**: no afirmar datos sin respaldo (p. ej. "21 días para un hábito" o "golpear una almohada libera el enojo" son mitos). Los temas delicados (tristeza persistente, ansiedad) mencionan buscar ayuda profesional.
-- Path curvo estilo Duolingo con nodos de lecciones desbloqueables.
+- **Mapa de lecciones**: `lib/ui/screens/routes/widgets/lesson_path_map.dart`. Camino serpenteante con `sin(i · 0.9)` por índice (no por total de lecciones: la fórmula vieja `sin(i/(n-1)·2π)` dejaba recta una ruta de 2 lecciones). Nodos 3D presionables, anillo giratorio y globo "Empezar" en la lección actual, destellos que fluyen por lo completado, decoración con emojis por ruta (`_themes`, por id), cartel de mitad de camino y trofeo final. Sin `MaskFilter.blur`.
+- **Caché de contenido**: `seed/seed_routes.js` escribe `wellness_routes/_meta` (`version`, `routeCount`, `lessonCount`, `stepCount`) cada vez que sube algo. No tiene `order`, así que no sale en la lista de rutas. `RoutesService` lee solo `_meta` (1 lectura); si la versión coincide con la guardada en SharedPreferences (`routes_content_version`) carga todo de la caché local de Firestore (0 lecturas) y verifica los totales; si no, descarga (~473 lecturas) en paralelo. Sin internet usa la caché. En web la persistencia se activa en `main.dart`. **Si editas contenido a mano en la consola, corre `node seed/seed_routes.js --all --meta-only`** o las apps seguirán con la versión vieja.
 - Contenido cargado dinámicamente por locale (`title_es`/`title_en`, etc.).
 
 ### Jardín (Garden)
@@ -113,6 +115,20 @@ Clean architecture simplificada:
 - Escudos de racha: el home guarda la racha rota (`saveStreakBeforeBreak`, tras cargar las mecánicas) y el escudo solo se puede usar ese día (`streakBreakDate` en `garden/mechanics`), antes o después del check-in. Si ya hizo check-in, hoy también cuenta.
 - Múltiples jardines (meadow, forest, mountain, lake, greenhouse).
 
+### Retos de lecciones (seguimiento)
+- Al comprometerse en un paso `commit`, `CommitmentService` guarda el reto en `users/{uid}/commitments` (está en `_userSubcollections`). Máximo uno pendiente por día: elegir otro el mismo día lo reemplaza, así la recompensa no se repite.
+- Notificación única al día siguiente a las 10:00 (`scheduleCommitmentReminder`, id 4000; no en web).
+- Desde el día siguiente, el Home muestra `CommitmentCheckCard`: "Sí, lo hice" / "Más o menos" dan semillas (`RewardSource.commitment`); "No pude" responde con amabilidad y ofrece "Intentarlo hoy" o "Soltarlo". Si pasan más de 3 días sin respuesta se marca `expired` sin preguntar (preguntar tarde se siente a regaño).
+- `dayKey` es la fecha local `yyyy-MM-dd`, y `daysAgo` compara en UTC para que un día con cambio de horario no cuente como 0.
+- Al completar una lección, "Siguiente lección" (si hay) devuelve `LessonScreen.nextResult` y `RoutesScreen` abre la siguiente.
+
+### Analytics y Crashlytics
+- `AnalyticsService` (`lib/domain/services/analytics_service.dart`) con eventos tipados: `lesson_start`, `lesson_complete`, `lesson_abandoned` (con el paso donde se fue), `route_complete`, `next_lesson_tapped`, `commitment_created/answered/retried`, `breathing_complete`, `mood_checkin`, `diary_entry_saved`, `habit_checkin`, `garden_action`, `exercise_saved_to_diary`.
+- **Privacidad (regla)**: nunca enviar qué ánimo registró el usuario, textos del diario, ejercicios o retos, ni visitas a la ayuda en crisis (excluida del `navigatorObservers`). Solo acciones e ids de contenido.
+- En debug no se envía nada; para probar: `flutter run --dart-define=ANALYTICS_DEBUG=true` y DebugView (`adb shell setprop debug.firebase.analytics.app com.thedarkingstudios.lumen`). En web solo funciona si `firebase_options.dart` trae `measurementId` (hoy no lo trae: correr `flutterfire configure` con Analytics activo).
+- Crashlytics en `main.dart` (no en web, desactivado en debug). Plugin Gradle `com.google.firebase.crashlytics` 2.8.1 en `settings.gradle.kts` y `app/build.gradle.kts`.
+- Declarar Analytics y Crashlytics en la política de privacidad y en "Seguridad de los datos" de Play Console.
+
 ### Hábitos y recordatorios
 - Hábitos custom por usuario.
 - Recordatorios locales programables con timezone correcto.
@@ -122,9 +138,20 @@ Clean architecture simplificada:
 - Entradas con mood, texto, tags.
 - Historial semanal y mensual.
 
+### Sonido
+- `SoundService` (singleton, `lib/domain/services/sound_service.dart`): efectos (`Sfx`), notas (`note(0-7)`), aciertos en racha (`combo(0-5)`), señales de respiración (`BreathCue`) y ambientes en bucle (`Ambient`). Se inicializa en `main.dart` y se mezcla con la música del usuario (`AudioContextConfigFocus.mixWithOthers`).
+- **Identidad sonora**: todo en Do mayor pentatónica, suave y a bajo volumen. No agregar sonidos estridentes ni "de casino": es una app de bienestar.
+- **Todos los sonidos son propios**, sintetizados con `tools/audio/generate_sounds.py` (numpy + imageio-ffmpeg, MP3). Para cambiar uno, editar el script y regenerar. Los sonidos nuevos se exportan **al final de `main()`**: comparten el generador aleatorio con semilla fija, así que insertarlos antes alteraría los existentes. No meter audios descargados sin revisar la licencia. ~5.5 MB en total.
+- Dos interruptores persistidos en SharedPreferences: "Efectos de sonido" en Perfil (`sound_effects_enabled`, afecta a `Sfx`, `note` y `combo`) y el botón 🎵 en la barra de la lección (`lesson_ambient_enabled`). Las señales de respiración tienen su propio switch en esa pantalla.
+- **Ambiente por ruta** en lecciones (`SoundService.ambientForRoute`): emociones → música calma, autoconocimiento → noche con grillos, mindfulness → arroyo, resiliencia → viento con campanas, autoestima → amanecer, relaciones → kalimba, amor → caja musical. `LessonScreen` necesita `routeId` para elegirlo. `setBaseAmbient`/`clearBaseAmbient`; la práctica guiada pone música calma y al terminar llama a `returnToBaseAmbient`.
+- **En lecciones**: acierto y error; desde el 2.º acierto seguido cada uno suena más agudo (`combo`); `order` toca la escala nota por nota, así que al ordenar se arma una melodía (pasa `sound: false` a `onAnswer`); tic en slider; on/off en pick; burbuja en historias; swipe en mito/realidad; tono ascendente mientras se mantiene presionado el compromiso; campanitas al completar.
+- **En el mapa**: toque de nodo; al volver de una lección suena `unlock` si se desbloqueó otra o `routeComplete` si terminó la ruta.
+- **Hitos de la app**: subir de nivel y logros (`CelebrationDialog`), semillas (`RewardDialog`), check-in de ánimo, hábito cumplido, entrada de diario guardada, jardín (plantar, cosechar, booster) y compra en la tienda.
+
 ### Respiración guiada
 - 3 técnicas (Box, 4-7-8, Flow).
-- Sonidos ambientales.
+- Sonidos ambientales locales (música calma, lluvia, bosque, océano, arroyo, noche, campanas de viento, ruido suave). Antes se reproducían desde URLs de mixkit.co, frágiles y con licencia dudosa.
+- Señal sonora al inicio de cada fase (inhalar, sostener, exhalar) y cuenco tibetano al terminar; se pueden apagar.
 - Recompensa XP + semillas (`RewardSource.breathing`) solo en la primera sesión del día (`progress/breathing`, hora del servidor).
 
 ### Discovery moments
@@ -201,6 +228,10 @@ service cloud.firestore {
 # Correr en web (puerto FIJO para Google Sign-In)
 flutter run -d chrome --web-port 8080
 
+# Subir contenido de rutas (valida primero)
+node seed/seed_routes.js --all --dry-run
+node seed/seed_routes.js --all
+
 # Generar APK debug
 flutter build apk --debug
 # Sale en: build\app\outputs\flutter-apk\app-debug.apk
@@ -221,6 +252,29 @@ flutter clean; flutter pub get
 - **Guía de batería para Xiaomi/Huawei/Oppo** al detectar el fabricante.
 - **Pre-publicación**: generar keystore de release + `key.properties` + registrar su SHA-1 en Firebase, íconos, screenshots, política de privacidad.
 - **Spam del email de reset**: requiere plan Blaze + dominio propio + SPF/DKIM.
+
+### Ideas aprobadas (roadmap, 2026-09-16)
+
+**Retención** (en orden de prioridad):
+1. ~~Seguimiento de retos (`commit`)~~: hecho, ver "Retos" en Features.
+2. ~~Botón "Siguiente lección" en la pantalla de lección completada~~: hecho.
+3. **Resumen semanal con conclusiones personales**: cruzar ánimo con respiración, lecciones, hábitos y diario ("los días que respiraste, tu ánimo fue mejor") y recomendar una lección según la emoción más frecuente. No enviar datos de ánimo a terceros.
+4. **Repaso diario**: mini-juego de 1 minuto con tarjetas `mythfact`/`sort` de lecciones ya completadas. Reutiliza contenido.
+5. **Compañero con personalidad**: nombre y frases en Home usando los Lottie del personaje (estilo búho de Duolingo).
+6. Misiones semanales con recompensas del jardín.
+7. Tarjeta para compartir al completar una ruta (sin datos sensibles).
+8. Pedir reseña en Play Store (`in_app_review`) después de un logro, nunca tras un día difícil.
+9. Rutas nuevas **Ansiedad y Estrés** y **Sueño**, candidatas a contenido premium (la ayuda en crisis siempre gratis).
+
+**Pulido**:
+- `lesson_screen.dart` tiene textos en español hardcodeados: "¡Multiplicador activo!" y "Multiplicador aplicado". Pasarlos a i18n.
+- La pantalla de lección solo tiene modo oscuro.
+- Accesibilidad: opción "reducir animaciones" y revisar TalkBack en los pasos nuevos.
+- `lesson_screen.dart` (~2 200 líneas): mover quiz, sort, reveal y slider a `steps/`, como los tipos nuevos.
+
+**Antes de publicar**:
+- ~~Caché del contenido de rutas con documento de versión~~: hecho.
+- ~~Firebase Analytics + Crashlytics~~: hecho. Declararlos en la política de privacidad y en la sección "Seguridad de los datos" de Play Console.
 
 ## Historial de git
 

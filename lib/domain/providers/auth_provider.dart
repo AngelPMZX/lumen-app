@@ -774,6 +774,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     'completed_lessons',
     'garden',
     'garden_transactions',
+    'commitments',
   ];
 
   /// Elimina la cuenta y todos sus datos. Usuarios de email deben pasar

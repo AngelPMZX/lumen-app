@@ -4,12 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
-import 'package:audioplayers/audioplayers.dart';
 import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
+import '../../../domain/services/sound_service.dart';
 import '../../widgets/discovery_dialog.dart';
 import '../../widgets/reward_dialog.dart';
+import '../../../domain/services/analytics_service.dart';
 
 // ─── Breathing technique model ────────────────────────────────────────────────
 class _BreathingTechnique {
@@ -52,13 +53,15 @@ class _AmbientSound {
   final String id;
   final String labelKey;
   final String emoji;
-  final String url;
+
+  /// null = sin sonido. Los bucles son locales (assets/sounds/ambient/).
+  final Ambient? ambient;
 
   const _AmbientSound({
     required this.id,
     required this.labelKey,
     required this.emoji,
-    required this.url,
+    required this.ambient,
   });
 }
 
@@ -106,11 +109,15 @@ const _techniques = [
 ];
 
 const _ambientSounds = [
-  _AmbientSound(id: 'none',   labelKey: 'breathing.sound.none',   emoji: '🔇', url: ''),
-  _AmbientSound(id: 'rain',   labelKey: 'breathing.sound.rain',   emoji: '🌧️', url: 'https://assets.mixkit.co/active_storage/sfx/212/212-preview.mp3'),
-  _AmbientSound(id: 'forest', labelKey: 'breathing.sound.forest', emoji: '🌲', url: 'https://assets.mixkit.co/active_storage/sfx/1173/1173-preview.mp3'),
-  _AmbientSound(id: 'ocean',  labelKey: 'breathing.sound.ocean',  emoji: '🌊', url: 'https://assets.mixkit.co/active_storage/sfx/1246/1246-preview.mp3'),
-  _AmbientSound(id: 'white',  labelKey: 'breathing.sound.white',  emoji: '☁️', url: 'https://assets.mixkit.co/active_storage/sfx/2583/2583-preview.mp3'),
+  _AmbientSound(id: 'music',  labelKey: 'breathing.sound.music',  emoji: '🎵', ambient: Ambient.calmMusic),
+  _AmbientSound(id: 'rain',   labelKey: 'breathing.sound.rain',   emoji: '🌧️', ambient: Ambient.rain),
+  _AmbientSound(id: 'forest', labelKey: 'breathing.sound.forest', emoji: '🌲', ambient: Ambient.forest),
+  _AmbientSound(id: 'ocean',  labelKey: 'breathing.sound.ocean',  emoji: '🌊', ambient: Ambient.ocean),
+  _AmbientSound(id: 'stream', labelKey: 'breathing.sound.stream', emoji: '🏞️', ambient: Ambient.stream),
+  _AmbientSound(id: 'night',  labelKey: 'breathing.sound.night',  emoji: '🌙', ambient: Ambient.night),
+  _AmbientSound(id: 'chimes', labelKey: 'breathing.sound.chimes', emoji: '🎐', ambient: Ambient.mountain),
+  _AmbientSound(id: 'white',  labelKey: 'breathing.sound.white',  emoji: '☁️', ambient: Ambient.softNoise),
+  _AmbientSound(id: 'none',   labelKey: 'breathing.sound.none',   emoji: '🔇', ambient: null),
 ];
 
 // Science facts — keys only, text lives in JSON
@@ -156,7 +163,8 @@ class _BreathingScreenState extends State<BreathingScreen>
   bool _sessionRunning = false;
   bool _sessionPaused = false;
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  /// Señal sonora al inicio de cada fase (inhala / sostén / exhala).
+  bool _cuesEnabled = true;
 
   late List<_StarData> _stars;
 
@@ -186,15 +194,13 @@ class _BreathingScreenState extends State<BreathingScreen>
       durationMs: 900 + rng.nextInt(2000),
     ));
 
-    _audioPlayer.setVolume(0.4);
-    _audioPlayer.setReleaseMode(ReleaseMode.loop);
   }
 
   @override
   void dispose() {
     _breathController.dispose();
     _pulseController.dispose();
-    _audioPlayer.dispose();
+    SoundService.instance.stopAmbient();
     super.dispose();
   }
 
@@ -217,13 +223,22 @@ class _BreathingScreenState extends State<BreathingScreen>
 
   // ── Audio ─────────────────────────────────────────────────────────────────
   Future<void> _startAudio() async {
-    if (_selectedSound.url.isEmpty) return;
-    try { await _audioPlayer.play(UrlSource(_selectedSound.url)); }
-    catch (e) { debugPrint('Audio error: $e'); }
+    final ambient = _selectedSound.ambient;
+    if (ambient == null) return;
+    await SoundService.instance.startAmbient(ambient, volume: 0.5);
   }
 
-  Future<void> _stopAudio() async {
-    try { await _audioPlayer.stop(); } catch (_) {}
+  Future<void> _stopAudio() => SoundService.instance.stopAmbient();
+
+  /// Señal de la fase: el sonido acompaña la dirección del orbe.
+  void _playPhaseCue(_BreathPhase phase) {
+    if (!_cuesEnabled) return;
+    final cue = phase.labelKey.endsWith('inhale')
+        ? BreathCue.inhale
+        : phase.labelKey.endsWith('exhale')
+            ? BreathCue.exhale
+            : BreathCue.hold;
+    SoundService.instance.cue(cue, volume: cue == BreathCue.hold ? 0.45 : 0.6);
   }
 
   // ── Session logic ─────────────────────────────────────────────────────────
@@ -242,6 +257,7 @@ class _BreathingScreenState extends State<BreathingScreen>
 
   void _runPhase() {
     final phase = _selectedTechnique.phases[_currentPhaseIndex];
+    _playPhaseCue(phase);
     _breathController.duration = Duration(seconds: phase.durationSeconds);
     if (phase.expand) {
       _breathController.forward(from: _breathController.value);
@@ -275,16 +291,24 @@ class _BreathingScreenState extends State<BreathingScreen>
   void _togglePause() {
     HapticFeedback.lightImpact();
     setState(() => _sessionPaused = !_sessionPaused);
-    if (_sessionPaused) { _breathController.stop(); _stopAudio(); }
-    else { _runPhase(); _startAudio(); }
+    if (_sessionPaused) {
+      _breathController.stop();
+      SoundService.instance.pauseAmbient();
+    } else {
+      _runPhase();
+      SoundService.instance.resumeAmbient();
+    }
   }
 
   Future<void> _finishSession() async {
     final garden = context.read<GardenProvider>();
     final auth = context.read<AuthProvider>();
-    await _stopAudio();
     _breathController.stop();
     HapticFeedback.heavyImpact();
+    // El cuenco suena mientras el ambiente se desvanece
+    if (_cuesEnabled) SoundService.instance.cue(BreathCue.bowl, volume: 0.8);
+    AnalyticsService.instance.breathingComplete(_selectedTechnique.id, _selectedMinutes);
+    await _stopAudio();
     bool rewarded = false;
     try {
       rewarded = await auth.completeBreathingSession(_xpReward, garden: garden);
@@ -676,6 +700,41 @@ class _BreathingScreenState extends State<BreathingScreen>
                 ),
               ),
 
+              const SizedBox(height: 14),
+
+              // Señales de sonido por fase
+              GestureDetector(
+                onTap: () => setState(() => _cuesEnabled = !_cuesEnabled),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  child: Row(children: [
+                    const Text('🔔', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('breathing.cuesLabel'.tr(), style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+                          Text('breathing.cuesSubtitle'.tr(), style: const TextStyle(
+                              fontSize: 12, color: Colors.white54)),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _cuesEnabled,
+                      activeThumbColor: _selectedTechnique.color,
+                      onChanged: (v) => setState(() => _cuesEnabled = v),
+                    ),
+                  ]),
+                ),
+              ),
+
               const SizedBox(height: 32),
 
               // Start button
@@ -790,7 +849,7 @@ class _BreathingScreenState extends State<BreathingScreen>
             Text(_formatTime(_totalSecondsLeft), style: const TextStyle(
                 fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
             const Spacer(),
-            if (_selectedSound.url.isNotEmpty)
+            if (_selectedSound.ambient != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import 'step_common.dart';
+import '../../../../domain/services/sound_service.dart';
 
 /// MYTH / FACT — tarjetas rápidas: desliza (o toca) "Mito" o "Realidad".
 class MythFactStep extends StatefulWidget {
@@ -42,6 +43,7 @@ class _MythFactStepState extends State<MythFactStep> {
     if (_answer != null || _finished) return;
     final correct = saysTrue == _isTrue;
     HapticFeedback.mediumImpact();
+    SoundService.instance.play(Sfx.swipe, volume: 0.7);
     setState(() {
       _answer = saysTrue;
       _dragX = 0;

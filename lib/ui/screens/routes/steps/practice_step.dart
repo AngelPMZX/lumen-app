@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
+import '../../../../domain/services/sound_service.dart';
 import 'step_common.dart';
 
 /// PRACTICE — práctica guiada con temporizador: respiración, grounding,
@@ -76,7 +77,20 @@ class _PracticeStepState extends State<PracticeStep>
   @override
   void dispose() {
     _controller.dispose();
+    if (_phase == _Phase.running) SoundService.instance.returnToBaseAmbient();
     super.dispose();
+  }
+
+  /// Señal suave según el movimiento del orbe; `still` no suena para no
+  /// saturar las indicaciones de observar.
+  void _cueFor(int i) {
+    final cue = switch (_motionOf(i)) {
+      'in' => BreathCue.inhale,
+      'out' => BreathCue.exhale,
+      'hold' => BreathCue.hold,
+      _ => null,
+    };
+    if (cue != null) SoundService.instance.cue(cue, volume: 0.45);
   }
 
   void _start() {
@@ -90,10 +104,12 @@ class _PracticeStepState extends State<PracticeStep>
       _index = 0;
       _scaleFrom = 0.8;
     });
+    SoundService.instance.startAmbient(Ambient.calmMusic, volume: 0.35);
     _runCurrent();
   }
 
   void _runCurrent() {
+    _cueFor(_index);
     _controller.duration = Duration(seconds: _durationOf(_index));
     _controller.forward(from: 0);
   }
@@ -116,6 +132,8 @@ class _PracticeStepState extends State<PracticeStep>
   void _finish({required bool naturally}) {
     _controller.stop();
     HapticFeedback.heavyImpact();
+    if (_phase == _Phase.running) SoundService.instance.returnToBaseAmbient();
+    if (naturally) SoundService.instance.cue(BreathCue.bowl, volume: 0.6);
     setState(() {
       _phase = _Phase.done;
       _completedNaturally = naturally;

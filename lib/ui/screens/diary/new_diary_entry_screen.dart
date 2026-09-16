@@ -7,6 +7,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../data/models/diary_entry.dart';
 import '../../../data/models/mood_entry.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../../domain/services/analytics_service.dart';
 
 class NewDiaryEntryScreen extends StatefulWidget {
   const NewDiaryEntryScreen({super.key});
@@ -66,6 +68,8 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
       );
 
       await authProvider.saveDiaryEntry(entry);
+      SoundService.instance.play(Sfx.save, volume: 0.6);
+      AnalyticsService.instance.diaryEntrySaved();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

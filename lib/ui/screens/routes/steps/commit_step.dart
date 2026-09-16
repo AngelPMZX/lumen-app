@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import 'step_common.dart';
+import '../../../../domain/services/sound_service.dart';
 
 /// COMMIT — cierra la lección con un micro-reto para hoy.
 ///
@@ -59,6 +60,7 @@ class _CommitStepState extends State<CommitStep>
   void _commit() {
     if (_committed || _choice == null) return;
     HapticFeedback.heavyImpact();
+    SoundService.instance.stop(Sfx.holdRise);
     setState(() => _committed = true);
     widget.onCommitted(_options[_choice!]);
     widget.callbacks.onReflect(5);
@@ -68,11 +70,13 @@ class _CommitStepState extends State<CommitStep>
   void _startHold() {
     if (_committed || _choice == null) return;
     HapticFeedback.lightImpact();
+    SoundService.instance.play(Sfx.holdRise, volume: 0.5);
     _hold.forward();
   }
 
   void _cancelHold() {
     if (_committed) return;
+    SoundService.instance.stop(Sfx.holdRise);
     _hold.reverse();
   }
 
@@ -108,6 +112,7 @@ class _CommitStepState extends State<CommitStep>
                   ? null
                   : () {
                       HapticFeedback.selectionClick();
+                      SoundService.instance.play(Sfx.toggleOn, volume: 0.45);
                       _hold.reset();
                       setState(() => _choice = i);
                     },

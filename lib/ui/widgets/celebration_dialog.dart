@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../data/models/achievement.dart';
 import '../../../data/models/user_progress.dart';
 import '../../../domain/services/achievement_service.dart';
+import '../../domain/services/sound_service.dart';
 
 /// Dialog de celebración estilo Duolingo con confetti
 /// Usado para achievements, level ups y streak milestones
@@ -53,6 +54,12 @@ class _CelebrationDialogState extends State<CelebrationDialog>
     )..forward();
 
     _particles = List.generate(40, (_) => _ConfettiParticle(_random));
+    SoundService.instance.play(
+      widget.event.type == CelebrationEventType.levelUp
+          ? Sfx.levelUp
+          : Sfx.achievement,
+      volume: 0.7,
+    );
   }
 
   @override

@@ -12,6 +12,8 @@ import '../../widgets/animated_particles_background.dart';
 import '../../widgets/discovery_dialog.dart';
 import 'edit_reminder_screen.dart';
 import 'add_habit_screen.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../../domain/services/analytics_service.dart';
 
 class RemindersScreen extends StatefulWidget {
   const RemindersScreen({super.key});
@@ -170,6 +172,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
         setState(() => _todayCheckIns.remove(habit.id));
       } else {
         final earnedXp = await auth.checkInHabit(habit.id);
+        SoundService.instance.play(Sfx.habit, volume: 0.6);
+        AnalyticsService.instance.habitCheckIn();
         setState(() => _todayCheckIns.add(habit.id));
         if (mounted) {
           ScaffoldMessenger.of(context).clearSnackBars();

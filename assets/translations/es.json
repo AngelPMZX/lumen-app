@@ -571,7 +571,10 @@
     "commitDone": "¡Trato hecho! Pequeños pasos, grandes cambios.",
     "yourCommitment": "TU RETO DE HOY",
     "saveToDiary": "Guardar también en mi diario",
-    "savedToDiary": "Guardado en tu diario"
+    "savedToDiary": "Guardado en tu diario",
+    "startLesson": "Empezar",
+    "trophyLocked": "Completa la ruta",
+    "halfway": "Mitad del camino"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -1301,7 +1304,9 @@
     "languageEn": "English",
     "languageEs": "Español",
     "watchTour": "Ver tour de nuevo",
-    "watchTourSubtitle": "Redescubre qué puedes hacer en Lumen"
+    "watchTourSubtitle": "Redescubre qué puedes hacer en Lumen",
+    "soundEffects": "Efectos de sonido",
+    "soundEffectsSubtitle": "Aciertos, lecciones y celebraciones"
   },
   "moodHistory": {
     "title": "Historial de ánimo",
@@ -1584,14 +1589,20 @@
       "rain": "Lluvia",
       "forest": "Bosque",
       "ocean": "Océano",
-      "white": "Ruido blanco"
+      "white": "Ruido blanco",
+      "music": "Música calma",
+      "stream": "Arroyo",
+      "night": "Noche",
+      "chimes": "Campanas de viento"
     },
     "motivational": {
       "0": "Tu sistema nervioso te lo agradece 🙏",
       "1": "Cada respiración consciente es un acto de autocuidado ✨",
       "2": "Acabas de reducir tu cortisol. Así de poderoso eres 💪",
       "3": "La calma no es ausencia de caos — es dominio del aliento 🌊"
-    }
+    },
+    "cuesLabel": "Señales de sonido",
+    "cuesSubtitle": "Un tono suave al inhalar, sostener y exhalar"
   },
   "garden": {
     "title": "Mi Jardín Zen",
@@ -1831,5 +1842,22 @@
       "cl4141": "Atención con psicólogos las 24 horas, gratuita desde celular.",
       "cl4141Note": "Desde teléfono fijo marca 131."
     }
+  },
+  "commitments": {
+    "questionYesterday": "¿Cumpliste tu reto de ayer?",
+    "questionDaysAgo": "¿Cumpliste tu reto de hace {n} días?",
+    "done": "Sí, lo hice",
+    "partial": "Más o menos",
+    "skipped": "No pude",
+    "doneTitle": "¡Lo lograste!",
+    "doneBody": "Llevaste lo aprendido a la vida real, y eso es lo que de verdad cambia las cosas.",
+    "partialTitle": "Eso también cuenta",
+    "partialBody": "Un paso a medias sigue siendo un paso. Lo importante es que lo intentaste.",
+    "skippedTitle": "Está bien",
+    "skippedBody": "A veces el día no da para todo, y no pasa nada. ¿Quieres intentarlo hoy?",
+    "retryToday": "Intentarlo hoy",
+    "letGo": "Soltarlo",
+    "notificationTitle": "🤝 ¿Cómo te fue con tu reto?",
+    "notificationBody": "Ayer elegiste: \"{text}\". Entra a contarnos."
   }
 }

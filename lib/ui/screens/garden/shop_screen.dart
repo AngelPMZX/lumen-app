@@ -7,6 +7,8 @@ import '../../../data/models/garden_item.dart';
 import '../../../domain/providers/garden_provider.dart';
 import '../../widgets/aura_container.dart';
 import '../../widgets/seed_icon.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../../domain/services/analytics_service.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SHOP SCREEN
@@ -636,6 +638,8 @@ const SizedBox(width: 6),
   Future<void> _buyItem(GardenItem item, GardenProvider garden) async {
     HapticFeedback.mediumImpact();
     final (success, error) = await garden.buyItem(item);
+    SoundService.instance.play(success ? Sfx.buy : Sfx.wrong, volume: 0.6);
+    if (success) AnalyticsService.instance.gardenAction('buy', itemId: item.id);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

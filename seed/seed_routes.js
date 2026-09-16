@@ -10,6 +10,11 @@
 //   node seed/seed_routes.js emociones --prune     → además borra lecciones que
 //                                                    están en Firestore pero ya
 //                                                    no en el archivo
+//   node seed/seed_routes.js --all --meta-only     → solo recalcula _meta
+//
+// Siempre que escribe, actualiza wellness_routes/_meta (versión + totales):
+// la app compara esa versión para usar su caché local en vez de volver a
+// descargar todo el contenido.
 //
 // QUÉ TOCA: wellness_routes/<id> (metadatos), sus lessons y sus steps.
 // Los pasos de cada lección se borran y se reemplazan completos.
@@ -27,7 +32,9 @@ const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
 const PRUNE = args.includes('--prune');
 const ALL = args.includes('--all');
+const META_ONLY = args.includes('--meta-only');
 const ROUTES_DIR = path.join(__dirname, 'routes');
+let admin; // se carga solo al escribir: --dry-run funciona sin credenciales
 
 // ── Esquema por tipo de paso ────────────────────────────────────────────────
 // text: string bilingüe (campo_es / campo_en)
@@ -276,16 +283,46 @@ async function main() {
     return;
   }
 
-  const admin = require('firebase-admin');
+  admin = require('firebase-admin');
   const serviceAccount = require(path.join(__dirname, '..', 'serviceAccountKey.json'));
   admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
   const db = admin.firestore();
 
-  for (const route of routes) {
-    console.log(`\nEscribiendo ${route.id}...`);
-    await writeRoute(db, route);
+  if (!META_ONLY) {
+    for (const route of routes) {
+      console.log(`\nEscribiendo ${route.id}...`);
+      await writeRoute(db, route);
+    }
   }
+  await writeMeta(db);
   console.log('\nListo.');
+}
+
+/// wellness_routes/_meta: versión y totales del contenido EN FIRESTORE (no solo
+/// de las rutas escritas ahora). La app lo usa para decidir si puede cargar
+/// las rutas desde su caché local sin gastar lecturas.
+/// No tiene campo `order`, así que no aparece en la lista de rutas.
+async function writeMeta(db) {
+  const routesSnap = await db.collection('wellness_routes').orderBy('order').get();
+  let lessonCount = 0;
+  let stepCount = 0;
+  for (const routeDoc of routesSnap.docs) {
+    const lessons = await routeDoc.ref.collection('lessons').get();
+    lessonCount += lessons.size;
+    for (const lessonDoc of lessons.docs) {
+      const steps = await lessonDoc.ref.collection('steps').count().get();
+      stepCount += steps.data().count;
+    }
+  }
+  const meta = {
+    version: Date.now(),
+    routeCount: routesSnap.size,
+    lessonCount,
+    stepCount,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  await db.collection('wellness_routes').doc('_meta').set(meta);
+  console.log(`\n_meta: v${meta.version} | ${meta.routeCount} rutas, ${lessonCount} lecciones, ${stepCount} pasos`);
 }
 
 main()

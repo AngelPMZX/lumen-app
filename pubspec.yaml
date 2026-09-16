@@ -31,6 +31,8 @@ dependencies:
   timezone: ^0.9.4
   flutter_timezone: ^3.0.1
   url_launcher: ^6.3.2
+  firebase_analytics: ^11.6.0
+  firebase_crashlytics: ^4.3.10
 
 dev_dependencies:
   flutter_test:
@@ -50,3 +52,6 @@ flutter:
     - assets/images/onboarding/
     - assets/translations/
     - assets/lottie/
+    - assets/sounds/ambient/
+    - assets/sounds/breathing/
+    - assets/sounds/sfx/

@@ -9,6 +9,7 @@ import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/garden_provider.dart';
 import 'dart:ui' as ui;
 import './seed_icon.dart';
+import '../../domain/services/sound_service.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // RewardDialog — muestra la recompensa ganada (semillas o item)
@@ -27,6 +28,7 @@ class RewardDialog extends StatefulWidget {
   /// Muestra el dialog de recompensa
   static Future<void> show(BuildContext context, RewardResult reward) async {
     HapticFeedback.heavyImpact();
+    SoundService.instance.play(Sfx.reward, volume: 0.65);
     await showDialog(
       context: context,
       barrierDismissible: true,

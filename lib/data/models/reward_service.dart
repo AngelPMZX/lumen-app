@@ -10,6 +10,7 @@ enum RewardSource {
   streakMilestone,
   breathing,
   diaryEntry,
+  commitment,
 }
 
 /// El resultado de una recompensa
@@ -94,6 +95,13 @@ class RewardService {
       minSeeds: 2,
       maxSeeds: 4,
       itemChancePercent: 10,
+    ),
+    // Cumplir el reto de una lección: vale más que abrir la app, porque es
+    // cambio real fuera de ella. Máximo uno por día (ver CommitmentService).
+    RewardSource.commitment: _SourceConfig(
+      minSeeds: 4,
+      maxSeeds: 8,
+      itemChancePercent: 20,
     ),
   };
 
