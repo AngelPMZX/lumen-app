@@ -117,6 +117,14 @@ class AnalyticsService {
 
   Future<void> habitCheckIn() => _log('habit_checkin');
 
+  // ── Resumen semanal ──────────────────────────────────────────────────────
+  /// Solo que se abrió y desde dónde: el contenido del resumen no se envía.
+  Future<void> weeklySummaryOpened(String source) =>
+      _log('weekly_summary_opened', {'source': source});
+
+  Future<void> weeklyRecommendationTapped(String lessonId) =>
+      _log('weekly_recommendation_tapped', {'lesson_id': lessonId});
+
   // ── Jardín ───────────────────────────────────────────────────────────────
   Future<void> gardenAction(String action, {String? itemId}) =>
       _log('garden_action', {'action': action, 'item_id': ?itemId});

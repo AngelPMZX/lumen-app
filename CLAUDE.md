@@ -123,8 +123,17 @@ Clean architecture simplificada:
 - `dayKey` es la fecha local `yyyy-MM-dd`, y `daysAgo` compara en UTC para que un día con cambio de horario no cuente como 0.
 - Al completar una lección, "Siguiente lección" (si hay) devuelve `LessonScreen.nextResult` y `RoutesScreen` abre la siguiente.
 
+### Resumen semanal
+- `WeeklySummaryScreen` (`lib/ui/screens/summary/`): ánimo dominante y tendencia frente a la semana anterior, ánimo día por día con el mejor día, 6 contadores (check-ins, lecciones, respiraciones, diario, hábitos, retos cumplidos), patrones personales y una lección recomendada.
+- **Todo se calcula en el teléfono** (`WeeklySummary.compute`, lógica pura con pruebas en `test/data/models/weekly_summary_test.dart`). `WeeklySummaryService` hace una consulta de 28 días por colección. Analytics solo registra que se abrió.
+- **Patrones**: ánimo promedio (positivo 3, neutral 2, difícil 1) en días con una actividad frente a días sin ella, en 28 días. Se muestra solo con ≥3 días en cada grupo y una diferencia ≥0.35; como máximo 2 patrones, presentados como tendencias y no como reglas.
+- **Recomendación**: la emoción difícil repetida ≥2 días en la semana se mapea a lecciones (`WeeklySummary.recommendedLessons`); se elige la primera desbloqueada y sin completar. Si no hay emoción repetida, se sigue donde el usuario se quedó. Con ≥4 días difíciles en la semana también muestra `CrisisSupportCard`.
+- **Accesos**: tarjeta en el Home domingo y lunes hasta abrirla (`weekly_summary_seen_{uid}_{domingo}` en SharedPreferences), menú en Perfil y notificación semanal los domingos a las 19:00 (id 5000).
+- Cada sesión de respiración se guarda en `users/{uid}/breathing_sessions` (`at`); `progress/breathing` solo tenía un contador. Los días previos a este cambio no cuentan para los patrones de respiración.
+- `previewSummary` (`@visibleForTesting`) permite renderizar la pantalla sin Firebase.
+
 ### Analytics y Crashlytics
-- `AnalyticsService` (`lib/domain/services/analytics_service.dart`) con eventos tipados: `lesson_start`, `lesson_complete`, `lesson_abandoned` (con el paso donde se fue), `route_complete`, `next_lesson_tapped`, `commitment_created/answered/retried`, `breathing_complete`, `mood_checkin`, `diary_entry_saved`, `habit_checkin`, `garden_action`, `exercise_saved_to_diary`.
+- `AnalyticsService` (`lib/domain/services/analytics_service.dart`) con eventos tipados: `lesson_start`, `lesson_complete`, `lesson_abandoned` (con el paso donde se fue), `route_complete`, `next_lesson_tapped`, `commitment_created/answered/retried`, `breathing_complete`, `weekly_summary_opened`, `weekly_recommendation_tapped`, `mood_checkin`, `diary_entry_saved`, `habit_checkin`, `garden_action`, `exercise_saved_to_diary`.
 - **Privacidad (regla)**: nunca enviar qué ánimo registró el usuario, textos del diario, ejercicios o retos, ni visitas a la ayuda en crisis (excluida del `navigatorObservers`). Solo acciones e ids de contenido.
 - En debug no se envía nada; para probar: `flutter run --dart-define=ANALYTICS_DEBUG=true` y DebugView (`adb shell setprop debug.firebase.analytics.app com.thedarkingstudios.lumen`). En web solo funciona si `firebase_options.dart` trae `measurementId` (hoy no lo trae: correr `flutterfire configure` con Analytics activo).
 - Crashlytics en `main.dart` (no en web, desactivado en debug). Plugin Gradle `com.google.firebase.crashlytics` 2.8.1 en `settings.gradle.kts` y `app/build.gradle.kts`.
@@ -234,7 +243,7 @@ flutter clean; flutter pub get
 **Retención** (en orden de prioridad):
 1. ~~Seguimiento de retos (`commit`)~~: hecho, ver "Retos" en Features.
 2. ~~Botón "Siguiente lección" en la pantalla de lección completada~~: hecho.
-3. **Resumen semanal con conclusiones personales**: cruzar ánimo con respiración, lecciones, hábitos y diario ("los días que respiraste, tu ánimo fue mejor") y recomendar una lección según la emoción más frecuente. No enviar datos de ánimo a terceros.
+3. ~~Resumen semanal con conclusiones personales~~: hecho, ver "Resumen semanal" en Features.
 4. **Repaso diario**: mini-juego de 1 minuto con tarjetas `mythfact`/`sort` de lecciones ya completadas. Reutiliza contenido.
 5. **Compañero con personalidad**: nombre y frases en Home usando los Lottie del personaje (estilo búho de Duolingo).
 6. Misiones semanales con recompensas del jardín.

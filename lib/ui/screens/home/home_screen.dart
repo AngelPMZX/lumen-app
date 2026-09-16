@@ -34,6 +34,9 @@ import '../../../data/models/commitment.dart';
 import '../../../domain/services/commitment_service.dart';
 import '../../widgets/commitment_check_card.dart';
 import '../../../domain/services/analytics_service.dart';
+import '../../../data/models/weekly_summary.dart';
+import '../summary/weekly_summary_screen.dart';
+import '../../widgets/weekly_summary_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,6 +61,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Reto de una lección por el que hay que preguntar hoy.
   Commitment? _pendingCommitment;
+
+  /// Aviso del resumen semanal (domingo y lunes, hasta abrirlo).
+  bool _showWeeklySummaryCard = false;
 
   static const Map<String, String> _quoteTextKeys = {
     'La paz viene de adentro. No la busques afuera.': 'quoteService.localQuotes.0.text',
@@ -222,6 +228,9 @@ Future<void> _loadChallengeState() async {
       }
     } catch (e) { debugPrint('Error loading commitment: $e'); }
 
+    if (!mounted) return;
+    await _loadWeeklySummaryCard();
+
   
   }
 
@@ -300,6 +309,52 @@ Future<void> _scheduleDailyReminders() async {
     } catch (e) {
       debugPrint('Error dismissing crisis card: $e');
     }
+  }
+
+  // ── Resumen semanal ────────────────────────────────────────────────────────
+
+  /// Clave de la semana: el domingo más reciente (domingo = hoy, lunes = ayer).
+  String get _summaryWeekKey {
+    final now = DateTime.now();
+    final sunday = DateTime(now.year, now.month, now.day - (now.weekday % 7));
+    return WeeklySummary.dayKey(sunday);
+  }
+
+  Future<void> _loadWeeklySummaryCard() async {
+    final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+    final title = 'summary.notificationTitle'.tr();
+    final body = 'summary.notificationBody'.tr();
+    if (!kIsWeb) {
+      NotificationService.instance
+          .scheduleWeeklySummaryReminder(title: title, body: body)
+          .catchError((Object e) => debugPrint('Weekly summary reminder: $e'));
+    }
+    final weekday = DateTime.now().weekday;
+    if (weekday != DateTime.sunday && weekday != DateTime.monday) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final seen = prefs.getBool('weekly_summary_seen_${uid}_$_summaryWeekKey') ?? false;
+      if (mounted) setState(() => _showWeeklySummaryCard = !seen);
+    } catch (e) { debugPrint('Weekly summary card: $e'); }
+  }
+
+  Future<void> _markWeeklySummarySeen() async {
+    final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+    setState(() => _showWeeklySummaryCard = false);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('weekly_summary_seen_${uid}_$_summaryWeekKey', true);
+    } catch (_) {}
+  }
+
+  Future<void> _openWeeklySummary() async {
+    HapticFeedback.mediumImpact();
+    await _markWeeklySummarySeen();
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WeeklySummaryScreen(source: 'home')),
+    );
   }
 
   // ── Reto de lección ────────────────────────────────────────────────────────
@@ -1108,6 +1163,16 @@ Future<void> _scheduleDailyReminders() async {
                     ),
                   ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 20),
+
+                  // ── RESUMEN SEMANAL ────────────────────────────────────────
+                  if (_showWeeklySummaryCard) ...[
+                    WeeklySummaryCard(
+                      isDark: isDark,
+                      onOpen: _openWeeklySummary,
+                      onDismiss: _markWeeklySummarySeen,
+                    ).animate().fadeIn(delay: 510.ms, duration: 500.ms),
+                    const SizedBox(height: 20),
+                  ],
 
                   // ── ¿CUMPLISTE TU RETO? ────────────────────────────────────
                   if (_pendingCommitment != null) ...[

@@ -1882,5 +1882,51 @@
     "letGo": "Let it go",
     "notificationTitle": "🤝 How did your challenge go?",
     "notificationBody": "Yesterday you chose: \"{text}\". Come tell us."
+  },
+  "summary": {
+    "title": "Your week in Lumen",
+    "menuSubtitle": "Your mood, what you did and what helps you",
+    "cardTitle": "Your week in Lumen is ready",
+    "cardSubtitle": "See how it went and what helped you",
+    "notificationTitle": "✨ Your weekly summary is ready",
+    "notificationBody": "See how your week went and what helped you.",
+    "dominantMood": "What you felt most: {mood}",
+    "trend": {
+      "up": "Your mood improved compared to last week",
+      "same": "Your mood stayed similar to last week",
+      "down": "It was a harder week than the last one. Thank you for still being here",
+      "unknown": "You kept tracking how you feel this week",
+      "noData": "Log your mood for a few days to see how your week is going"
+    },
+    "bestDay": "⭐ Your best day was {day}",
+    "activityTitle": "What you did for yourself",
+    "stats": {
+      "checkIns": "check-in days",
+      "lessons": "lessons",
+      "breathing": "breathing sessions",
+      "diary": "diary entries",
+      "habits": "habits done",
+      "commitments": "challenges done"
+    },
+    "insightsTitle": "What we noticed",
+    "insight": {
+      "breathing": "On days you did guided breathing, your mood was better",
+      "lesson": "On days you did a lesson, your mood was better",
+      "diary": "On days you wrote in your diary, your mood was better",
+      "habit": "On days you completed a habit, your mood was better"
+    },
+    "withActivity": "With ({n} days)",
+    "withoutActivity": "Without ({n} days)",
+    "insightsDisclaimer": "These are trends in your own data from the last 4 weeks, not rules: many things affect how you feel.",
+    "noInsights": "There are not enough days yet to find patterns. The more days you log your mood, the more we can show you what helps.",
+    "recommendationTitle": "For this week",
+    "recommendationReason": "You felt {mood} on several days this week. This lesson can help:",
+    "recommendationContinue": "Pick up where you left off:",
+    "closing": {
+      "quiet": "It was a quiet week in Lumen. Every small step counts: a check-in today is already a start.",
+      "steps": "You took several steps for yourself this week. That is exactly how consistency is built.",
+      "great": "What a week! You are taking care of your wellbeing consistently."
+    },
+    "privacy": "🔒 This summary is calculated on your phone with your data. Nobody else sees it."
   }
 }

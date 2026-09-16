@@ -1882,5 +1882,51 @@
     "letGo": "Soltarlo",
     "notificationTitle": "🤝 ¿Cómo te fue con tu reto?",
     "notificationBody": "Ayer elegiste: \"{text}\". Entra a contarnos."
+  },
+  "summary": {
+    "title": "Tu semana en Lumen",
+    "menuSubtitle": "Tu ánimo, lo que hiciste y lo que te hace bien",
+    "cardTitle": "Tu semana en Lumen está lista",
+    "cardSubtitle": "Descubre cómo te fue y qué te hizo bien",
+    "notificationTitle": "✨ Tu resumen semanal está listo",
+    "notificationBody": "Mira cómo te fue esta semana y qué te hizo bien.",
+    "dominantMood": "Lo que más sentiste: {mood}",
+    "trend": {
+      "up": "Tu ánimo mejoró respecto a la semana pasada",
+      "same": "Tu ánimo se mantuvo parecido a la semana pasada",
+      "down": "Fue una semana más difícil que la anterior. Gracias por seguir aquí",
+      "unknown": "Seguiste registrando cómo te sientes esta semana",
+      "noData": "Registra tu ánimo unos días para ver cómo va tu semana"
+    },
+    "bestDay": "⭐ Tu mejor día fue el {day}",
+    "activityTitle": "Lo que hiciste por ti",
+    "stats": {
+      "checkIns": "días con check-in",
+      "lessons": "lecciones",
+      "breathing": "respiraciones",
+      "diary": "entradas de diario",
+      "habits": "hábitos cumplidos",
+      "commitments": "retos cumplidos"
+    },
+    "insightsTitle": "Lo que notamos",
+    "insight": {
+      "breathing": "Los días que hiciste una respiración guiada, tu ánimo fue mejor",
+      "lesson": "Los días que hiciste una lección, tu ánimo fue mejor",
+      "diary": "Los días que escribiste en tu diario, tu ánimo fue mejor",
+      "habit": "Los días que cumpliste un hábito, tu ánimo fue mejor"
+    },
+    "withActivity": "Con ({n} días)",
+    "withoutActivity": "Sin ({n} días)",
+    "insightsDisclaimer": "Son tendencias en tus propios datos de las últimas 4 semanas, no reglas: muchas cosas influyen en cómo te sientes.",
+    "noInsights": "Todavía no hay suficientes días para encontrar patrones. Cuantos más días registres tu ánimo, más podremos mostrarte qué te hace bien.",
+    "recommendationTitle": "Para esta semana",
+    "recommendationReason": "Esta semana sentiste {mood} varios días. Esta lección puede acompañarte:",
+    "recommendationContinue": "Sigue donde te quedaste:",
+    "closing": {
+      "quiet": "Fue una semana tranquila en Lumen. Cualquier paso pequeño cuenta: un check-in hoy ya es empezar.",
+      "steps": "Diste varios pasos por ti esta semana. La constancia se construye justo así.",
+      "great": "¡Qué semana! Estás cuidando tu bienestar de forma constante."
+    },
+    "privacy": "🔒 Este resumen se calcula en tu teléfono con tus datos. Nadie más lo ve."
   }
 }

@@ -18,6 +18,7 @@ class NotificationService {
   static const int _harvestNotificationId = 2000;
   static const int _streakNotificationId = 3000;
   static const int _commitmentNotificationId = 4000;
+  static const int _weeklySummaryNotificationId = 5000;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // INICIALIZACIÓN
@@ -375,6 +376,38 @@ class NotificationService {
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
       payload: 'commitment:check',
+    );
+  }
+
+  /// Cada domingo a las 19:00: "tu resumen semanal está listo". Idempotente:
+  /// reprogramarlo con el mismo id reemplaza el anterior.
+  Future<void> scheduleWeeklySummaryReminder({
+    required String title,
+    required String body,
+  }) async {
+    await initialize();
+
+    final now = tz.TZDateTime.now(tz.local);
+    var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, 19);
+    while (scheduled.weekday != DateTime.sunday || scheduled.isBefore(now)) {
+      scheduled = tz.TZDateTime(
+          tz.local, scheduled.year, scheduled.month, scheduled.day + 1, 19);
+    }
+
+    await _plugin.zonedSchedule(
+      _weeklySummaryNotificationId,
+      title,
+      body,
+      scheduled,
+      _notificationDetails(
+        channelId: 'weekly_summary',
+        channelName: 'Resumen semanal',
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+      payload: 'summary:weekly',
     );
   }
 

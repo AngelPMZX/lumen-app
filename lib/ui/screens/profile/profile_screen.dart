@@ -14,6 +14,7 @@ import '../../widgets/animated_particles_background.dart';
 import 'edit_profile_screen.dart';
 import 'achievements_screen.dart';
 import 'mood_history_screen.dart';
+import '../summary/weekly_summary_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -520,6 +521,17 @@ const SizedBox(height: 10),
                       Navigator.pushNamed(context, AppRoutes.crisisSupport);
                     },
                   ).animate().fadeIn(delay: 440.ms),
+                  const SizedBox(height: 10),
+
+                  // Resumen semanal
+                  _buildMenuCard(
+                    icon: Icons.auto_graph_rounded,
+                    title: 'summary.title'.tr(),
+                    subtitle: 'summary.menuSubtitle'.tr(),
+                    color: const Color(0xFF8B5CF6), isDark: isDark,
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const WeeklySummaryScreen(source: 'profile'))),
+                  ).animate().fadeIn(delay: 445.ms),
                   const SizedBox(height: 10),
 
                   // Mood history

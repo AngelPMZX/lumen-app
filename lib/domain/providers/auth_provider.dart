@@ -776,6 +776,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     'garden',
     'garden_transactions',
     'commitments',
+    'breathing_sessions',
   ];
 
   /// Elimina la cuenta y todos sus datos. Usuarios de email deben pasar
@@ -1361,6 +1362,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
         'lastSessionAt': FieldValue.serverTimestamp(),
         if (!alreadyRewarded) 'lastRewardDate': today,
       }, SetOptions(merge: true));
+      // Historial por sesión: el resumen semanal cruza qué días respiró con
+      // su ánimo. `progress/breathing` solo guarda un contador.
+      await _firestore
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('breathing_sessions')
+          .add({'at': FieldValue.serverTimestamp()});
       if (alreadyRewarded) return false;
 
       await _awardXp(xpReward, garden: garden);
