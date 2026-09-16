@@ -27,9 +27,12 @@ App Flutter para bienestar emocional. Estilo "Duolingo del bienestar" con rachas
 - **Paquete Dart**: sigue siendo `gimnasio_emocional` (interno, no visible; cambiarlo obligaría a tocar todos los `import 'package:gimnasio_emocional/...'`).
 - **Firebase**: mismo proyecto `lumen-app-5bcda`. `google-services.json` contiene **dos** apps Android: la vieja (`com.example.gimnasio_emocional`, sin uso) y la nueva. No borrar la vieja sin revisar.
   - App ID Android nuevo: `1:190336343882:android:c8619d6ea07db43d41ebb3` (también en `firebase_options.dart`).
-  - SHA-1 de debug ya registrado: `1D:81:1B:F7:87:C4:D9:65:42:F4:9B:57:BA:84:3B:A7:3E:B9:DB:60`.
+  - SHA-1 de debug registrado: `1D:81:1B:F7:87:C4:D9:65:42:F4:9B:57:BA:84:3B:A7:3E:B9:DB:60`.
+  - SHA-1 de release registrado: `C6:8D:20:D8:9B:62:89:2B:2D:B6:B3:61:A3:73:34:72:20:98:4C:83`.
   - Al cambiar de máquina o generar el keystore de release, registrar su SHA-1 o Google Sign-In falla en Android.
 - **Firma release**: `android/app/build.gradle.kts` lee `android/key.properties` si existe; si no, usa la llave de debug. `key.properties`, `*.jks` y `*.keystore` están en `.gitignore` y **nunca** se suben.
+  - Keystore en `C:\Proyectos\keys\lumen-release.jks`, alias `lumen`, válido 10 000 días. **Si se pierde el archivo o su contraseña, Google Play no permite volver a actualizar la app publicada** — mantener respaldo fuera de la máquina.
+  - Verificar la firma de un APK: `apksigner verify --print-certs <apk>` (debe decir `CN=Angel Perez`, no `Android Debug`).
 
 ## Arquitectura
 
