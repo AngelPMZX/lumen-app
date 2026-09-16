@@ -38,28 +38,28 @@
     "desc3": "Gana XP, sube de nivel y desbloquea contenido mientras cuidas de ti mismo.",
     "getStarted": "Comenzar",
     "skip": "Omitir",
-  "next": "Siguiente",
-  "start": "¡Empezar!",
-  "skipConfirmTitle": "¿Saltar el tour?",
-  "skipConfirmMessage": "Podrás verlo después desde tu perfil, en Ajustes → Ver tour de nuevo.",
-  "skipConfirmYes": "Saltar",
-  "skipConfirmNo": "Continuar tour",
-  "slide1": {
-    "title": "Bienvenido a Lumen 🌱",
-    "description": "Tu gimnasio emocional. Cuida tu mente todos los días, un pequeño paso a la vez."
-  },
-  "slide2": {
-    "title": "Aprende algo nuevo cada día",
-    "description": "Rutas cortas de bienestar sobre emociones, mindfulness y resiliencia. Mantén tu racha viva 🔥"
-  },
-  "slide3": {
-    "title": "Registra cómo te sientes",
-    "description": "Diario emocional, hábitos diarios y respiración guiada. Todo en un solo lugar."
-  },
-  "slide4": {
-    "title": "Descubre secretos escondidos",
-    "description": "Explora Lumen y encontrarás sorpresas. Cada acción cuida tu jardín interior 🌿"
-  }
+    "next": "Siguiente",
+    "start": "¡Empezar!",
+    "skipConfirmTitle": "¿Saltar el tour?",
+    "skipConfirmMessage": "Podrás verlo después desde tu perfil, en Ajustes → Ver tour de nuevo.",
+    "skipConfirmYes": "Saltar",
+    "skipConfirmNo": "Continuar tour",
+    "slide1": {
+      "title": "Bienvenido a Lumen 🌱",
+      "description": "Tu gimnasio emocional. Cuida tu mente todos los días, un pequeño paso a la vez."
+    },
+    "slide2": {
+      "title": "Aprende algo nuevo cada día",
+      "description": "Rutas cortas de bienestar sobre emociones, mindfulness y resiliencia. Mantén tu racha viva 🔥"
+    },
+    "slide3": {
+      "title": "Registra cómo te sientes",
+      "description": "Diario emocional, hábitos diarios y respiración guiada. Todo en un solo lugar."
+    },
+    "slide4": {
+      "title": "Descubre secretos escondidos",
+      "description": "Explora Lumen y encontrarás sorpresas. Cada acción cuida tu jardín interior 🌿"
+    }
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -87,28 +87,27 @@
     "journeyStarts": "Tu viaje comienza aquí ✨",
     "completeData": "Completa tus datos para crear tu cuenta",
     "forgotPasswordTitle": "¿Olvidaste tu contraseña?",
-"forgotPasswordSubtitle": "No te preocupes. Te enviaremos un enlace para restablecerla.",
-"enterYourEmail": "Ingresa tu correo electrónico:",
-"sendResetLink": "Enviar enlace",
-"emailSentTitle": "¡Correo enviado!",
-"emailSentSubtitle": "Revisa tu bandeja de entrada",
-"checkYourInbox": "Te enviamos un enlace a {email}. Toca el enlace para crear una nueva contraseña.",
-"checkSpamFolder": "Si no lo encuentras, revisa tu carpeta de spam o correo no deseado.",
-"backToLogin": "Volver a iniciar sesión",
-"resendEmail": "Reenviar correo",
-"emailResent": "Correo reenviado ✉️",
-"resendEmailCooldown": "Reenviar en {seconds}s",
-"useAnotherEmail": "Usar otro correo",
-"verifyEmailTitle": "Verifica tu correo",
-"verifyEmailSubtitle": "Te enviamos un enlace de verificación",
-"verifyEmailInstructions": "Revisa tu bandeja de entrada en {email} y toca el enlace para confirmar tu cuenta.",
-"verifyEmailCta": "Ya verifiqué mi correo",
-"verifyEmailResend": "Reenviar correo",
-"verifyEmailResendSuccess": "Correo reenviado ✉️",
-"verifyEmailBackToLogin": "Volver al inicio de sesión",
-"verifyEmailNotYetVerified": "Aún no encontramos la verificación. Revisa tu correo y toca el enlace.",
-"verifyEmailSuccess": "¡Correo verificado! 🎉",
-"verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos..."
+    "forgotPasswordSubtitle": "No te preocupes. Te enviaremos un enlace para restablecerla.",
+    "enterYourEmail": "Ingresa tu correo electrónico:",
+    "emailSentTitle": "¡Correo enviado!",
+    "emailSentSubtitle": "Revisa tu bandeja de entrada",
+    "checkYourInbox": "Te enviamos un enlace a {email}. Toca el enlace para crear una nueva contraseña.",
+    "checkSpamFolder": "Si no lo encuentras, revisa tu carpeta de spam o correo no deseado.",
+    "backToLogin": "Volver a iniciar sesión",
+    "resendEmail": "Reenviar correo",
+    "emailResent": "Correo reenviado ✉️",
+    "resendEmailCooldown": "Reenviar en {seconds}s",
+    "useAnotherEmail": "Usar otro correo",
+    "verifyEmailTitle": "Verifica tu correo",
+    "verifyEmailSubtitle": "Te enviamos un enlace de verificación",
+    "verifyEmailInstructions": "Revisa tu bandeja de entrada en {email} y toca el enlace para confirmar tu cuenta.",
+    "verifyEmailCta": "Ya verifiqué mi correo",
+    "verifyEmailResend": "Reenviar correo",
+    "verifyEmailResendSuccess": "Correo reenviado ✉️",
+    "verifyEmailBackToLogin": "Volver al inicio de sesión",
+    "verifyEmailNotYetVerified": "Aún no encontramos la verificación. Revisa tu correo y toca el enlace.",
+    "verifyEmailSuccess": "¡Correo verificado! 🎉",
+    "verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos..."
   },
   "validation": {
     "required": "Este campo es obligatorio",
@@ -212,7 +211,7 @@
     "freeSpiritStrengths": "Adaptabilidad,Curiosidad,Optimismo",
     "freeSpiritTip": "Tu superpoder es la libertad. Lumen será tu compañero de aventuras en el crecimiento emocional.",
     "watchTour": "Ver tour de nuevo",
-"watchTourSubtitle": "Redescubre qué puedes hacer en Lumen"
+    "watchTourSubtitle": "Redescubre qué puedes hacer en Lumen"
   },
   "home": {
     "greeting": "¡Hola, {name}!",
@@ -647,11 +646,10 @@
     "userNotFound": "No se encontró una cuenta con este correo",
     "wrongPassword": "Contraseña incorrecta",
     "weakPassword": "La contraseña es muy débil",
-    "tooManyRequests": "Demasiados intentos. Espera un momento.",
+    "tooManyRequests": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
     "saveFailed": "Error al guardar. Intenta de nuevo.",
     "loadFailed": "Error al cargar los datos.",
-    "tooManyRequests": "Demasiados intentos. Espera un momento e inténtalo de nuevo.",
-"sessionExpired": "Tu sesión expiró. Vuelve a iniciar sesión."
+    "sessionExpired": "Tu sesión expiró. Vuelve a iniciar sesión."
   },
   "dailyChallenges": {
     "categories": {
@@ -1387,7 +1385,7 @@
     "languageEn": "English",
     "languageEs": "Español",
     "watchTour": "Ver tour de nuevo",
-"watchTourSubtitle": "Redescubre qué puedes hacer en Lumen"
+    "watchTourSubtitle": "Redescubre qué puedes hacer en Lumen"
   },
   "moodHistory": {
     "title": "Historial de ánimo",
@@ -1870,19 +1868,52 @@
       "12": "diciembre"
     },
     "notifications": {
-  "harvest": {
-    "title": "🌾 ¡Plantas listas para cosechar!",
-    "body": "Tus plantas están maduras. Entra a Lumen y recoge tus semillas."
+      "harvest": {
+        "title": "🌾 ¡Plantas listas para cosechar!",
+        "body": "Tus plantas están maduras. Entra a Lumen y recoge tus semillas."
+      },
+      "streak": {
+        "title": "🔥 ¡Tu racha está en riesgo!",
+        "body": "No olvides hacer tu check-in diario en Lumen para mantener tu racha."
+      },
+      "test": {
+        "title": "🧪 Prueba de notificación",
+        "body": "Si ves esto, las notificaciones funcionan correctamente en tu dispositivo."
+      }
+    }
   },
-  "streak": {
-    "title": "🔥 ¡Tu racha está en riesgo!",
-    "body": "No olvides hacer tu check-in diario en Lumen para mantener tu racha."
-  },
-  "test": {
-    "title": "🧪 Prueba de notificación",
-    "body": "Si ves esto, las notificaciones funcionan correctamente en tu dispositivo."
+  "crisis": {
+    "title": "No estás solo en esto",
+    "subtitle": "Hablar con alguien ayuda. Estas líneas son gratuitas, confidenciales y atienden las 24 horas.",
+    "callNow": "LLAMAR AHORA",
+    "chooseCountry": "TU PAÍS",
+    "meanwhile": "MIENTRAS TANTO",
+    "menuSubtitle": "Líneas de ayuda gratuitas 24/7",
+    "emergencyTitle": "Emergencias: {number}",
+    "emergencyMessage": "Si hay riesgo inmediato para tu vida o la de alguien más, llama a emergencias.",
+    "breathingTitle": "Respira conmigo unos minutos",
+    "breathingMessage": "Un ejercicio guiado para bajar la intensidad mientras decides qué sigue.",
+    "directoryTitle": "Buscar líneas de otro país",
+    "directoryMessage": "Directorio verificado de Find A Helpline, con más de 175 países.",
+    "disclaimer": "Lumen te acompaña, pero no es un servicio de emergencia ni sustituye la atención profesional.",
+    "copiedToClipboard": "Copiamos el número {number} para que puedas marcarlo.",
+    "card": {
+      "title": "¿Necesitas ayuda ahora?",
+      "message": "Notamos que han sido días difíciles. No tienes que pasarlos en soledad: hay personas listas para escucharte, gratis y a cualquier hora.",
+      "cta": "Ver líneas de ayuda"
+    },
+    "lines": {
+      "mxLifeLine": "Atención gratuita las 24 horas en salud mental, adicciones y crisis suicida.",
+      "es024": "Línea del Ministerio de Sanidad para conducta suicida. Gratuita y confidencial, 24 horas.",
+      "us988": "Apoyo gratuito y confidencial en crisis, las 24 horas.",
+      "us988Note": "Marca 988 y presiona 2 para atención en español.",
+      "us988Text": "Escribe AYUDA al 988 para chatear en español.",
+      "co106": "Orientación gratuita en salud mental y primeros auxilios psicológicos, 24 horas.",
+      "ar135": "Centro de Asistencia al Suicida. Gratuita desde CABA y Gran Buenos Aires.",
+      "ar135Note": "Desde el resto del país usa el número largo de abajo.",
+      "arNational": "Misma atención del Centro de Asistencia al Suicida, desde cualquier punto del país.",
+      "cl4141": "Atención con psicólogos las 24 horas, gratuita desde celular.",
+      "cl4141Note": "Desde teléfono fijo marca 131."
+    }
   }
-}
-  }
-  
 }

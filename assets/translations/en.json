@@ -39,27 +39,27 @@
     "getStarted": "Get Started",
     "skip": "Skip",
     "next": "Next",
-  "start": "Let's start!",
-  "skipConfirmTitle": "Skip the tour?",
-  "skipConfirmMessage": "You can watch it later from your profile, in Settings → Watch tour again.",
-  "skipConfirmYes": "Skip",
-  "skipConfirmNo": "Keep watching",
-  "slide1": {
-    "title": "Welcome to Lumen 🌱",
-    "description": "Your emotional gym. Take care of your mind every day, one small step at a time."
-  },
-  "slide2": {
-    "title": "Learn something new every day",
-    "description": "Short wellness paths on emotions, mindfulness and resilience. Keep your streak alive 🔥"
-  },
-  "slide3": {
-    "title": "Track how you feel",
-    "description": "Emotional journal, daily habits and guided breathing. All in one place."
-  },
-  "slide4": {
-    "title": "Discover hidden secrets",
-    "description": "Explore Lumen and you'll find surprises. Every action tends to your inner garden 🌿"
-  }
+    "start": "Let's start!",
+    "skipConfirmTitle": "Skip the tour?",
+    "skipConfirmMessage": "You can watch it later from your profile, in Settings → Watch tour again.",
+    "skipConfirmYes": "Skip",
+    "skipConfirmNo": "Keep watching",
+    "slide1": {
+      "title": "Welcome to Lumen 🌱",
+      "description": "Your emotional gym. Take care of your mind every day, one small step at a time."
+    },
+    "slide2": {
+      "title": "Learn something new every day",
+      "description": "Short wellness paths on emotions, mindfulness and resilience. Keep your streak alive 🔥"
+    },
+    "slide3": {
+      "title": "Track how you feel",
+      "description": "Emotional journal, daily habits and guided breathing. All in one place."
+    },
+    "slide4": {
+      "title": "Discover hidden secrets",
+      "description": "Explore Lumen and you'll find surprises. Every action tends to your inner garden 🌿"
+    }
   },
   "auth": {
     "login": "Log In",
@@ -87,28 +87,27 @@
     "journeyStarts": "Your journey starts here ✨",
     "completeData": "Fill in your details to create your account",
     "forgotPasswordTitle": "Forgot your password?",
-"forgotPasswordSubtitle": "Don't worry. We'll send you a link to reset it.",
-"enterYourEmail": "Enter your email address:",
-"sendResetLink": "Send reset link",
-"emailSentTitle": "Email sent!",
-"emailSentSubtitle": "Check your inbox",
-"checkYourInbox": "We sent a link to {email}. Tap the link to create a new password.",
-"checkSpamFolder": "If you don't see it, check your spam or junk folder.",
-"backToLogin": "Back to login",
-"resendEmail": "Resend email",
-"emailResent": "Email resent ✉️",
-"resendEmailCooldown": "Resend in {seconds}s",
-"useAnotherEmail": "Use another email",
-"verifyEmailTitle": "Verifica tu correo",
-"verifyEmailSubtitle": "Te enviamos un enlace de verificación",
-"verifyEmailInstructions": "Revisa tu bandeja de entrada en {email} y toca el enlace para confirmar tu cuenta.",
-"verifyEmailCta": "Ya verifiqué mi correo",
-"verifyEmailResend": "Reenviar correo",
-"verifyEmailResendSuccess": "Correo reenviado ✉️",
-"verifyEmailBackToLogin": "Volver al inicio de sesión",
-"verifyEmailNotYetVerified": "Aún no encontramos la verificación. Revisa tu correo y toca el enlace.",
-"verifyEmailSuccess": "¡Correo verificado! 🎉",
-"verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos..."
+    "forgotPasswordSubtitle": "Don't worry. We'll send you a link to reset it.",
+    "enterYourEmail": "Enter your email address:",
+    "emailSentTitle": "Email sent!",
+    "emailSentSubtitle": "Check your inbox",
+    "checkYourInbox": "We sent a link to {email}. Tap the link to create a new password.",
+    "checkSpamFolder": "If you don't see it, check your spam or junk folder.",
+    "backToLogin": "Back to login",
+    "resendEmail": "Resend email",
+    "emailResent": "Email resent ✉️",
+    "resendEmailCooldown": "Resend in {seconds}s",
+    "useAnotherEmail": "Use another email",
+    "verifyEmailTitle": "Verifica tu correo",
+    "verifyEmailSubtitle": "Te enviamos un enlace de verificación",
+    "verifyEmailInstructions": "Revisa tu bandeja de entrada en {email} y toca el enlace para confirmar tu cuenta.",
+    "verifyEmailCta": "Ya verifiqué mi correo",
+    "verifyEmailResend": "Reenviar correo",
+    "verifyEmailResendSuccess": "Correo reenviado ✉️",
+    "verifyEmailBackToLogin": "Volver al inicio de sesión",
+    "verifyEmailNotYetVerified": "Aún no encontramos la verificación. Revisa tu correo y toca el enlace.",
+    "verifyEmailSuccess": "¡Correo verificado! 🎉",
+    "verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos..."
   },
   "validation": {
     "required": "This field is required",
@@ -183,7 +182,7 @@
     "errorSaveProfile": "Error saving your profile",
     "errorCompleteProfile": "Error completing profile",
     "watchTour": "Watch tour again",
-"watchTourSubtitle": "Rediscover what you can do in Lumen"
+    "watchTourSubtitle": "Rediscover what you can do in Lumen"
   },
   "archetype": {
     "revealTitle": "Your archetype is...",
@@ -647,11 +646,10 @@
     "userNotFound": "No account found with this email",
     "wrongPassword": "Incorrect password",
     "weakPassword": "Password is too weak",
-    "tooManyRequests": "Too many attempts. Wait a moment.",
+    "tooManyRequests": "Too many attempts. Wait a moment and try again.",
     "saveFailed": "Error saving. Try again.",
     "loadFailed": "Error loading data.",
-    "tooManyRequests": "Too many attempts. Wait a moment and try again.",
-"sessionExpired": "Your session expired. Please log in again."
+    "sessionExpired": "Your session expired. Please log in again."
   },
   "dailyChallenges": {
     "categories": {
@@ -1387,7 +1385,7 @@
     "languageEn": "English",
     "languageEs": "Español",
     "watchTour": "Watch tour again",
-"watchTourSubtitle": "Rediscover what you can do in Lumen"
+    "watchTourSubtitle": "Rediscover what you can do in Lumen"
   },
   "moodHistory": {
     "title": "Mood history",
@@ -1870,18 +1868,52 @@
       "12": "December"
     },
     "notifications": {
-  "harvest": {
-    "title": "🌾 Plants ready to harvest!",
-    "body": "Your plants are ripe. Open Lumen and collect your seeds."
+      "harvest": {
+        "title": "🌾 Plants ready to harvest!",
+        "body": "Your plants are ripe. Open Lumen and collect your seeds."
+      },
+      "streak": {
+        "title": "🔥 Your streak is at risk!",
+        "body": "Don't forget your daily check-in on Lumen to keep your streak alive."
+      },
+      "test": {
+        "title": "🧪 Notification test",
+        "body": "If you see this, notifications work correctly on your device."
+      }
+    }
   },
-  "streak": {
-    "title": "🔥 Your streak is at risk!",
-    "body": "Don't forget your daily check-in on Lumen to keep your streak alive."
-  },
-  "test": {
-    "title": "🧪 Notification test",
-    "body": "If you see this, notifications work correctly on your device."
-  }
-}
+  "crisis": {
+    "title": "You are not alone in this",
+    "subtitle": "Talking to someone helps. These lines are free, confidential and open 24 hours a day.",
+    "callNow": "CALL NOW",
+    "chooseCountry": "YOUR COUNTRY",
+    "meanwhile": "IN THE MEANTIME",
+    "menuSubtitle": "Free helplines, 24/7",
+    "emergencyTitle": "Emergencies: {number}",
+    "emergencyMessage": "If your life or someone else's is in immediate danger, call emergency services.",
+    "breathingTitle": "Breathe with me for a few minutes",
+    "breathingMessage": "A guided exercise to bring the intensity down while you decide what comes next.",
+    "directoryTitle": "Find helplines in another country",
+    "directoryMessage": "Verified directory by Find A Helpline, covering 175+ countries.",
+    "disclaimer": "Lumen is here for you, but it is not an emergency service and does not replace professional care.",
+    "copiedToClipboard": "We copied {number} so you can dial it.",
+    "card": {
+      "title": "Need support right now?",
+      "message": "These past days have looked heavy. You don't have to go through them alone — there are people ready to listen, free, at any hour.",
+      "cta": "See helplines"
+    },
+    "lines": {
+      "mxLifeLine": "Free 24-hour support for mental health, addiction and suicidal crisis.",
+      "es024": "Spanish Ministry of Health line for suicidal behaviour. Free and confidential, 24 hours.",
+      "us988": "Free, confidential crisis support, 24 hours a day.",
+      "us988Note": "Dial 988 and press 2 for Spanish.",
+      "us988Text": "Text AYUDA to 988 to chat in Spanish.",
+      "co106": "Free mental health guidance and psychological first aid, 24 hours.",
+      "ar135": "Centro de Asistencia al Suicida. Free from Buenos Aires city and metro area.",
+      "ar135Note": "From elsewhere in the country use the long number below.",
+      "arNational": "Same Centro de Asistencia al Suicida support, from anywhere in the country.",
+      "cl4141": "24-hour support with psychologists, free from mobile phones.",
+      "cl4141Note": "From a landline dial 131."
+    }
   }
 }

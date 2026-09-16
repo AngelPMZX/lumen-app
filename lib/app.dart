@@ -12,6 +12,7 @@ import 'domain/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'ui/screens/auth/forgot_password_screen.dart';
 import 'ui/screens/auth/verify_email_screen.dart';
+import 'ui/screens/crisis/crisis_support_screen.dart';
 
 class LumenApp extends StatelessWidget {
   const LumenApp({super.key});
@@ -39,6 +40,7 @@ class LumenApp extends StatelessWidget {
         AppRoutes.forgotPassword: (_) => const ForgotPasswordScreen(),
         AppRoutes.verifyEmail: (_) => const VerifyEmailScreen(),
         AppRoutes.onboardingIntro: (_) => const OnboardingScreen(),
+        AppRoutes.crisisSupport: (_) => const CrisisSupportScreen(),
       },
     );
   }

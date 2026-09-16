@@ -507,6 +507,20 @@ _buildMenuCard(
 ).animate().fadeIn(delay: 535.ms),
 const SizedBox(height: 10),
 
+                  // Ayuda en crisis
+                  _buildMenuCard(
+                    icon: Icons.volunteer_activism_rounded,
+                    title: _tr('crisis.card.title', fallback: '¿Necesitas ayuda ahora?'),
+                    subtitle: _tr('crisis.menuSubtitle',
+                        fallback: 'Líneas de ayuda gratuitas 24/7'),
+                    color: const Color(0xFF6C8FE8), isDark: isDark,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.pushNamed(context, AppRoutes.crisisSupport);
+                    },
+                  ).animate().fadeIn(delay: 440.ms),
+                  const SizedBox(height: 10),
+
                   // Mood history
                   _buildMenuCard(
                     icon: Icons.bar_chart_rounded,

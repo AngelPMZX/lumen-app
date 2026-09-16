@@ -106,6 +106,13 @@ Clean architecture simplificada:
 - Repetible desde Perfil → Ajustes → "Ver tour de nuevo".
 - Flag `onboardingCompleted` en Firestore.
 
+### Ayuda en crisis
+- Pantalla `CrisisSupportScreen` (`lib/ui/screens/crisis/`) con líneas de ayuda gratuitas por país.
+- Datos en `lib/data/models/crisis_resource.dart`: México (Línea de la Vida), Colombia (106), Argentina (135), Chile (*4141), España (024), EE. UU. (988) + Find A Helpline como respaldo internacional.
+- **Los números son información de seguridad**: cada país lleva su `sourceUrl` oficial. No agregar ni cambiar un número sin verificarlo en la fuente oficial primero.
+- Accesos: Perfil → "¿Necesitas ayuda ahora?", icono en la cabecera del Diario, y tarjeta automática en Home cuando hay 3+ días de ánimo negativo en la semana (`_shouldOfferCrisisSupport`, ocultable por día).
+- Usa `url_launcher` (`tel:`, `sms:`, `https:`); Android 11+ exige los `<intent>` declarados en `<queries>` del AndroidManifest.
+
 ## Bugs importantes resueltos (no volver a introducir)
 
 1. **Timezone bug**: `tz.initializeTimeZones()` no configura `tz.local`. Debe usarse `FlutterTimezone.getLocalTimezone()` + `tz.setLocalLocation()` en `NotificationService.initialize()`.
@@ -174,6 +181,7 @@ flutter clean; flutter pub get
 ## Pendientes actuales
 
 - **RevenueCat activo** para monetización.
+- **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
 - **Reglas de Firestore**: restringir lectura de `users/{userId}` al dueño antes de publicar (hoy cualquier usuario autenticado puede leer perfiles ajenos).
 - **Polish visual de `lesson_screen.dart`** con personajes.
 - **Panel admin** de rutas de bienestar (sin script Node.js).

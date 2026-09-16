@@ -18,6 +18,7 @@ import '../../widgets/weekly_mood_chart.dart';
 import '../../widgets/daily_progress_ring.dart';
 import '../../widgets/challenge_dialog.dart';
 import '../../widgets/reward_dialog.dart';
+import '../../widgets/crisis_support_card.dart';
 import '../reminders/reminders_screen.dart';
 import '../routes/lesson_screen.dart';
 import '../diary/new_diary_entry_screen.dart';
@@ -47,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen>
   bool _hasLessonToday = false;
   List<WellnessRoute> _dynamicRoutes = [];
   bool _challengeCompletedToday = false;
+  bool _crisisCardDismissedToday = false;
 
   static const Map<String, String> _quoteTextKeys = {
     'La paz viene de adentro. No la busques afuera.': 'quoteService.localQuotes.0.text',
@@ -133,7 +135,14 @@ Future<void> _loadChallengeState() async {
     final todayStr =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     final done = prefs.getBool('challenge_done_${uid}_$todayStr') ?? false;
-    if (mounted) setState(() => _challengeCompletedToday = done);
+    final crisisDismissed =
+        prefs.getBool('crisis_card_dismissed_${uid}_$todayStr') ?? false;
+    if (mounted) {
+      setState(() {
+        _challengeCompletedToday = done;
+        _crisisCardDismissedToday = crisisDismissed;
+      });
+    }
   } catch (e) {
     debugPrint('Error loading challenge state: $e');
   }
@@ -247,6 +256,33 @@ Future<void> _scheduleDailyReminders() async {
     debugPrint('Error scheduling harvest reminder: $e');
   }
 }
+
+  // ── Apoyo en crisis ────────────────────────────────────────────────────────
+
+  /// Días de esta semana con un ánimo de categoría negativa.
+  int get _hardDaysThisWeek => _weeklyMoods.values
+      .where((mood) => mood.category == 'negative')
+      .length;
+
+  /// A partir de 3 días difíciles en la semana ofrecemos las líneas de ayuda.
+  /// No es un diagnóstico: solo deja la puerta abierta, y se puede ocultar.
+  bool get _shouldOfferCrisisSupport =>
+      !_crisisCardDismissedToday && _hardDaysThisWeek >= 3;
+
+  Future<void> _dismissCrisisCard() async {
+    HapticFeedback.lightImpact();
+    setState(() => _crisisCardDismissedToday = true);
+    try {
+      final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now();
+      final todayStr =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      await prefs.setBool('crisis_card_dismissed_${uid}_$todayStr', true);
+    } catch (e) {
+      debugPrint('Error dismissing crisis card: $e');
+    }
+  }
 
   // ── Garden reward ──────────────────────────────────────────────────────────
 
@@ -1023,6 +1059,15 @@ Future<void> _scheduleDailyReminders() async {
                     ),
                   ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
                   const SizedBox(height: 20),
+
+                  // ── APOYO EN CRISIS (varios días difíciles) ────────────────
+                  if (_shouldOfferCrisisSupport) ...[
+                    CrisisSupportCard(
+                      isDark: isDark,
+                      onDismiss: _dismissCrisisCard,
+                    ),
+                    const SizedBox(height: 20),
+                  ],
 
                   // ── GRÁFICA SEMANAL ────────────────────────────────────────
                   WeeklyMoodChart(weeklyMoods: _weeklyMoods)

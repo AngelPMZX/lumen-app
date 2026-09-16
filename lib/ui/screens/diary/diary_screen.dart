@@ -9,6 +9,7 @@ import '../../../data/models/mood_entry.dart';
 import '../../../domain/providers/auth_provider.dart';
 import 'new_diary_entry_screen.dart';
 import 'diary_detail_screen.dart';
+import '../crisis/crisis_support_screen.dart';
 
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({super.key});
@@ -222,6 +223,21 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                   ),
                                 ),
                               ],
+                            ),
+                          ),
+                          // Acceso discreto a las líneas de ayuda
+                          IconButton(
+                            tooltip: 'crisis.card.title'.tr(),
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const CrisisSupportScreen()),
+                            ),
+                            icon: Icon(
+                              Icons.volunteer_activism_rounded,
+                              size: 20,
+                              color: const Color(0xFF6C8FE8)
+                                  .withValues(alpha: isDark ? 0.9 : 0.75),
                             ),
                           ),
                         ],
