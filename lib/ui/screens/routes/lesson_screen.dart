@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:lottie/lottie.dart';
 import 'package:confetti/confetti.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../data/models/wellness_route.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
@@ -65,7 +64,7 @@ class _StarDotState extends State<_StarDot>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _anim,
-      builder: (_, __) {
+      builder: (_, _) {
         final v = _anim.value.clamp(0.0, 1.0);
         return Opacity(
           opacity: v,
@@ -78,19 +77,19 @@ class _StarDotState extends State<_StarDot>
               boxShadow: widget.size > 1.8
                   ? [
                       BoxShadow(
-                        color: Colors.white.withOpacity(v * 0.9),
+                        color: Colors.white.withValues(alpha: v * 0.9),
                         blurRadius: widget.size * 1.5,
                         spreadRadius: widget.size * 0.2,
                       ),
                       BoxShadow(
-                        color: widget.glowColor.withOpacity(v * 0.7),
+                        color: widget.glowColor.withValues(alpha: v * 0.7),
                         blurRadius: widget.size * 4.0,
                         spreadRadius: widget.size * 0.5,
                       ),
                     ]
                   : [
                       BoxShadow(
-                        color: Colors.white.withOpacity(v * 0.6),
+                        color: Colors.white.withValues(alpha: v * 0.6),
                         blurRadius: widget.size * 2.0,
                       ),
                     ],
@@ -169,7 +168,7 @@ class _ShootingStarState extends State<_ShootingStar>
 
       return AnimatedBuilder(
         animation: _progress,
-        builder: (_, __) {
+        builder: (_, _) {
           final t = _progress.value;
           if (t == 0) return const SizedBox.shrink();
 
@@ -224,9 +223,9 @@ class _ShootingStarPainter extends CustomPainter {
     final paint = Paint()
       ..shader = LinearGradient(
         colors: [
-          Colors.white.withOpacity(tailOpacity * 0.0),
-          color.withOpacity(tailOpacity * 0.5),
-          Colors.white.withOpacity(headOpacity),
+          Colors.white.withValues(alpha: tailOpacity * 0.0),
+          color.withValues(alpha: tailOpacity * 0.5),
+          Colors.white.withValues(alpha: headOpacity),
         ],
       ).createShader(
         Rect.fromPoints(Offset(tailX, tailY), Offset(headX, headY)),
@@ -238,7 +237,7 @@ class _ShootingStarPainter extends CustomPainter {
     canvas.drawLine(Offset(tailX, tailY), Offset(headX, headY), paint);
 
     final dotPaint = Paint()
-      ..color = Colors.white.withOpacity(headOpacity)
+      ..color = Colors.white.withValues(alpha: headOpacity)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
     canvas.drawCircle(Offset(headX, headY), 1.8, dotPaint);
   }
@@ -548,8 +547,8 @@ class _LessonScreenState extends State<LessonScreen>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
-                widget.routeColor.withOpacity(0.28),
-                widget.routeColor.withOpacity(0.0),
+                widget.routeColor.withValues(alpha: 0.28),
+                widget.routeColor.withValues(alpha: 0.0),
               ]),
             ),
           ),
@@ -561,8 +560,8 @@ class _LessonScreenState extends State<LessonScreen>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
-                const Color(0xFF818CF8).withOpacity(0.2),
-                const Color(0xFF818CF8).withOpacity(0.0),
+                const Color(0xFF818CF8).withValues(alpha: 0.2),
+                const Color(0xFF818CF8).withValues(alpha: 0.0),
               ]),
             ),
           ),
@@ -574,8 +573,8 @@ class _LessonScreenState extends State<LessonScreen>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(colors: [
-                widget.routeColor.withOpacity(0.12),
-                widget.routeColor.withOpacity(0.0),
+                widget.routeColor.withValues(alpha: 0.12),
+                widget.routeColor.withValues(alpha: 0.0),
               ]),
             ),
           ),
@@ -616,7 +615,7 @@ class _LessonScreenState extends State<LessonScreen>
   Widget _buildTopBar(bool isDark) {
     // Mostrar multiplicador activo en el top bar si hay uno
     return Consumer<GardenProvider>(
-      builder: (_, garden, __) {
+      builder: (_, garden, _) {
         final mult = garden.currentXpMultiplier;
         final hasMultiplier = mult > 1.0;
 
@@ -631,9 +630,9 @@ class _LessonScreenState extends State<LessonScreen>
                     child: Container(
                       width: 36, height: 36,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withOpacity(0.15)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                       ),
                       child: const Icon(Icons.close_rounded, size: 18, color: Colors.white60),
                     ),
@@ -650,9 +649,9 @@ class _LessonScreenState extends State<LessonScreen>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                    border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.4)),
                   ),
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     const Text('⚡', style: TextStyle(fontSize: 13)),
@@ -692,17 +691,17 @@ class _LessonScreenState extends State<LessonScreen>
                 color: isDone
                     ? widget.routeColor
                     : isCurrent
-                        ? widget.routeColor.withOpacity(0.7)
-                        : Colors.white.withOpacity(0.15),
+                        ? widget.routeColor.withValues(alpha: 0.7)
+                        : Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: isCurrent
                     ? [BoxShadow(
-                        color: widget.routeColor.withOpacity(0.8),
+                        color: widget.routeColor.withValues(alpha: 0.8),
                         blurRadius: 8, spreadRadius: 1,
                       )]
                     : isDone
                         ? [BoxShadow(
-                            color: widget.routeColor.withOpacity(0.4),
+                            color: widget.routeColor.withValues(alpha: 0.4),
                             blurRadius: 4,
                           )]
                         : null,
@@ -718,9 +717,9 @@ class _LessonScreenState extends State<LessonScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFFFBBF24).withOpacity(0.15),
+        color: const Color(0xFFFBBF24).withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFFBBF24).withOpacity(0.35)),
+        border: Border.all(color: const Color(0xFFFBBF24).withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -766,7 +765,7 @@ class _LessonScreenState extends State<LessonScreen>
         child: Lottie.asset(
           assetPath,
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => _buildCharacterFallback(),
+          errorBuilder: (_, _, _) => _buildCharacterFallback(),
         ),
       ),
     );
@@ -794,10 +793,10 @@ class _LessonScreenState extends State<LessonScreen>
       child: Container(
         width: 80, height: 80,
         decoration: BoxDecoration(
-          color: glow.withOpacity(0.15),
+          color: glow.withValues(alpha: 0.15),
           shape: BoxShape.circle,
-          border: Border.all(color: glow.withOpacity(0.3), width: 1.5),
-          boxShadow: [BoxShadow(color: glow.withOpacity(0.35), blurRadius: 20, spreadRadius: 2)],
+          border: Border.all(color: glow.withValues(alpha: 0.3), width: 1.5),
+          boxShadow: [BoxShadow(color: glow.withValues(alpha: 0.35), blurRadius: 20, spreadRadius: 2)],
         ),
         child: Center(child: Text(emoji, style: const TextStyle(fontSize: 38))),
       ),
@@ -827,9 +826,9 @@ class _LessonScreenState extends State<LessonScreen>
           onPressed: _canContinue ? _nextStep : null,
           style: FilledButton.styleFrom(
             backgroundColor: widget.routeColor,
-            disabledBackgroundColor: widget.routeColor.withOpacity(0.22),
+            disabledBackgroundColor: widget.routeColor.withValues(alpha: 0.22),
             elevation: _canContinue ? 8 : 0,
-            shadowColor: widget.routeColor.withOpacity(0.5),
+            shadowColor: widget.routeColor.withValues(alpha: 0.5),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
           child: _isSaving
@@ -876,7 +875,7 @@ class _LessonScreenState extends State<LessonScreen>
           _step.title,
           style: TextStyle(
             fontSize: 26, fontWeight: FontWeight.w800, height: 1.2, color: Colors.white,
-            shadows: [Shadow(color: widget.routeColor.withOpacity(0.5), blurRadius: 14)],
+            shadows: [Shadow(color: widget.routeColor.withValues(alpha: 0.5), blurRadius: 14)],
           ),
         ),
         const SizedBox(height: 16),
@@ -884,16 +883,16 @@ class _LessonScreenState extends State<LessonScreen>
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.07),
+            color: Colors.white.withValues(alpha: 0.07),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: widget.routeColor.withOpacity(0.25)),
+            border: Border.all(color: widget.routeColor.withValues(alpha: 0.25)),
             boxShadow: [BoxShadow(
-              color: widget.routeColor.withOpacity(0.1), blurRadius: 16, spreadRadius: 1,
+              color: widget.routeColor.withValues(alpha: 0.1), blurRadius: 16, spreadRadius: 1,
             )],
           ),
           child: Text(
             _step.content ?? '',
-            style: TextStyle(fontSize: 16, height: 1.85, color: Colors.white.withOpacity(0.88)),
+            style: TextStyle(fontSize: 16, height: 1.85, color: Colors.white.withValues(alpha: 0.88)),
           ),
         ),
       ],
@@ -935,18 +934,18 @@ class _LessonScreenState extends State<LessonScreen>
     final isCorrect = i == _step.correctIndex;
     final showResult = _quizAnswered;
 
-    Color borderColor = Colors.white.withOpacity(0.12);
-    Color bgColor = Colors.white.withOpacity(0.07);
+    Color borderColor = Colors.white.withValues(alpha: 0.12);
+    Color bgColor = Colors.white.withValues(alpha: 0.07);
 
     if (showResult && isCorrect) {
       borderColor = const Color(0xFF10B981);
-      bgColor = const Color(0xFF10B981).withOpacity(0.18);
+      bgColor = const Color(0xFF10B981).withValues(alpha: 0.18);
     } else if (showResult && isSelected && !isCorrect) {
       borderColor = const Color(0xFFEF4444);
-      bgColor = const Color(0xFFEF4444).withOpacity(0.18);
+      bgColor = const Color(0xFFEF4444).withValues(alpha: 0.18);
     } else if (isSelected) {
       borderColor = widget.routeColor;
-      bgColor = widget.routeColor.withOpacity(0.14);
+      bgColor = widget.routeColor.withValues(alpha: 0.14);
     }
 
     final glowColor = showResult && isCorrect
@@ -973,7 +972,7 @@ class _LessonScreenState extends State<LessonScreen>
             ),
             boxShadow: (isSelected || (showResult && isCorrect))
                 ? [BoxShadow(
-                    color: glowColor.withOpacity(0.3),
+                    color: glowColor.withValues(alpha: 0.3),
                     blurRadius: 14, offset: const Offset(0, 3),
                   )]
                 : null,
@@ -990,7 +989,7 @@ class _LessonScreenState extends State<LessonScreen>
                           ? const Color(0xFFEF4444)
                           : isSelected
                               ? widget.routeColor
-                              : Colors.white.withOpacity(0.12),
+                              : Colors.white.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -1035,9 +1034,9 @@ class _LessonScreenState extends State<LessonScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1050,7 +1049,7 @@ class _LessonScreenState extends State<LessonScreen>
           Expanded(
             child: Text(
               _step.explanation!,
-              style: TextStyle(fontSize: 14, height: 1.55, color: Colors.white.withOpacity(0.85)),
+              style: TextStyle(fontSize: 14, height: 1.55, color: Colors.white.withValues(alpha: 0.85)),
             ),
           ),
         ],
@@ -1083,13 +1082,13 @@ class _LessonScreenState extends State<LessonScreen>
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withOpacity(0.12),
+            color: const Color(0xFF10B981).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.25)),
+            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.25)),
           ),
           child: Text(
             _step.instruction!,
-            style: TextStyle(fontSize: 15, height: 1.65, color: Colors.white.withOpacity(0.88)),
+            style: TextStyle(fontSize: 15, height: 1.65, color: Colors.white.withValues(alpha: 0.88)),
           ),
         ),
         const SizedBox(height: 16),
@@ -1101,16 +1100,16 @@ class _LessonScreenState extends State<LessonScreen>
           style: const TextStyle(fontSize: 15, color: Colors.white),
           decoration: InputDecoration(
             hintText: _step.placeholder ?? 'routes.exercisePlaceholder'.tr(),
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
             filled: true,
-            fillColor: Colors.white.withOpacity(0.07),
+            fillColor: Colors.white.withValues(alpha: 0.07),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
               borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(18),
@@ -1145,9 +1144,9 @@ class _LessonScreenState extends State<LessonScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1178,7 +1177,7 @@ class _LessonScreenState extends State<LessonScreen>
               child: Lottie.asset(
                 'assets/lottie/character_correct.json',
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => _buildCharacterFallback(),
+                errorBuilder: (_, _, _) => _buildCharacterFallback(),
               ),
             )
                 .animate()
@@ -1203,7 +1202,7 @@ class _LessonScreenState extends State<LessonScreen>
             const SizedBox(height: 8),
             Text(
               widget.lesson.title,
-              style: TextStyle(fontSize: 15, color: Colors.white.withOpacity(0.55)),
+              style: TextStyle(fontSize: 15, color: Colors.white.withValues(alpha: 0.55)),
               textAlign: TextAlign.center,
             ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
             const SizedBox(height: 28),
@@ -1211,13 +1210,13 @@ class _LessonScreenState extends State<LessonScreen>
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [
-                  widget.routeColor.withOpacity(0.22),
-                  const Color(0xFFFBBF24).withOpacity(0.12),
+                  widget.routeColor.withValues(alpha: 0.22),
+                  const Color(0xFFFBBF24).withValues(alpha: 0.12),
                 ]),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: widget.routeColor.withOpacity(0.35)),
+                border: Border.all(color: widget.routeColor.withValues(alpha: 0.35)),
                 boxShadow: [BoxShadow(
-                  color: widget.routeColor.withOpacity(0.25), blurRadius: 28, spreadRadius: 2,
+                  color: widget.routeColor.withValues(alpha: 0.25), blurRadius: 28, spreadRadius: 2,
                 )],
               ),
               child: Column(
@@ -1235,7 +1234,7 @@ class _LessonScreenState extends State<LessonScreen>
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white.withOpacity(0.45),
+                            color: Colors.white.withValues(alpha: 0.45),
                             decoration: TextDecoration.lineThrough,
                             decorationColor: Colors.white54,
                           ),
@@ -1253,9 +1252,9 @@ class _LessonScreenState extends State<LessonScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withOpacity(0.2),
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.4)),
+                        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.4)),
                       ),
                       child: Text(
                         '⚡ ×${_appliedMultiplier.toStringAsFixed(1)} Multiplicador aplicado',
@@ -1274,7 +1273,7 @@ class _LessonScreenState extends State<LessonScreen>
                   const SizedBox(height: 4),
                   Text(
                     'routes.xpEarned'.tr(),
-                    style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5)),
+                    style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5)),
                   ),
                 ],
               ),
@@ -1295,7 +1294,7 @@ class _LessonScreenState extends State<LessonScreen>
                 style: FilledButton.styleFrom(
                   backgroundColor: widget.routeColor,
                   elevation: 8,
-                  shadowColor: widget.routeColor.withOpacity(0.6),
+                  shadowColor: widget.routeColor.withValues(alpha: 0.6),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
                 child: Text(

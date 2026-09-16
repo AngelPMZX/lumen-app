@@ -32,7 +32,7 @@ class Habit {
         'title': title,
         'description': description,
         'emoji': emoji,
-        'colorValue': color.value,
+        'colorValue': color.toARGB32(),
         'activeDays': activeDays,
         'isEnabled': isEnabled,
         'createdAt': Timestamp.fromDate(createdAt),

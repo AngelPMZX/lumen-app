@@ -75,14 +75,6 @@ class _AboutYouStepState extends State<AboutYouStep> {
     }
   }
 
-  String? _getSelectedAgeRange() {
-    if (_selectedAge == null) return null;
-    for (final range in _ageRanges) {
-      if (_getAgeFromRange(range) == _selectedAge) return range;
-    }
-    return null;
-  }
-
   void _handleContinue() {
     if (_selectedGender == null) {
       setState(() => _showGenderError = true);

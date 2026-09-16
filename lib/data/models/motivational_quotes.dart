@@ -1,4 +1,3 @@
-import 'dart:math';
 
 class MotivationalQuote {
   final String text;

@@ -52,11 +52,11 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
       'assets/images/plants/${name}_4_adult.png',
       width: size, height: size,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => Image.asset(
+      errorBuilder: (_, _, _) => Image.asset(
         'assets/images/plants/${name}_1_seed.png',
         width: size, height: size,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) =>
+        errorBuilder: (_, _, _) =>
             Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
       ),
     );
@@ -66,7 +66,7 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
       'assets/images/decorations/$name.png',
       width: size, height: size,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) =>
+      errorBuilder: (_, _, _) =>
           Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
     );
   } else if (item.type == ItemType.booster) {
@@ -75,7 +75,7 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
       'assets/images/boosters/$name.png',
       width: size, height: size,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) =>
+      errorBuilder: (_, _, _) =>
           Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
     );
   } else {
@@ -112,7 +112,7 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
             _buildTabBar(isDark),
             Expanded(
               child: Consumer<GardenProvider>(
-                builder: (_, garden, __) => TabBarView(
+                builder: (_, garden, _) => TabBarView(
                   controller: _tabCtrl,
                   children: _tabs.map((type) =>
                       _buildItemGrid(type, garden, isDark)).toList(),
@@ -137,8 +137,8 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
             width: 38, height: 38,
             decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.06),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(Icons.arrow_back_rounded,
@@ -153,13 +153,13 @@ Widget _itemVisual(GardenItem item, {double size = 32}) {
           )),
         ),
         Consumer<GardenProvider>(
-          builder: (_, garden, __) => Container(
+          builder: (_, garden, _) => Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.12),
+              color: const Color(0xFF10B981).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                  color: const Color(0xFF10B981).withOpacity(0.3)),
+                  color: const Color(0xFF10B981).withValues(alpha: 0.3)),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               const SeedIcon(size: 24),
@@ -191,8 +191,8 @@ const SizedBox(width: 6),
         height: 48,
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withOpacity(0.06)
-              : Colors.black.withOpacity(0.05),
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
         ),
         child: TabBar(
@@ -297,18 +297,18 @@ const SizedBox(width: 6),
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+        color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: alreadyOwned
-              ? const Color(0xFF10B981).withOpacity(0.3)
+              ? const Color(0xFF10B981).withValues(alpha: 0.3)
               : isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.07),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.07),
         ),
         boxShadow: isDark ? null : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8, offset: const Offset(0, 2),
           ),
         ],
@@ -319,7 +319,7 @@ const SizedBox(width: 6),
           Container(
             width: 56, height: 56,
             decoration: BoxDecoration(
-              color: rarityColor.withOpacity(0.1),
+              color: rarityColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(child: _itemVisual(item, size: 40)),
@@ -383,9 +383,9 @@ const SizedBox(width: 6),
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF10B981).withOpacity(0.12),
+        color: const Color(0xFF10B981).withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF10B981).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
       ),
       child: const Icon(Icons.check_rounded, color: Color(0xFF10B981), size: 16),
     );
@@ -402,8 +402,8 @@ const SizedBox(width: 6),
         color: canAfford
             ? const Color(0xFF10B981)
             : isDark
-                ? Colors.white.withOpacity(0.06)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -427,17 +427,17 @@ const SizedBox(width: 6),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: isDark
-            ? [const Color(0xFF1A1A3E), const Color(0xFF2D1B69).withOpacity(0.5)]
+            ? [const Color(0xFF1A1A3E), const Color(0xFF2D1B69).withValues(alpha: 0.5)]
             : [const Color(0xFFF5F0FF), const Color(0xFFEDE9FE)]),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3)),
       ),
       child: Row(children: [
         // ── Visual del item ────────────────────────────────────────────
         Container(
           width: 56, height: 56,
           decoration: BoxDecoration(
-            color: const Color(0xFF8B5CF6).withOpacity(0.15),
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Center(child: _itemVisual(item, size: 40)),
@@ -455,7 +455,7 @@ const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text('PRO', style: TextStyle(
@@ -505,13 +505,13 @@ const SizedBox(width: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withOpacity(0.04)
-              : Colors.black.withOpacity(0.03),
+              ? Colors.white.withValues(alpha: 0.04)
+              : Colors.black.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isDark
-                ? Colors.white.withOpacity(0.06)
-                : Colors.black.withOpacity(0.06),
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.black.withValues(alpha: 0.06),
           ),
         ),
         child: Row(children: [
@@ -520,14 +520,14 @@ const SizedBox(width: 6),
             Container(
               width: 56, height: 56,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(child: _itemVisual(item, size: 40)),
             ),
             Positioned.fill(child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(Icons.lock_rounded, color: Colors.white, size: 22),
@@ -554,7 +554,7 @@ const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text('garden.seasonal'.tr(), style: TextStyle(
@@ -589,8 +589,8 @@ const SizedBox(width: 6),
       const SizedBox(width: 10),
       Expanded(child: Divider(
         color: isDark
-            ? Colors.white.withOpacity(0.08)
-            : Colors.black.withOpacity(0.08),
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.08),
       )),
     ]);
   }
@@ -600,7 +600,7 @@ const SizedBox(width: 6),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.grey.withOpacity(0.15),
+          color: Colors.grey.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -615,8 +615,8 @@ const SizedBox(width: 6),
       const SizedBox(width: 10),
       Expanded(child: Divider(
         color: isDark
-            ? Colors.white.withOpacity(0.08)
-            : Colors.black.withOpacity(0.08),
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.black.withValues(alpha: 0.08),
       )),
     ]);
   }

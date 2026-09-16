@@ -66,7 +66,7 @@ class _SeedIconState extends State<SeedIcon>
       width: widget.size,
       height: widget.size,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => Text(
+      errorBuilder: (_, _, _) => Text(
         '✨',
         style: TextStyle(fontSize: widget.size * 0.9),
       ),

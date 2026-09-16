@@ -140,9 +140,13 @@ class RewardService {
   /// Genera recompensa específica para streak milestone
   static RewardResult generateStreakReward(int streakDays) {
     int bonus = 10;
-    if (streakDays >= 30) bonus = 50;
-    else if (streakDays >= 14) bonus = 30;
-    else if (streakDays >= 7) bonus = 15;
+    if (streakDays >= 30) {
+      bonus = 50;
+    } else if (streakDays >= 14) {
+      bonus = 30;
+    } else if (streakDays >= 7) {
+      bonus = 15;
+    }
 
     return RewardResult(
       type: RewardType.seeds,

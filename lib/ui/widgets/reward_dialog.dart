@@ -30,7 +30,7 @@ class RewardDialog extends StatefulWidget {
     await showDialog(
       context: context,
       barrierDismissible: true,
-      barrierColor: Colors.black.withOpacity(0.6),
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (ctx) => RewardDialog(
         reward: reward,
         onDismiss: () {
@@ -116,7 +116,7 @@ class _RewardDialogState extends State<RewardDialog>
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _particleCtrl,
-                builder: (_, __) => CustomPaint(
+                builder: (_, _) => CustomPaint(
                   painter: _ParticlePainter(
                     particles: _particles,
                     progress: _particleCtrl.value,
@@ -142,12 +142,12 @@ class _RewardDialogState extends State<RewardDialog>
         color: isDark ? const Color(0xFF1A1A2E) : Colors.white,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(
-          color: _accentColor.withOpacity(0.3),
+          color: _accentColor.withValues(alpha: 0.3),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: _accentColor.withOpacity(0.3),
+            color: _accentColor.withValues(alpha: 0.3),
             blurRadius: 40,
             spreadRadius: 5,
           ),
@@ -234,32 +234,31 @@ class _RewardDialogState extends State<RewardDialog>
   Widget _buildMainIcon() {
     return AnimatedBuilder(
       animation: _pulseCtrl,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         width: 100,
         height: 100,
         decoration: BoxDecoration(
           gradient: RadialGradient(colors: [
-            _accentColor.withOpacity(0.25 + _pulseCtrl.value * 0.1),
-            _accentColor.withOpacity(0.05),
+            _accentColor.withValues(alpha: 0.25 + _pulseCtrl.value * 0.1),
+            _accentColor.withValues(alpha: 0.05),
           ]),
           shape: BoxShape.circle,
           border: Border.all(
-            color: _accentColor.withOpacity(0.4 + _pulseCtrl.value * 0.2),
+            color: _accentColor.withValues(alpha: 0.4 + _pulseCtrl.value * 0.2),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: _accentColor.withOpacity(0.3 + _pulseCtrl.value * 0.15),
+              color: _accentColor.withValues(alpha: 0.3 + _pulseCtrl.value * 0.15),
               blurRadius: 20 + _pulseCtrl.value * 10,
               spreadRadius: 2,
             ),
           ],
         ),
         child: Center(
-          child: Text(
-            widget.reward.emoji,
-            style: const TextStyle(fontSize: 46),
-          ),
+          child: widget.reward.isItem && widget.reward.item != null
+              ? _itemVisualForReward(widget.reward.item!, size: 60)
+              : const SeedIcon(size: 60, withGlow: false),
         ),
       ),
     )
@@ -309,11 +308,11 @@ class _RewardDialogState extends State<RewardDialog>
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(colors: [
-          _accentColor.withOpacity(0.15),
-          _accentColor.withOpacity(0.05),
+          _accentColor.withValues(alpha: 0.15),
+          _accentColor.withValues(alpha: 0.05),
         ]),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _accentColor.withOpacity(0.3)),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -336,7 +335,7 @@ class _RewardDialogState extends State<RewardDialog>
                 'garden.seeds'.tr(),
                 style: TextStyle(
                   fontSize: 12,
-                  color: _accentColor.withOpacity(0.7),
+                  color: _accentColor.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -358,11 +357,11 @@ class _RewardDialogState extends State<RewardDialog>
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
       gradient: LinearGradient(colors: [
-        rarityColor.withOpacity(0.15),
-        rarityColor.withOpacity(0.05),
+        rarityColor.withValues(alpha: 0.15),
+        rarityColor.withValues(alpha: 0.05),
       ]),
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: rarityColor.withOpacity(0.3)),
+      border: Border.all(color: rarityColor.withValues(alpha: 0.3)),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
@@ -371,7 +370,7 @@ class _RewardDialogState extends State<RewardDialog>
         Container(
           width: 56, height: 56,
           decoration: BoxDecoration(
-            color: rarityColor.withOpacity(0.15),
+            color: rarityColor.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Center(
@@ -394,7 +393,7 @@ class _RewardDialogState extends State<RewardDialog>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: rarityColor.withOpacity(0.15),
+                color: rarityColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -428,7 +427,7 @@ Widget _itemVisualForReward(GardenItem item, {double size = 48}) {
     visual = Image.asset(
       'assets/images/plants/${name}_4_adult.png',
       width: size, height: size, fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) =>
+      errorBuilder: (_, _, _) =>
           Text(item.emoji, style: TextStyle(fontSize: size * 0.9)),
     );
   } else if (item.type == ItemType.decoration) {
@@ -436,7 +435,7 @@ Widget _itemVisualForReward(GardenItem item, {double size = 48}) {
     visual = Image.asset(
       'assets/images/decorations/$name.png',
       width: size, height: size, fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) =>
+      errorBuilder: (_, _, _) =>
           Text(item.emoji, style: TextStyle(fontSize: size * 0.9)),
     );
   } else if (item.type == ItemType.booster) {
@@ -444,7 +443,7 @@ Widget _itemVisualForReward(GardenItem item, {double size = 48}) {
     visual = Image.asset(
       'assets/images/boosters/$name.png',
       width: size, height: size, fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) =>
+      errorBuilder: (_, _, _) =>
           Text(item.emoji, style: TextStyle(fontSize: size * 0.9)),
     );
   } else {

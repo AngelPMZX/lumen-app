@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../core/constants/app_colors.dart';
@@ -425,7 +424,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: AppColors.textSecondary
-                                    .withOpacity(0.1),
+                                    .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
@@ -540,7 +539,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: AppColors.textSecondary.withOpacity(0.08),
+              color: AppColors.textSecondary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(22),
             ),
             child: const Icon(

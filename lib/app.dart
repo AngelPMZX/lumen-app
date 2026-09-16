@@ -6,7 +6,6 @@ import 'ui/screens/splash/splash_screen.dart';
 import 'ui/screens/onboarding/onboarding_screen.dart';
 import 'ui/screens/auth/login_screen.dart';
 import 'ui/screens/auth/register_screen.dart';
-import 'ui/screens/home/home_screen.dart';
 import 'ui/screens/profile_setup/profile_setup_screen.dart';
 import 'ui/shell/main_shell.dart';
 import 'domain/providers/theme_provider.dart';

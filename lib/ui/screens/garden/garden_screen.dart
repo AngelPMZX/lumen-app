@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../data/models/achievement.dart';
 import '../../../data/models/garden_mechanics.dart';
 import '../../../data/models/garden_item.dart';
@@ -183,7 +182,6 @@ class _GardenScreenState extends State<GardenScreen>
   final List<_PlacedDeco> _placedDecos = [];
 
   // Drag en curso
-  String? _draggingDecoItemId;  // itemId siendo arrastrado desde inventario
   _PlacedDeco? _movingDeco;     // deco ya colocada siendo movida
 
   // Anims
@@ -246,7 +244,7 @@ if (hasPending) {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Consumer<GardenProvider>(
-        builder: (_, garden, __) {
+        builder: (_, garden, _) {
           if (garden.isLoading) {
             return const Center(
               child: CircularProgressIndicator(color: Color(0xFF10B981)),
@@ -376,7 +374,7 @@ if (hasPending) {
 
                 // Overlay sutil cuando hay un drag activo
                 if (isHovering)
-                  Container(color: Colors.white.withOpacity(0.05)),
+                  Container(color: Colors.white.withValues(alpha: 0.05)),
 
                 // ── Decoraciones colocadas (drag para mover) ────────────
                 ..._placedDecos
@@ -438,7 +436,7 @@ if (hasPending) {
           width: size * 1.15,
           height: size * 1.15,
           child: Image.asset(assetPath, fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (_, _, _) =>
                   Text(item.emoji, style: const TextStyle(fontSize: 36))),
         ),
       ),
@@ -447,16 +445,16 @@ if (hasPending) {
         child: SizedBox(
           width: size, height: size,
           child: Image.asset(assetPath, fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (_, _, _) =>
                   Text(item.emoji, style: const TextStyle(fontSize: 32))),
         ),
       ),
       onDragStarted: () => setState(() => _movingDeco = deco),
       onDragEnd: (_) => setState(() => _movingDeco = null),
-      onDraggableCanceled: (_, __) => setState(() => _movingDeco = null),
+      onDraggableCanceled: (_, _) => setState(() => _movingDeco = null),
       child: DragTarget<_PlacedDeco>(
         onWillAcceptWithDetails: (_) => false, // no apilamos decos
-        builder: (_, __, ___) => GestureDetector(
+        builder: (_, _, _) => GestureDetector(
           onLongPress: () => _showDecoOptions(deco, garden),
           child: Stack(
             alignment: Alignment.center,
@@ -468,7 +466,7 @@ if (hasPending) {
                 child: SizedBox(
                   width: size, height: size,
                   child: Image.asset(assetPath, fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
+                      errorBuilder: (_, _, _) =>
                           Text(item.emoji, style: const TextStyle(fontSize: 32))),
                 ),
               ),
@@ -497,7 +495,7 @@ if (hasPending) {
         onTap: () => _plantAt(_activeGarden.id, slot.slotIndex),
         child: AnimatedBuilder(
           animation: _idleCtrl,
-          builder: (_, __) {
+          builder: (_, _) {
             final pulse = 0.85 + _idleCtrl.value * 0.15;
             return SizedBox(
               width: size,
@@ -514,7 +512,7 @@ if (hasPending) {
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0xFF10B981)
-                              .withOpacity(0.25 + _idleCtrl.value * 0.2),
+                              .withValues(alpha: 0.25 + _idleCtrl.value * 0.2),
                           blurRadius: 24,
                           spreadRadius: 6,
                         ),
@@ -528,10 +526,10 @@ if (hasPending) {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: const Color(0xFF10B981)
-                          .withOpacity(0.18 + _idleCtrl.value * 0.08),
+                          .withValues(alpha: 0.18 + _idleCtrl.value * 0.08),
                       border: Border.all(
                         color: const Color(0xFF10B981)
-                            .withOpacity(0.6 + _idleCtrl.value * 0.3),
+                            .withValues(alpha: 0.6 + _idleCtrl.value * 0.3),
                         width: 2.5,
                       ),
                     ),
@@ -540,7 +538,7 @@ if (hasPending) {
                   Icon(
                     Icons.add_rounded,
                     color: Colors.white
-                        .withOpacity(0.7 + _idleCtrl.value * 0.3),
+                        .withValues(alpha: 0.7 + _idleCtrl.value * 0.3),
                     size: size * 0.28,
                     shadows: const [
                       Shadow(color: Color(0xFF10B981), blurRadius: 8),
@@ -596,7 +594,7 @@ if (hasPending) {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF10B981).withOpacity(0.4),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.4),
                     blurRadius: 12,
                     spreadRadius: 2,
                   ),
@@ -622,7 +620,7 @@ if (hasPending) {
                 child: Image.asset(
                   assetPath,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => _plantFallbackEmoji(planted, item),
+                  errorBuilder: (_, _, _) => _plantFallbackEmoji(planted, item),
                 ),
               ),
             ),
@@ -647,7 +645,7 @@ if (hasPending) {
                   child: LinearProgressIndicator(
                     value: planted.growthProgress(item),
                     minHeight: 4,
-                    backgroundColor: Colors.black.withOpacity(0.15),
+                    backgroundColor: Colors.black.withValues(alpha: 0.15),
                     valueColor: AlwaysStoppedAnimation(
                       _stageColor(stage),
                     ),
@@ -680,11 +678,11 @@ if (hasPending) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: _stageColor(stage).withOpacity(0.9),
+        color: _stageColor(stage).withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(6),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 4,
           ),
         ],
@@ -777,12 +775,12 @@ if (hasPending) {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.35),
+          color: Colors.black.withValues(alpha: 0.35),
           borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 8,
             ),
           ],
@@ -795,19 +793,19 @@ if (hasPending) {
   Widget _buildSeedsBadge(int seeds) {
     return AnimatedBuilder(
       animation: _glowCtrl,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.4),
+          color: Colors.black.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: const Color(0xFF10B981)
-                .withOpacity(0.3 + _glowCtrl.value * 0.2),
+                .withValues(alpha: 0.3 + _glowCtrl.value * 0.2),
           ),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF10B981)
-                  .withOpacity(0.1 + _glowCtrl.value * 0.1),
+                  .withValues(alpha: 0.1 + _glowCtrl.value * 0.1),
               blurRadius: 10,
             ),
           ],
@@ -853,12 +851,12 @@ if (hasPending) {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
           ),
         ],
@@ -874,8 +872,8 @@ if (hasPending) {
               child: Image.asset(
                 _plantAssetPath(planted.itemId, stage),
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Text(
-                  planted!.currentEmoji(item!),
+                errorBuilder: (_, _, _) => Text(
+                  planted!.currentEmoji(item),
                   style: const TextStyle(fontSize: 28),
                 ),
               ),
@@ -923,7 +921,7 @@ if (hasPending) {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.close_rounded,
@@ -938,7 +936,7 @@ if (hasPending) {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.15),
+                  color: Colors.red.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.delete_outline_rounded,
@@ -954,7 +952,7 @@ if (hasPending) {
               child: LinearProgressIndicator(
                 value: planted.growthProgress(item),
                 minHeight: 6,
-                backgroundColor: Colors.white.withOpacity(0.1),
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
                 valueColor: AlwaysStoppedAnimation(_stageColor(stage)),
               ),
             ),
@@ -991,7 +989,7 @@ if (hasPending) {
                         boxShadow: [
                           BoxShadow(
                             color:
-                                const Color(0xFF10B981).withOpacity(0.4),
+                                const Color(0xFF10B981).withValues(alpha: 0.4),
                             blurRadius: 10,
                           ),
                         ],
@@ -1020,10 +1018,10 @@ if (hasPending) {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: Colors.white.withOpacity(0.12)),
+                        color: Colors.white.withValues(alpha: 0.12)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1070,7 +1068,7 @@ if (hasPending) {
               decoration: BoxDecoration(
                 color: isPast || isCurrent
                     ? _stageColor(stage)
-                    : Colors.white.withOpacity(0.15),
+                    : Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1083,7 +1081,7 @@ if (hasPending) {
                 child: Image.asset(
                   assetPath,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => Text(
+                  errorBuilder: (_, _, _) => Text(
                     item.stageEmojis?[stage] ?? '🌱',
                     style: TextStyle(fontSize: isCurrent ? 14 : 10),
                   ),
@@ -1118,10 +1116,10 @@ if (hasPending) {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withOpacity(0.15),
+                color: const Color(0xFF10B981).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: const Color(0xFF10B981).withOpacity(0.4),
+                  color: const Color(0xFF10B981).withValues(alpha: 0.4),
                 ),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1130,7 +1128,7 @@ if (hasPending) {
   child: Image.asset(
     'assets/images/boosters/${booster.id.replaceFirst('boost_', '')}.png',
     fit: BoxFit.contain,
-    errorBuilder: (_, __, ___) => Text(
+    errorBuilder: (_, _, _) => Text(
       booster.emoji,
       style: const TextStyle(fontSize: 14),
     ),
@@ -1171,10 +1169,10 @@ if (hasPending) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.55),
+        color: Colors.black.withValues(alpha: 0.55),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
-          top: BorderSide(color: Colors.white.withOpacity(0.1)),
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
       ),
       child: Column(
@@ -1186,7 +1184,7 @@ if (hasPending) {
             height: 3,
             margin: const EdgeInsets.only(bottom: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
+              color: Colors.white.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1212,10 +1210,10 @@ if (hasPending) {
                     itemVisual = Image.asset(
                       _plantAssetPath(inv.itemId, PlantStage.adult),
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Image.asset(
+                      errorBuilder: (_, _, _) => Image.asset(
                         _plantAssetPath(inv.itemId, PlantStage.seed),
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             Text(item.emoji, style: const TextStyle(fontSize: 24)),
                       ),
                     );
@@ -1225,10 +1223,10 @@ if (hasPending) {
                     itemVisual = Image.asset(
                       decoAsset,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _rarityColorForItem(item.rarity).withOpacity(0.15),
+                          color: _rarityColorForItem(item.rarity).withValues(alpha: 0.15),
                         ),
                         child: Center(
                           child: Text(item.emoji,
@@ -1252,13 +1250,13 @@ if (hasPending) {
                     margin: const EdgeInsets.only(right: 10),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? const Color(0xFF10B981).withOpacity(0.25)
-                          : Colors.white.withOpacity(0.08),
+                          ? const Color(0xFF10B981).withValues(alpha: 0.25)
+                          : Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isSelected
                             ? const Color(0xFF10B981)
-                            : Colors.white.withOpacity(0.12),
+                            : Colors.white.withValues(alpha: 0.12),
                         width: isSelected ? 2 : 1,
                       ),
                     ),
@@ -1304,7 +1302,7 @@ if (hasPending) {
                             child: Image.asset(
                               _decoAssetPath(inv.itemId),
                               fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Text(
+                              errorBuilder: (_, _, _) => Text(
                                 item.emoji,
                                 style: TextStyle(
                                     fontSize: _decoSize(inv.itemId) * 0.5),
@@ -1314,14 +1312,7 @@ if (hasPending) {
                         ),
                       ),
                       childWhenDragging: Opacity(opacity: 0.3, child: inventoryItem),
-                      onDragStarted: () => setState(() {
-                        _draggingDecoItemId = inv.itemId;
-                        _cancelPlanting();
-                      }),
-                      onDraggableCanceled: (_, __) =>
-                          setState(() => _draggingDecoItemId = null),
-                      onDragEnd: (_) =>
-                          setState(() => _draggingDecoItemId = null),
+                      onDragStarted: () => setState(() => _cancelPlanting()),
                       child: inventoryItem,
                     )
                         .animate(delay: (i * 50).ms)
@@ -1419,11 +1410,11 @@ if (hasPending) {
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF10B981).withOpacity(0.85),
+        color: const Color(0xFF10B981).withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10B981).withOpacity(0.3),
+            color: const Color(0xFF10B981).withValues(alpha: 0.3),
             blurRadius: 12,
           ),
         ],
@@ -1519,12 +1510,12 @@ if (hasPending) {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.55),
+            color: Colors.black.withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withOpacity(0.4)),
+            border: Border.all(color: color.withValues(alpha: 0.4)),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -1560,12 +1551,12 @@ if (hasPending) {
             decoration: BoxDecoration(
               color: isActive
                   ? const Color(0xFF10B981)
-                  : Colors.white.withOpacity(0.3),
+                  : Colors.white.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(4),
               boxShadow: isActive
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF10B981).withOpacity(0.5),
+                        color: const Color(0xFF10B981).withValues(alpha: 0.5),
                         blurRadius: 6,
                       ),
                     ]
@@ -1600,7 +1591,7 @@ if (hasPending) {
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Consumer<GardenProvider>(
-            builder: (_, garden, __) {
+            builder: (_, garden, _) {
               final totalPlants = garden.garden
                   .where((p) => p.gardenId == _activeGarden.id)
                   .length;
@@ -1702,13 +1693,13 @@ if (hasPending) {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: unlocked
-                ? a.color.withOpacity(0.12)
-                : Colors.white.withOpacity(0.04),
+                ? a.color.withValues(alpha: 0.12)
+                : Colors.white.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: unlocked
-                  ? a.color.withOpacity(0.35)
-                  : Colors.white.withOpacity(0.06),
+                  ? a.color.withValues(alpha: 0.35)
+                  : Colors.white.withValues(alpha: 0.06),
             ),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -1785,7 +1776,7 @@ if (hasPending) {
   Widget _buildWatermarkCover() {
     // Cubre marca de agua mostrando estadísticas del jardín
     return Consumer<GardenProvider>(
-      builder: (_, garden, __) {
+      builder: (_, garden, _) {
         final plantsInGarden = garden.garden
             .where((p) => p.gardenId == _activeGarden.id)
             .length;
@@ -1804,12 +1795,12 @@ if (hasPending) {
             margin: const EdgeInsets.all(8),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.55),
+              color: Colors.black.withValues(alpha: 0.55),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.15)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 8,
                 ),
               ],
@@ -1941,9 +1932,9 @@ if (hasPending) {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
+          color: Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         ),
         child: Column(children: [
           Text(emoji, style: const TextStyle(fontSize: 22)),
@@ -2037,7 +2028,6 @@ if (hasPending) {
         // Quitar del inventario y guardar en Firestore
         _consumeDecoFromInventory(itemId, garden);
       }
-      _draggingDecoItemId = null;
     });
 
     // Persistir en Firestore
@@ -2092,7 +2082,7 @@ if (hasPending) {
             SizedBox(
               width: 48, height: 48,
               child: Image.asset(_decoAssetPath(deco.itemId), fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (_, _, _) =>
                       Text(item.emoji, style: const TextStyle(fontSize: 32))),
             ),
             const SizedBox(width: 12),
@@ -2137,19 +2127,19 @@ if (hasPending) {
     final mins = mult.timeRemaining.inMinutes + 1;
     return AnimatedBuilder(
       animation: _glowCtrl,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.4),
+          color: Colors.black.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: const Color(0xFF8B5CF6)
-                .withOpacity(0.4 + _glowCtrl.value * 0.3),
+                .withValues(alpha: 0.4 + _glowCtrl.value * 0.3),
           ),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF8B5CF6)
-                  .withOpacity(0.15 + _glowCtrl.value * 0.15),
+                  .withValues(alpha: 0.15 + _glowCtrl.value * 0.15),
               blurRadius: 10,
             ),
           ],
@@ -2177,10 +2167,10 @@ if (hasPending) {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.4),
+          color: Colors.black.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: const Color(0xFFF59E0B).withOpacity(0.4),
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
           ),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -2296,10 +2286,10 @@ if (hasPending) {
             color: const Color(0xFF0F1F15),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-                color: const Color(0xFF10B981).withOpacity(0.4)),
+                color: const Color(0xFF10B981).withValues(alpha: 0.4)),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF10B981).withOpacity(0.2),
+                color: const Color(0xFF10B981).withValues(alpha: 0.2),
                 blurRadius: 24,
               ),
             ],
@@ -2319,7 +2309,7 @@ if (hasPending) {
             // Semillas
             if (harvest.seedsEarned > 0)
               _harvestRow(
-                '✨',
+                const SeedIcon(size: 26, withGlow: false),
                 'garden.harvest.seedsEarned'.tr(
                     namedArgs: {'count': '${harvest.seedsEarned}'}),
                 const Color(0xFF10B981),
@@ -2329,7 +2319,7 @@ if (hasPending) {
             if (harvest.gotXpMultiplier) ...[
               const SizedBox(height: 8),
               _harvestRow(
-                '⚡',
+                const Text('⚡', style: TextStyle(fontSize: 22)),
                 'garden.harvest.multiplierLine'.tr(namedArgs: {
                   'mult': harvest.xpMultiplier.toStringAsFixed(1),
                   'mins': '${harvest.multiplierMinutes}',
@@ -2343,7 +2333,7 @@ if (hasPending) {
             if (harvest.gotStreakShield) ...[
               const SizedBox(height: 8),
               _harvestRow(
-                '🛡️',
+                const Text('🛡️', style: TextStyle(fontSize: 22)),
                 'garden.harvest.shieldEarned'.tr(),
                 const Color(0xFFF59E0B),
                 subtitle: harvest.shieldFromPlant != null
@@ -2373,17 +2363,17 @@ if (hasPending) {
     );
   }
 
-  Widget _harvestRow(String emoji, String text, Color color,
+  Widget _harvestRow(Widget icon, String text, Color color,
       {String? subtitle}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
-        Text(emoji, style: const TextStyle(fontSize: 22)),
+        icon,
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2733,7 +2723,7 @@ class _PlantAdultWidgetState extends State<_PlantAdultWidget>
           // ── Halo de rareza pulsante ───────────────────────────────────
           AnimatedBuilder(
             animation: _haloCtrl,
-            builder: (_, __) {
+            builder: (_, _) {
               final pulse = 0.88 + _haloCtrl.value * 0.12;
               final opacity = _haloOpacity * (0.7 + _haloCtrl.value * 0.3);
               return Container(
@@ -2743,7 +2733,7 @@ class _PlantAdultWidgetState extends State<_PlantAdultWidget>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: color.withOpacity(opacity),
+                      color: color.withValues(alpha: opacity),
                       blurRadius: 18 + _haloCtrl.value * 8,
                       spreadRadius: 2 + _haloCtrl.value * 3,
                     ),
@@ -2775,7 +2765,7 @@ class _PlantAdultWidgetState extends State<_PlantAdultWidget>
               child: Image.asset(
                 widget.assetPath,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => widget.fallback,
+                errorBuilder: (_, _, _) => widget.fallback,
               ),
             ),
           ),
@@ -2783,7 +2773,7 @@ class _PlantAdultWidgetState extends State<_PlantAdultWidget>
           // ── Partículas flotantes — área extendida para que suban por encima ──
           AnimatedBuilder(
             animation: _particleCtrl,
-            builder: (_, __) {
+            builder: (_, _) {
               // El canvas es más alto que el slot para que los sparkles
               // puedan subir por encima de la planta sin cortarse
               return SizedBox(
@@ -2844,13 +2834,13 @@ class _ParticlePainter extends CustomPainter {
     // Núcleo central brillante (sin blur — evita shader crash en WebGL)
     final corePaint = Paint()
       ..color = Color.lerp(color, Colors.white, 0.6)!
-          .withOpacity((opacity * 0.9).clamp(0, 1))
+          .withValues(alpha: (opacity * 0.9).clamp(0, 1))
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius * 0.35, corePaint);
 
     // 4 rayos suaves del sparkle
     final rayPaint = Paint()
-      ..color = color.withOpacity((opacity * 0.55).clamp(0, 1))
+      ..color = color.withValues(alpha: (opacity * 0.55).clamp(0, 1))
       ..strokeWidth = radius * 0.35
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -2869,7 +2859,7 @@ class _ParticlePainter extends CustomPainter {
 
     // Rayos diagonales (más cortos)
     final diagPaint = Paint()
-      ..color = color.withOpacity((opacity * 0.30).clamp(0, 1))
+      ..color = color.withValues(alpha: (opacity * 0.30).clamp(0, 1))
       ..strokeWidth = radius * 0.22
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
@@ -2947,7 +2937,7 @@ class _GardenSelectorModal extends StatelessWidget {
             height: 3,
             margin: const EdgeInsets.only(top: 12, bottom: 20),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -3008,13 +2998,13 @@ Expanded(
           border: Border.all(
             color: isCurrent
                 ? const Color(0xFF10B981)
-                : Colors.white.withOpacity(0.1),
+                : Colors.white.withValues(alpha: 0.1),
             width: isCurrent ? 2.5 : 1,
           ),
           boxShadow: isCurrent
               ? [
                   BoxShadow(
-                    color: const Color(0xFF10B981).withOpacity(0.3),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.3),
                     blurRadius: 12,
                   ),
                 ]
@@ -3029,8 +3019,8 @@ Expanded(
               Image.asset(
                 garden.assetPath,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  color: Colors.green.withOpacity(0.2),
+                errorBuilder: (_, _, _) => Container(
+                  color: Colors.green.withValues(alpha: 0.2),
                   child: const Icon(Icons.landscape_rounded,
                       color: Colors.white38, size: 40),
                 ),
@@ -3044,7 +3034,7 @@ Expanded(
                     end: Alignment.bottomCenter,
                     colors: [
                       Colors.transparent,
-                      Colors.black.withOpacity(isLocked ? 0.7 : 0.55),
+                      Colors.black.withValues(alpha: isLocked ? 0.7 : 0.55),
                     ],
                   ),
                 ),
@@ -3053,7 +3043,7 @@ Expanded(
               // Lock overlay
               if (isLocked)
                 Container(
-                  color: Colors.black.withOpacity(0.45),
+                  color: Colors.black.withValues(alpha: 0.45),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

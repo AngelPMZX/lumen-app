@@ -932,7 +932,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       _isLoading = false;
       notifyListeners();
       return (true, null);
-    } on FirebaseException catch (e) {
+    } on FirebaseException {
       _isLoading = false;
       notifyListeners();
       return (false, 'Error al guardar. Verifica tu conexión.');
@@ -1220,7 +1220,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   }
 
   /// [garden] — pasar el GardenProvider para aplicar multiplicador XP si activo.
-  /// Ejemplo: auth.completeLesson(id, xp, garden: context.read<GardenProvider>())
+  /// Ejemplo: `auth.completeLesson(id, xp, garden: context.read<GardenProvider>())`
   Future<void> completeLesson(String lessonId, int xpReward,
       {GardenProvider? garden}) async {
     if (firebaseUser == null) return;

@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -26,7 +25,6 @@ import '../breathing/breathing_screen.dart';
 import '../garden/garden_screen.dart';
 import '../../../domain/services/routes_service.dart';
 import '../../../data/models/garden_item.dart';
-import '../../../data/models/garden_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gimnasio_emocional/domain/services/notification_service.dart';
 
@@ -129,8 +127,8 @@ void initState() {
   // Carga inmediata del estado del reto — evita el flash de "no completado"
 Future<void> _loadChallengeState() async {
   try {
-    final prefs = await SharedPreferences.getInstance();
     final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+    final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now();
     final todayStr =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
@@ -424,7 +422,7 @@ Future<void> _scheduleDailyReminders() async {
           ],
         ),
       );
-      if (confirm != true) return;
+      if (confirm != true || !mounted) return;
     }
 
     setState(() => _selectedMood = mood);
@@ -452,7 +450,7 @@ Future<void> _scheduleDailyReminders() async {
                 )),
                 if (isFirstToday) const Icon(Icons.bolt_rounded, color: Color(0xFFFBBF24), size: 20),
               ]),
-              backgroundColor: mood.color.withOpacity(0.9),
+              backgroundColor: mood.color.withValues(alpha: 0.9),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               margin: const EdgeInsets.all(16),
@@ -614,7 +612,7 @@ Future<void> _scheduleDailyReminders() async {
                           gradient: LinearGradient(colors: _getArchetypeGradient(authProvider.userModel?.archetype)),
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [BoxShadow(
-                            color: _getArchetypeGradient(authProvider.userModel?.archetype).first.withOpacity(0.3),
+                            color: _getArchetypeGradient(authProvider.userModel?.archetype).first.withValues(alpha: 0.3),
                             blurRadius: 12, offset: const Offset(0, 4),
                           )],
                         ),
@@ -641,7 +639,7 @@ Future<void> _scheduleDailyReminders() async {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: AppColors.streak.withOpacity(0.12),
+                          color: AppColors.streak.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -662,11 +660,11 @@ Future<void> _scheduleDailyReminders() async {
                           width: 42, height: 42,
                           decoration: BoxDecoration(
                             color: isDark
-                                ? Colors.white.withOpacity(0.1) : AppColors.surfaceVariant,
+                                ? Colors.white.withValues(alpha: 0.1) : AppColors.surfaceVariant,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Consumer<GardenProvider>(
-                            builder: (_, garden, __) => Stack(
+                            builder: (_, garden, _) => Stack(
                               alignment: Alignment.center,
                               children: [
                                 const Text('🌱', style: TextStyle(fontSize: 18)),
@@ -683,10 +681,10 @@ Future<void> _scheduleDailyReminders() async {
                                         color: const Color(0xFFF59E0B),
                                         shape: BoxShape.circle,
                                         border: Border.all(
-                                            color: Colors.white.withOpacity(0.8), width: 1.5),
+                                            color: Colors.white.withValues(alpha: 0.8), width: 1.5),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: const Color(0xFFF59E0B).withOpacity(0.6),
+                                            color: const Color(0xFFF59E0B).withValues(alpha: 0.6),
                                             blurRadius: 4,
                                           ),
                                         ],
@@ -717,7 +715,7 @@ Future<void> _scheduleDailyReminders() async {
                           width: 42, height: 42,
                           decoration: BoxDecoration(
                             color: isDark
-                                ? Colors.white.withOpacity(0.1) : AppColors.surfaceVariant,
+                                ? Colors.white.withValues(alpha: 0.1) : AppColors.surfaceVariant,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: AnimatedSwitcher(
@@ -755,19 +753,19 @@ Future<void> _scheduleDailyReminders() async {
                         gradient: LinearGradient(
                           begin: Alignment.topLeft, end: Alignment.bottomRight,
                           colors: isDark
-                              ? [Colors.white.withOpacity(0.07), Colors.white.withOpacity(0.03)]
+                              ? [Colors.white.withValues(alpha: 0.07), Colors.white.withValues(alpha: 0.03)]
                               : [const Color(0xFFFFFBF0), const Color(0xFFFFF8E7)],
                         ),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: isDark
-                              ? Colors.white.withOpacity(0.08)
-                              : const Color(0xFFE8D5A3).withOpacity(0.6),
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : const Color(0xFFE8D5A3).withValues(alpha: 0.6),
                         ),
                         boxShadow: [BoxShadow(
                           color: isDark
-                              ? Colors.black.withOpacity(0.1)
-                              : const Color(0xFFD4A853).withOpacity(0.08),
+                              ? Colors.black.withValues(alpha: 0.1)
+                              : const Color(0xFFD4A853).withValues(alpha: 0.08),
                           blurRadius: 12, offset: const Offset(0, 4),
                         )],
                       ),
@@ -781,8 +779,8 @@ Future<void> _scheduleDailyReminders() async {
                                   width: 32, height: 32,
                                   decoration: BoxDecoration(
                                     color: isDark
-                                        ? AppColors.streak.withOpacity(0.15)
-                                        : const Color(0xFFD4A853).withOpacity(0.15),
+                                        ? AppColors.streak.withValues(alpha: 0.15)
+                                        : const Color(0xFFD4A853).withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(Icons.format_quote_rounded,
@@ -815,7 +813,7 @@ Future<void> _scheduleDailyReminders() async {
                                   style: TextStyle(fontSize: 10,
                                       color: isDark
                                           ? Colors.white24
-                                          : const Color(0xFFB8860B).withOpacity(0.4)),
+                                          : const Color(0xFFB8860B).withValues(alpha: 0.4)),
                                 ),
                               ],
                             ]),
@@ -843,7 +841,7 @@ Future<void> _scheduleDailyReminders() async {
                         ),
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [BoxShadow(
-                          color: AppColors.primary.withOpacity(0.15 + _streakGlow.value * 0.1),
+                          color: AppColors.primary.withValues(alpha: 0.15 + _streakGlow.value * 0.1),
                           blurRadius: 16 + _streakGlow.value * 8,
                           offset: const Offset(0, 6),
                         )],
@@ -853,10 +851,10 @@ Future<void> _scheduleDailyReminders() async {
                           Container(
                             width: 56, height: 56,
                             decoration: BoxDecoration(
-                              color: AppColors.streak.withOpacity(0.2),
+                              color: AppColors.streak.withValues(alpha: 0.2),
                               shape: BoxShape.circle,
                               boxShadow: [BoxShadow(
-                                color: AppColors.streak.withOpacity(_streakGlow.value * 0.3),
+                                color: AppColors.streak.withValues(alpha: _streakGlow.value * 0.3),
                                 blurRadius: 16, spreadRadius: 2,
                               )],
                             ),
@@ -883,7 +881,7 @@ Future<void> _scheduleDailyReminders() async {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                             decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.12),
+                                color: Colors.white.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(14)),
                             child: Column(children: [
                               const Icon(Icons.emoji_events_rounded,
@@ -900,7 +898,7 @@ Future<void> _scheduleDailyReminders() async {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16)),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -927,8 +925,8 @@ Future<void> _scheduleDailyReminders() async {
                                     color: isToday
                                         ? AppColors.streak
                                         : wasActive
-                                            ? AppColors.streak.withOpacity(0.4)
-                                            : Colors.white.withOpacity(0.08),
+                                            ? AppColors.streak.withValues(alpha: 0.4)
+                                            : Colors.white.withValues(alpha: 0.08),
                                   ),
                                   child: Icon(
                                     isToday
@@ -965,7 +963,7 @@ Future<void> _scheduleDailyReminders() async {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppColors.textSecondary.withOpacity(0.1),
+                            color: AppColors.textSecondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -984,12 +982,12 @@ Future<void> _scheduleDailyReminders() async {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+                      color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(
-                          color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+                          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
                       boxShadow: isDark ? null : [BoxShadow(
-                          color: Colors.black.withOpacity(0.04), blurRadius: 8,
+                          color: Colors.black.withValues(alpha: 0.04), blurRadius: 8,
                           offset: const Offset(0, 2))],
                     ),
                     child: Wrap(
@@ -1003,10 +1001,10 @@ Future<void> _scheduleDailyReminders() async {
                             width: 72,
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
-                              color: isSelected ? mood.color.withOpacity(0.15) : Colors.transparent,
+                              color: isSelected ? mood.color.withValues(alpha: 0.15) : Colors.transparent,
                               borderRadius: BorderRadius.circular(16),
                               border: isSelected
-                                  ? Border.all(color: mood.color.withOpacity(0.5), width: 2)
+                                  ? Border.all(color: mood.color.withValues(alpha: 0.5), width: 2)
                                   : null,
                             ),
                             child: Column(children: [
@@ -1035,18 +1033,18 @@ Future<void> _scheduleDailyReminders() async {
                   GestureDetector(
                     onTap: _challengeCompletedToday ? null : () async {
                       final completed = await ChallengeAction.execute(context, challenge);
-                      if (completed && mounted) {
+                      if (completed && context.mounted) {
   setState(() => _challengeCompletedToday = true);
+  final auth = context.read<AuthProvider>();
+  final garden = context.read<GardenProvider>();
   try {
     // Persistir estado del reto
     final prefs = await SharedPreferences.getInstance();
-    final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+    final uid = auth.firebaseUser?.uid ?? '';
     final today = DateTime.now();
     final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
     await prefs.setBool('challenge_done_${uid}_$todayStr', true);
 
-    final auth = context.read<AuthProvider>();
-    final garden = context.read<GardenProvider>();
     await auth.completeLesson(
       'challenge_${DateTime.now().day}_${DateTime.now().month}',
       challenge.xpReward,
@@ -1064,23 +1062,23 @@ Future<void> _scheduleDailyReminders() async {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(colors: [
                           _challengeCompletedToday
-                              ? const Color(0xFF10B981).withOpacity(isDark ? 0.2 : 0.1)
-                              : challenge.color.withOpacity(isDark ? 0.15 : 0.08),
+                              ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.2 : 0.1)
+                              : challenge.color.withValues(alpha: isDark ? 0.15 : 0.08),
                           _challengeCompletedToday
-                              ? const Color(0xFF10B981).withOpacity(isDark ? 0.1 : 0.05)
-                              : challenge.color.withOpacity(isDark ? 0.08 : 0.03),
+                              ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.1 : 0.05)
+                              : challenge.color.withValues(alpha: isDark ? 0.08 : 0.03),
                         ]),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: _challengeCompletedToday
-                              ? const Color(0xFF10B981).withOpacity(0.4)
-                              : challenge.color.withOpacity(isDark ? 0.2 : 0.15),
+                              ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                              : challenge.color.withValues(alpha: isDark ? 0.2 : 0.15),
                         ),
                         boxShadow: [BoxShadow(
                           color: (_challengeCompletedToday
                               ? const Color(0xFF10B981)
                               : challenge.color)
-                              .withOpacity(isDark ? 0.1 : 0.06),
+                              .withValues(alpha: isDark ? 0.1 : 0.06),
                           blurRadius: 12, offset: const Offset(0, 4),
                         )],
                       ),
@@ -1090,7 +1088,7 @@ Future<void> _scheduleDailyReminders() async {
                           decoration: BoxDecoration(
                             color: (_challengeCompletedToday
                                 ? const Color(0xFF10B981)
-                                : challenge.color).withOpacity(0.15),
+                                : challenge.color).withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: _challengeCompletedToday
@@ -1107,7 +1105,7 @@ Future<void> _scheduleDailyReminders() async {
                               decoration: BoxDecoration(
                                 color: (_challengeCompletedToday
                                     ? const Color(0xFF10B981)
-                                    : challenge.color).withOpacity(0.15),
+                                    : challenge.color).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -1149,7 +1147,7 @@ Future<void> _scheduleDailyReminders() async {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                                color: challenge.color.withOpacity(0.12),
+                                color: challenge.color.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8)),
                             child: Text('+${challenge.xpReward}', style: TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.w800,
@@ -1189,22 +1187,9 @@ Future<void> _scheduleDailyReminders() async {
                     subtitle: 'home.breathingSubtitle'.tr(),
                     color: AppColors.moodCalm,
                     isDark: isDark, delay: 750,
-                    onTap: () async {
-  await Navigator.push(context,
-      MaterialPageRoute(builder: (_) => const BreathingScreen()));
-  if (!mounted) return;
-  // Solo dar recompensa una vez al día
-  final prefs = await SharedPreferences.getInstance();
-  final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
-  final today = DateTime.now();
-  final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-  final key = 'breathing_reward_${uid}_$todayStr';
-  final alreadyClaimed = prefs.getBool(key) ?? false;
-  if (!alreadyClaimed) {
-    await prefs.setBool(key, true);
-    await _grantGardenReward(RewardSource.breathing);
-  }
-},
+                    // La recompensa la da BreathingScreen al completar la sesión
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const BreathingScreen())),
                   ),
                   const SizedBox(height: 12),
                   _buildActionCard(
@@ -1216,12 +1201,12 @@ Future<void> _scheduleDailyReminders() async {
                     onTap: () async {
                       final result = await Navigator.push<bool>(context,
                           MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()));
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       if (result == true) {
   _loadData();
   // Solo dar recompensa de diario una vez al día
-  final prefs = await SharedPreferences.getInstance();
   final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+  final prefs = await SharedPreferences.getInstance();
   final today = DateTime.now();
   final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
   final key = 'diary_reward_${uid}_$todayStr';
@@ -1266,12 +1251,12 @@ Future<void> _scheduleDailyReminders() async {
                     padding: const EdgeInsets.all(22),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(colors: isDark
-                          ? [Colors.white.withOpacity(0.06), Colors.white.withOpacity(0.03)]
+                          ? [Colors.white.withValues(alpha: 0.06), Colors.white.withValues(alpha: 0.03)]
                           : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
                       borderRadius: BorderRadius.circular(22),
                       border: Border.all(
                           color: isDark
-                              ? Colors.white.withOpacity(0.08) : const Color(0xFFDDD6FE)),
+                              ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFDDD6FE)),
                     ),
                     child: Row(children: [
                       Container(
@@ -1284,7 +1269,7 @@ Future<void> _scheduleDailyReminders() async {
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [BoxShadow(
                             color: _getArchetypeGradient(
-                                authProvider.userModel?.archetype).first.withOpacity(0.3),
+                                authProvider.userModel?.archetype).first.withValues(alpha: 0.3),
                             blurRadius: 12, offset: const Offset(0, 4),
                           )],
                         ),
@@ -1307,7 +1292,7 @@ Future<void> _scheduleDailyReminders() async {
                           child: LinearProgressIndicator(
                             value: (totalXp % xpForNext) / xpForNext,
                             backgroundColor: isDark
-                                ? Colors.white.withOpacity(0.1) : const Color(0xFFDDD6FE),
+                                ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFDDD6FE),
                             valueColor: AlwaysStoppedAnimation<Color>(
                                 _getArchetypeGradient(authProvider.userModel?.archetype).first),
                             minHeight: 10,
@@ -1342,7 +1327,7 @@ Future<void> _scheduleDailyReminders() async {
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(
-          color: const Color(0xFF8B5CF6).withOpacity(0.3),
+          color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
           blurRadius: 12,
         )],
       ),
@@ -1365,7 +1350,7 @@ Future<void> _scheduleDailyReminders() async {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -1392,7 +1377,7 @@ Future<void> _scheduleDailyReminders() async {
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(
-            color: const Color(0xFFF59E0B).withOpacity(0.3),
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
             blurRadius: 12,
           )],
         ),
@@ -1415,7 +1400,7 @@ Future<void> _scheduleDailyReminders() async {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.25),
+              color: Colors.white.withValues(alpha: 0.25),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -1436,12 +1421,12 @@ Future<void> _scheduleDailyReminders() async {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
           boxShadow: isDark ? null : [BoxShadow(
-              color: Colors.black.withOpacity(0.04), blurRadius: 8,
+              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8,
               offset: const Offset(0, 2))],
         ),
         child: Column(children: [
@@ -1473,19 +1458,19 @@ Future<void> _scheduleDailyReminders() async {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200),
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
           boxShadow: isDark ? null : [BoxShadow(
-              color: Colors.black.withOpacity(0.04), blurRadius: 8,
+              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8,
               offset: const Offset(0, 2))],
         ),
         child: Row(children: [
           Container(
             width: 52, height: 52,
             decoration: BoxDecoration(
-                color: color.withOpacity(isDark ? 0.2 : 0.1),
+                color: color.withValues(alpha: isDark ? 0.2 : 0.1),
                 borderRadius: BorderRadius.circular(16)),
             child: Icon(icon, color: color, size: 26),
           ),
@@ -1499,7 +1484,7 @@ Future<void> _scheduleDailyReminders() async {
           Container(
             width: 36, height: 36,
             decoration: BoxDecoration(
-                color: color.withOpacity(isDark ? 0.15 : 0.08),
+                color: color.withValues(alpha: isDark ? 0.15 : 0.08),
                 borderRadius: BorderRadius.circular(10)),
             child: Icon(
               isDone ? Icons.check_circle_rounded : Icons.chevron_right_rounded,

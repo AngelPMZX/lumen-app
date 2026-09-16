@@ -382,12 +382,15 @@ class GardenProvider extends ChangeNotifier {
 
   Future<(bool, String?)> buyItem(GardenItem item) async {
     if (_user == null) return (false, 'No hay sesión activa');
-    if (!item.canBuyWithSeeds)
+    if (!item.canBuyWithSeeds) {
       return (false, 'Este item no está disponible con semillas');
-    if (!item.isCurrentlyAvailable)
+    }
+    if (!item.isCurrentlyAvailable) {
       return (false, 'Este item no está disponible ahora');
-    if (_state.seeds < item.seedCost)
+    }
+    if (_state.seeds < item.seedCost) {
       return (false, 'No tienes suficientes semillas');
+    }
 
     try {
       final spent = await spendSeeds(item.seedCost);
@@ -430,10 +433,12 @@ class GardenProvider extends ChangeNotifier {
   Future<(bool, String?)> plantItemInSlot(
       String itemId, String gardenId, int slotIndex) async {
     if (_user == null) return (false, 'No hay sesión activa');
-    if (!_state.hasInInventory(itemId))
+    if (!_state.hasInInventory(itemId)) {
       return (false, 'No tienes este item en tu inventario');
-    if (!_isSlotFree(gardenId, slotIndex))
+    }
+    if (!_isSlotFree(gardenId, slotIndex)) {
       return (false, 'Este lugar ya está ocupado');
+    }
 
     try {
       final planted = PlantedItem(
@@ -459,10 +464,12 @@ class GardenProvider extends ChangeNotifier {
       String boosterItemId, String plantInstanceId) async {
     if (_user == null) return (false, 'No hay sesión activa');
     final booster = GardenCatalog.findById(boosterItemId);
-    if (booster == null || booster.type != ItemType.booster)
+    if (booster == null || booster.type != ItemType.booster) {
       return (false, 'Item inválido');
-    if (!_state.hasInInventory(boosterItemId))
+    }
+    if (!_state.hasInInventory(boosterItemId)) {
       return (false, 'No tienes este booster');
+    }
 
     final plantIndex =
         _state.garden.indexWhere((p) => p.instanceId == plantInstanceId);

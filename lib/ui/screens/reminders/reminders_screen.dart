@@ -231,10 +231,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
         ],
       ),
     );
-    if (confirm == true) {
-      await context.read<AuthProvider>().deleteHabit(habit.id);
-      _loadAll();
-    }
+    if (confirm != true || !mounted) return;
+    await context.read<AuthProvider>().deleteHabit(habit.id);
+    if (mounted) _loadAll();
   }
 
   Future<void> _deleteReminder(Reminder reminder) async {
@@ -264,12 +263,12 @@ class _RemindersScreenState extends State<RemindersScreen> {
         ],
       ),
     );
-    if (confirm == true) {
-      // Cancelar notificación local antes de borrar de Firestore
-      await NotificationService.instance.cancelReminder(reminder.id);
-      await context.read<AuthProvider>().deleteReminder(reminder.id);
-      _loadAll();
-    }
+    if (confirm != true || !mounted) return;
+    final auth = context.read<AuthProvider>();
+    // Cancelar notificación local antes de borrar de Firestore
+    await NotificationService.instance.cancelReminder(reminder.id);
+    await auth.deleteReminder(reminder.id);
+    if (mounted) _loadAll();
   }
 
   // ── Toggle con integración de NotificationService ─────────────────────────
@@ -1036,7 +1035,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
               Switch.adaptive(
                 value: reminder.isEnabled,
                 onChanged: (_) => _toggleReminder(reminder),
-                activeColor: reminder.timeColor,
+                activeThumbColor: reminder.timeColor,
               ),
             ],
           ),

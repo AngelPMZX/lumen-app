@@ -6,7 +6,6 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
 import '../../../data/models/daily_challenge.dart';
 import '../../../data/models/reward_service.dart';
-import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
 import '../screens/breathing/breathing_screen.dart';
 import '../screens/diary/new_diary_entry_screen.dart';
@@ -175,7 +174,7 @@ class _TimedGuideDialogState extends State<_TimedGuideDialog>
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.25),
+              color: color.withValues(alpha: 0.25),
               blurRadius: 30,
               spreadRadius: 4,
             ),
@@ -200,7 +199,7 @@ class _TimedGuideDialogState extends State<_TimedGuideDialog>
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(widget.challenge.icon, color: color, size: 22),
@@ -233,7 +232,7 @@ class _TimedGuideDialogState extends State<_TimedGuideDialog>
               width: isCurrent ? 20 : 8, height: 8,
               decoration: BoxDecoration(
                 color: isDone || isCurrent
-                    ? color : color.withOpacity(0.2),
+                    ? color : color.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
             );
@@ -250,10 +249,10 @@ class _TimedGuideDialogState extends State<_TimedGuideDialog>
             children: [
               AnimatedBuilder(
                 animation: _progressCtrl,
-                builder: (_, __) => CircularProgressIndicator(
+                builder: (_, _) => CircularProgressIndicator(
                   value: _progressCtrl.value,
                   strokeWidth: 6,
-                  backgroundColor: color.withOpacity(0.15),
+                  backgroundColor: color.withValues(alpha: 0.15),
                   valueColor: AlwaysStoppedAnimation(color),
                   strokeCap: StrokeCap.round,
                 ),
@@ -262,7 +261,7 @@ class _TimedGuideDialogState extends State<_TimedGuideDialog>
                 Text('$_secondsLeft', style: TextStyle(
                     fontSize: 26, fontWeight: FontWeight.w900, color: color)),
                 Text('seg', style: TextStyle(
-                    fontSize: 10, color: color.withOpacity(0.7))),
+                    fontSize: 10, color: color.withValues(alpha: 0.7))),
               ]),
             ],
           ),
@@ -278,15 +277,15 @@ class _TimedGuideDialogState extends State<_TimedGuideDialog>
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withOpacity(isDark ? 0.1 : 0.06),
+              color: color.withValues(alpha: isDark ? 0.1 : 0.06),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withOpacity(0.2)),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
             ),
             child: Text(
               _stepText(_steps[_currentStep]),
               style: TextStyle(
                 fontSize: 15, height: 1.5, fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white.withOpacity(0.9)
+                color: isDark ? Colors.white.withValues(alpha: 0.9)
                     : const Color(0xFF1A1A2E),
               ),
               textAlign: TextAlign.center,
@@ -328,11 +327,11 @@ class _TimedGuideDialogState extends State<_TimedGuideDialog>
           width: 80, height: 80,
           decoration: BoxDecoration(
             gradient: RadialGradient(colors: [
-              color.withOpacity(0.25), color.withOpacity(0.05),
+              color.withValues(alpha: 0.25), color.withValues(alpha: 0.05),
             ]),
             shape: BoxShape.circle,
             boxShadow: [BoxShadow(
-              color: color.withOpacity(0.3), blurRadius: 20, spreadRadius: 4,
+              color: color.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 4,
             )],
           ),
           child: const Center(child: SeedIcon(size: 56, animated: true)),
@@ -428,7 +427,7 @@ class _InfoCompleteDialogState extends State<_InfoCompleteDialog> {
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.2),
+              color: color.withValues(alpha: 0.2),
               blurRadius: 30, spreadRadius: 4,
             ),
           ],
@@ -452,7 +451,7 @@ class _InfoCompleteDialogState extends State<_InfoCompleteDialog> {
           Container(
             width: 44, height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(widget.challenge.icon, color: color, size: 22),
@@ -478,13 +477,13 @@ class _InfoCompleteDialogState extends State<_InfoCompleteDialog> {
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: color.withOpacity(isDark ? 0.1 : 0.06),
+            color: color.withValues(alpha: isDark ? 0.1 : 0.06),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withOpacity(0.2)),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
           child: Text(_challengeDesc(), style: TextStyle(
             fontSize: 14, height: 1.5,
-            color: isDark ? Colors.white.withOpacity(0.85)
+            color: isDark ? Colors.white.withValues(alpha: 0.85)
                 : const Color(0xFF1A1A2E),
           )),
         ),
@@ -500,7 +499,7 @@ class _InfoCompleteDialogState extends State<_InfoCompleteDialog> {
                 Container(
                   width: 24, height: 24,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -512,7 +511,7 @@ class _InfoCompleteDialogState extends State<_InfoCompleteDialog> {
                 Expanded(
                   child: Text(_stepText(e.value), style: TextStyle(
                     fontSize: 14, height: 1.4,
-                    color: isDark ? Colors.white.withOpacity(0.8)
+                    color: isDark ? Colors.white.withValues(alpha: 0.8)
                         : const Color(0xFF374151),
                   )),
                 ),
@@ -560,11 +559,11 @@ class _InfoCompleteDialogState extends State<_InfoCompleteDialog> {
           width: 80, height: 80,
           decoration: BoxDecoration(
             gradient: RadialGradient(colors: [
-              color.withOpacity(0.25), color.withOpacity(0.05),
+              color.withValues(alpha: 0.25), color.withValues(alpha: 0.05),
             ]),
             shape: BoxShape.circle,
             boxShadow: [BoxShadow(
-              color: color.withOpacity(0.3), blurRadius: 20, spreadRadius: 4,
+              color: color.withValues(alpha: 0.3), blurRadius: 20, spreadRadius: 4,
             )],
           ),
           child: Center(child: Text(

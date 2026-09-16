@@ -24,7 +24,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   int _diaryCount = 0;
   int _moodCount = 0;
-  int _habitsCount = 0;
+  final int _habitsCount = 0;
   bool _isLoading = true;
 
   @override
@@ -106,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final auth = context.read<AuthProvider>();
   final garden = context.read<GardenProvider>();
 
-  final confirm = await showDialog<bool>(
+  await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -528,7 +528,7 @@ const SizedBox(height: 10),
                     trailing: Switch.adaptive(
                       value: isDark,
                       onChanged: (_) => context.read<ThemeProvider>().toggleTheme(),
-                      activeColor: const Color(0xFF6366F1),
+                      activeThumbColor: const Color(0xFF6366F1),
                     ),
                   ).animate().fadeIn(delay: 500.ms),
                   const SizedBox(height: 10),

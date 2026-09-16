@@ -28,7 +28,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
   static const int _cooldownDuration = 30;
 
   bool _isChecking = false;
-  bool _showNotYetHint = false;
 
   @override
   void initState() {
@@ -84,7 +83,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
       _navigateAfterVerification();
     } else {
       // Mostrar hint que aún no está verificado
-      setState(() => _showNotYetHint = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(

@@ -5,7 +5,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
@@ -281,15 +280,14 @@ class _BreathingScreenState extends State<BreathingScreen>
   }
 
   Future<void> _finishSession() async {
+    final garden = context.read<GardenProvider>();
+    final auth = context.read<AuthProvider>();
     await _stopAudio();
     _breathController.stop();
     HapticFeedback.heavyImpact();
-    final garden = context.read<GardenProvider>();
     bool rewarded = false;
     try {
-      rewarded = await context
-          .read<AuthProvider>()
-          .completeBreathingSession(_xpReward, garden: garden);
+      rewarded = await auth.completeBreathingSession(_xpReward, garden: garden);
     } catch (e) { debugPrint('Breathing reward error: $e'); }
     if (!mounted) return;
     setState(() {
@@ -386,8 +384,8 @@ class _BreathingScreenState extends State<BreathingScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(colors: [
-              _selectedTechnique.color.withOpacity(0.22),
-              _selectedTechnique.color.withOpacity(0.0),
+              _selectedTechnique.color.withValues(alpha: 0.22),
+              _selectedTechnique.color.withValues(alpha: 0.0),
             ]),
           ),
         ),
@@ -399,8 +397,8 @@ class _BreathingScreenState extends State<BreathingScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(colors: [
-              const Color(0xFF818CF8).withOpacity(0.15),
-              const Color(0xFF818CF8).withOpacity(0.0),
+              const Color(0xFF818CF8).withValues(alpha: 0.15),
+              const Color(0xFF818CF8).withValues(alpha: 0.0),
             ]),
           ),
         ),
@@ -415,9 +413,9 @@ class _BreathingScreenState extends State<BreathingScreen>
       child: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: Colors.white.withValues(alpha: 0.1),
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withOpacity(0.15)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
         ),
         child: Icon(
           isBack ? Icons.arrow_back_rounded : Icons.close_rounded,
@@ -444,14 +442,14 @@ class _BreathingScreenState extends State<BreathingScreen>
               width: 100, height: 100,
               decoration: BoxDecoration(
                 gradient: RadialGradient(colors: [
-                  const Color(0xFF6366F1).withOpacity(0.3),
-                  const Color(0xFF6366F1).withOpacity(0.05),
+                  const Color(0xFF6366F1).withValues(alpha: 0.3),
+                  const Color(0xFF6366F1).withValues(alpha: 0.05),
                 ]),
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: const Color(0xFF6366F1).withOpacity(0.4), width: 1.5),
+                    color: const Color(0xFF6366F1).withValues(alpha: 0.4), width: 1.5),
                 boxShadow: [BoxShadow(
-                  color: const Color(0xFF6366F1).withOpacity(0.3),
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                   blurRadius: 30, spreadRadius: 5,
                 )],
               ),
@@ -496,9 +494,9 @@ class _BreathingScreenState extends State<BreathingScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.07),
+                color: Colors.white.withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 const Icon(Icons.science_rounded, color: Colors.white38, size: 14),
@@ -518,7 +516,7 @@ class _BreathingScreenState extends State<BreathingScreen>
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF6366F1),
                   elevation: 8,
-                  shadowColor: const Color(0xFF6366F1).withOpacity(0.5),
+                  shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.5),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18)),
                 ),
@@ -541,9 +539,9 @@ class _BreathingScreenState extends State<BreathingScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: Colors.white.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(emoji, style: const TextStyle(fontSize: 24)),
@@ -553,7 +551,7 @@ class _BreathingScreenState extends State<BreathingScreen>
               fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
           const SizedBox(height: 4),
           Text(desc, style: TextStyle(
-              fontSize: 13, color: Colors.white.withOpacity(0.65), height: 1.4)),
+              fontSize: 13, color: Colors.white.withValues(alpha: 0.65), height: 1.4)),
         ])),
       ]),
     );
@@ -610,13 +608,13 @@ class _BreathingScreenState extends State<BreathingScreen>
                         height: 56,
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? _selectedTechnique.color.withOpacity(0.2)
-                              : Colors.white.withOpacity(0.07),
+                              ? _selectedTechnique.color.withValues(alpha: 0.2)
+                              : Colors.white.withValues(alpha: 0.07),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
                                 ? _selectedTechnique.color
-                                : Colors.white.withOpacity(0.1),
+                                : Colors.white.withValues(alpha: 0.1),
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -652,13 +650,13 @@ class _BreathingScreenState extends State<BreathingScreen>
                               horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? _selectedTechnique.color.withOpacity(0.2)
-                                : Colors.white.withOpacity(0.07),
+                                ? _selectedTechnique.color.withValues(alpha: 0.2)
+                                : Colors.white.withValues(alpha: 0.07),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
                               color: isSelected
                                   ? _selectedTechnique.color
-                                  : Colors.white.withOpacity(0.1),
+                                  : Colors.white.withValues(alpha: 0.1),
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -692,7 +690,7 @@ class _BreathingScreenState extends State<BreathingScreen>
                   style: FilledButton.styleFrom(
                     backgroundColor: _selectedTechnique.color,
                     elevation: 8,
-                    shadowColor: _selectedTechnique.color.withOpacity(0.5),
+                    shadowColor: _selectedTechnique.color.withValues(alpha: 0.5),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18)),
                   ),
@@ -725,14 +723,14 @@ class _BreathingScreenState extends State<BreathingScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? t.color.withOpacity(0.15) : Colors.white.withOpacity(0.06),
+          color: isSelected ? t.color.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? t.color : Colors.white.withOpacity(0.1),
+            color: isSelected ? t.color : Colors.white.withValues(alpha: 0.1),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected ? [BoxShadow(
-            color: t.color.withOpacity(0.2), blurRadius: 12,
+            color: t.color.withValues(alpha: 0.2), blurRadius: 12,
             offset: const Offset(0, 4),
           )] : null,
         ),
@@ -740,7 +738,7 @@ class _BreathingScreenState extends State<BreathingScreen>
           Container(
             width: 48, height: 48,
             decoration: BoxDecoration(
-              color: t.color.withOpacity(0.2),
+              color: t.color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Center(child: Text(t.emoji, style: const TextStyle(fontSize: 24))),
@@ -754,7 +752,7 @@ class _BreathingScreenState extends State<BreathingScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: t.color.withOpacity(0.2),
+                  color: t.color.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(_t(t.descriptionKey), style: TextStyle(
@@ -763,7 +761,7 @@ class _BreathingScreenState extends State<BreathingScreen>
             ]),
             const SizedBox(height: 4),
             Text(_techniqueBenefit(t), style: TextStyle(
-                fontSize: 12, color: Colors.white.withOpacity(0.55), height: 1.3)),
+                fontSize: 12, color: Colors.white.withValues(alpha: 0.55), height: 1.3)),
           ])),
           if (isSelected)
             Icon(Icons.check_circle_rounded, color: t.color, size: 22),
@@ -796,7 +794,7 @@ class _BreathingScreenState extends State<BreathingScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(_selectedSound.emoji,
@@ -816,7 +814,7 @@ class _BreathingScreenState extends State<BreathingScreen>
         // Breathing circle
         AnimatedBuilder(
           animation: _breathController,
-          builder: (_, __) {
+          builder: (_, _) {
             final scale = 0.65 + _breathController.value * 0.35;
             final glowOpacity = 0.2 + _breathController.value * 0.4;
             return Stack(
@@ -827,7 +825,7 @@ class _BreathingScreenState extends State<BreathingScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: _selectedTechnique.color.withOpacity(glowOpacity * 0.3)),
+                        color: _selectedTechnique.color.withValues(alpha: glowOpacity * 0.3)),
                   ),
                 ),
                 Container(
@@ -835,7 +833,7 @@ class _BreathingScreenState extends State<BreathingScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                        color: _selectedTechnique.color.withOpacity(glowOpacity * 0.5),
+                        color: _selectedTechnique.color.withValues(alpha: glowOpacity * 0.5),
                         width: 1.5),
                   ),
                 ),
@@ -844,13 +842,13 @@ class _BreathingScreenState extends State<BreathingScreen>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(colors: [
-                      _selectedTechnique.color.withOpacity(0.35),
-                      _selectedTechnique.color.withOpacity(0.08),
+                      _selectedTechnique.color.withValues(alpha: 0.35),
+                      _selectedTechnique.color.withValues(alpha: 0.08),
                     ]),
                     border: Border.all(
-                        color: _selectedTechnique.color.withOpacity(0.6), width: 2),
+                        color: _selectedTechnique.color.withValues(alpha: 0.6), width: 2),
                     boxShadow: [BoxShadow(
-                      color: _selectedTechnique.color.withOpacity(glowOpacity),
+                      color: _selectedTechnique.color.withValues(alpha: glowOpacity),
                       blurRadius: 40, spreadRadius: 5,
                     )],
                   ),
@@ -893,7 +891,7 @@ class _BreathingScreenState extends State<BreathingScreen>
               decoration: BoxDecoration(
                 color: isActive
                     ? _selectedTechnique.color
-                    : _selectedTechnique.color.withOpacity(0.3),
+                    : _selectedTechnique.color.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(4),
               ),
             );
@@ -933,9 +931,9 @@ class _BreathingScreenState extends State<BreathingScreen>
               child: Container(
                 width: 56, height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 child: const Icon(Icons.stop_rounded, color: Colors.white60, size: 26),
               ),
@@ -949,11 +947,11 @@ class _BreathingScreenState extends State<BreathingScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(colors: [
                     _selectedTechnique.color,
-                    _selectedTechnique.color.withOpacity(0.7),
+                    _selectedTechnique.color.withValues(alpha: 0.7),
                   ]),
                   shape: BoxShape.circle,
                   boxShadow: [BoxShadow(
-                    color: _selectedTechnique.color.withOpacity(0.4),
+                    color: _selectedTechnique.color.withValues(alpha: 0.4),
                     blurRadius: 20, spreadRadius: 2,
                   )],
                 ),
@@ -969,9 +967,9 @@ class _BreathingScreenState extends State<BreathingScreen>
               child: Container(
                 width: 56, height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 child: const Icon(Icons.check_rounded, color: Colors.white60, size: 26),
               ),
@@ -1001,14 +999,14 @@ class _BreathingScreenState extends State<BreathingScreen>
   width: 110, height: 110,
   decoration: BoxDecoration(
     gradient: RadialGradient(colors: [
-      _selectedTechnique.color.withOpacity(0.3),
-      _selectedTechnique.color.withOpacity(0.05),
+      _selectedTechnique.color.withValues(alpha: 0.3),
+      _selectedTechnique.color.withValues(alpha: 0.05),
     ]),
     shape: BoxShape.circle,
     border: Border.all(
-        color: _selectedTechnique.color.withOpacity(0.4), width: 2),
+        color: _selectedTechnique.color.withValues(alpha: 0.4), width: 2),
     boxShadow: [BoxShadow(
-      color: _selectedTechnique.color.withOpacity(0.3),
+      color: _selectedTechnique.color.withValues(alpha: 0.3),
       blurRadius: 30, spreadRadius: 5,
     )],
   ),
@@ -1039,7 +1037,7 @@ class _BreathingScreenState extends State<BreathingScreen>
                 'min': '$_selectedMinutes',
                 'technique': _techniqueName(_selectedTechnique),
               }),
-              style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.5)),
+              style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.5)),
             ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
 
             const SizedBox(height: 28),
@@ -1049,13 +1047,13 @@ class _BreathingScreenState extends State<BreathingScreen>
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
               decoration: BoxDecoration(
                 gradient: LinearGradient(colors: [
-                  _selectedTechnique.color.withOpacity(0.22),
-                  const Color(0xFFFBBF24).withOpacity(0.1),
+                  _selectedTechnique.color.withValues(alpha: 0.22),
+                  const Color(0xFFFBBF24).withValues(alpha: 0.1),
                 ]),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: _selectedTechnique.color.withOpacity(0.35)),
+                border: Border.all(color: _selectedTechnique.color.withValues(alpha: 0.35)),
                 boxShadow: [BoxShadow(
-                  color: _selectedTechnique.color.withOpacity(0.2),
+                  color: _selectedTechnique.color.withValues(alpha: 0.2),
                   blurRadius: 24, spreadRadius: 2,
                 )],
               ),
@@ -1077,7 +1075,7 @@ class _BreathingScreenState extends State<BreathingScreen>
                       ? 'breathing.xpLabel'.tr()
                       : 'breathing.rewardClaimedHint'.tr(),
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.5))),
+                  style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
               ]),
             )
                 .animate(delay: 400.ms)
@@ -1092,13 +1090,13 @@ class _BreathingScreenState extends State<BreathingScreen>
               width: double.infinity,
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
+                color: Colors.white.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
               child: Text('"${_t(phraseKey)}"',
                 style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic,
-                    color: Colors.white.withOpacity(0.8), height: 1.5),
+                    color: Colors.white.withValues(alpha: 0.8), height: 1.5),
                 textAlign: TextAlign.center),
             ).animate(delay: 600.ms).fadeIn(duration: 500.ms),
 
@@ -1111,7 +1109,7 @@ class _BreathingScreenState extends State<BreathingScreen>
                 style: FilledButton.styleFrom(
                   backgroundColor: _selectedTechnique.color,
                   elevation: 8,
-                  shadowColor: _selectedTechnique.color.withOpacity(0.5),
+                  shadowColor: _selectedTechnique.color.withValues(alpha: 0.5),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18)),
                 ),
@@ -1128,7 +1126,7 @@ class _BreathingScreenState extends State<BreathingScreen>
                 _sessionRunning = false;
               }),
               child: Text('breathing.anotherSession'.tr(),
-                  style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14)),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
             ).animate(delay: 800.ms).fadeIn(duration: 400.ms),
           ],
         ),
@@ -1177,16 +1175,16 @@ class _TwinklingStarState extends State<_TwinklingStar>
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _anim,
-    builder: (_, __) => Opacity(
+    builder: (_, _) => Opacity(
       opacity: _anim.value.clamp(0.0, 1.0),
       child: Container(
         width: widget.star.size, height: widget.star.size,
         decoration: BoxDecoration(
           color: Colors.white, shape: BoxShape.circle,
           boxShadow: widget.star.size > 1.6 ? [
-            BoxShadow(color: Colors.white.withOpacity(_anim.value * 0.8),
+            BoxShadow(color: Colors.white.withValues(alpha: _anim.value * 0.8),
                 blurRadius: widget.star.size * 2),
-            BoxShadow(color: const Color(0xFF818CF8).withOpacity(_anim.value * 0.5),
+            BoxShadow(color: const Color(0xFF818CF8).withValues(alpha: _anim.value * 0.5),
                 blurRadius: widget.star.size * 4),
           ] : null,
         ),

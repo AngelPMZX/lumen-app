@@ -186,7 +186,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final topColor = _interpolatedColor((s) => s.topColor);
     final midColor = _interpolatedColor((s) => s.midColor);
     final bottomColor = _interpolatedColor((s) => s.bottomColor);
-    final accentColor = _interpolatedColor((s) => s.accentColor);
 
     return Scaffold(
       body: Stack(
@@ -361,7 +360,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               width: 280,
               height: 280,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 width: 280,
                 height: 280,
                 decoration: BoxDecoration(

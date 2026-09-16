@@ -432,16 +432,16 @@ class GardenCatalog {
     }
   }
 
-  static const List<_RewardWeight> challengeRewardPool = [
-    _RewardWeight(itemId: null,               weight: 70),
-    _RewardWeight(itemId: 'boost_water',      weight: 20),
-    _RewardWeight(itemId: 'boost_sun',        weight: 9),
-    _RewardWeight(itemId: 'boost_fertilizer', weight: 1),
+  static const List<RewardWeight> challengeRewardPool = [
+    RewardWeight(itemId: null,               weight: 70),
+    RewardWeight(itemId: 'boost_water',      weight: 20),
+    RewardWeight(itemId: 'boost_sun',        weight: 9),
+    RewardWeight(itemId: 'boost_fertilizer', weight: 1),
   ];
 }
 
-class _RewardWeight {
+class RewardWeight {
   final String? itemId;
   final int weight;
-  const _RewardWeight({required this.itemId, required this.weight});
+  const RewardWeight({required this.itemId, required this.weight});
 }

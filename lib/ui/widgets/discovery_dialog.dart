@@ -216,7 +216,7 @@ class DiscoveryDialog extends StatelessWidget {
           : Image.asset(
               style.image!,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => fallback,
+              errorBuilder: (_, _, _) => fallback,
             ),
     );
   }
