@@ -60,6 +60,8 @@ enum Ambient {
   sunrise,
   kalimba,
   musicBox,
+  tide,
+  lullaby,
 }
 
 /// Reproduce todos los sonidos de la app. Singleton.
@@ -137,6 +139,8 @@ class SoundService {
         'autoestima' => Ambient.sunrise,
         'relaciones' => Ambient.kalimba,
         'amor' => Ambient.musicBox,
+        'ansiedad' => Ambient.tide,
+        'sueno' => Ambient.lullaby,
         _ => Ambient.calmMusic,
       };
 

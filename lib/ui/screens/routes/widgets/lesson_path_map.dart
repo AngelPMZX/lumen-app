@@ -556,6 +556,8 @@ class _LessonPathMapState extends State<LessonPathMap>
     'autoestima': ['⭐', '🌟', '💫', '🌻', '👑', '✨'],
     'relaciones': ['💬', '🫶', '🤝', '🌷', '🎶', '☕'],
     'amor': ['💗', '🌹', '💌', '🦋', '💞', '🌸'],
+    'ansiedad': ['🌊', '🐚', '🫧', '⛵', '🐢', '🌿'],
+    'sueno': ['🌙', '⭐', '☁️', '💤', '🦉', '✨'],
   };
 
   List<Widget> _buildDecorations(int count) {

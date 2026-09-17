@@ -82,8 +82,9 @@ Clean architecture simplificada:
 - Timeline emocional semanal.
 
 ### Rutas de bienestar (Wellness Routes)
-- 7 rutas. Meta: **10 lecciones por ruta, 5-7 pasos cada una**, sin dos lecciones con la misma secuencia de tipos. Antes eran 19 lecciones con la misma forma (reading + quiz + exercise), por eso se sentían repetitivas.
-- **Contenido fuente**: `seed/routes/<id>.js` (un archivo por ruta). Las 7 rutas tienen 10 lecciones: 70 lecciones y 396 pasos en total (emociones 61, autoconocimiento 60, mindfulness 55, resiliencia 56, autoestima 54, relaciones 56, amor 54).
+- 9 rutas. Meta: **10 lecciones por ruta, 5-7 pasos cada una**, sin dos lecciones con la misma secuencia de tipos. Antes eran 19 lecciones con la misma forma (reading + quiz + exercise), por eso se sentían repetitivas.
+- **Contenido fuente**: `seed/routes/<id>.js` (un archivo por ruta). Las 9 rutas tienen 10 lecciones: 90 lecciones y 513 pasos en total (emociones 61, autoconocimiento 60, mindfulness 55, resiliencia 56, autoestima 54, relaciones 56, amor 54, ansiedad 57, sueño 60).
+- **Rutas Ansiedad y estrés** (`ansiedad`, order 7, ids `ans_1..10`, teal 🌊) y **Sueño** (`sueno`, order 8, ids `sue_1..10`, violeta 🌙), agregadas el 2026-09-16. Basadas en TCC y TCC-I: alarma interna, estrés vs. ansiedad, suspiro doble, 5-4-3-2-1, ciclo de evitación y escalera de exposición, tiempo de preocupación, catastrofizar, relajación muscular progresiva, ataques de pánico; reloj circadiano, cafeína, ritual de desconexión, control de estímulos, lista de pendientes, escaneo para dormir, intención paradójica, siestas/alcohol/ejercicio. **Reglas de seguridad del contenido**: pánico → descartar causa médica si es la primera vez o el dolor de pecho es distinto; sueño → nunca sugerir medicamentos ni suplementos, derivar a médico ante apnea (ronquidos con pausas), somnolencia al manejar o insomnio ≥3 noches/semana por ≥3 meses. Las cifras (vida media de la cafeína ~5 h, 7-9 h de sueño, ciclos de ~90 min) van con matices ("en promedio", "varía"). Candidatas a premium en el futuro; la ayuda en crisis siempre gratis.
 - **Temas delicados remiten a ayuda**: tristeza persistente, ansiedad, relaciones controladoras, rupturas y falta de sentido mencionan buscar un profesional y las líneas de Perfil → "¿Necesitas ayuda ahora?". Mantenerlo al editar contenido.
 - **Subir contenido**: `node seed/seed_routes.js <ruta> --dry-run` (valida y resume), sin `--dry-run` escribe; `--all` para todas; `--prune` borra lecciones que ya no estén en el archivo. Si hay un error de validación (campos ES/EN faltantes, listas de distinto largo, índices fuera de rango) no escribe nada. Las advertencias de variedad no bloquean.
 - **Nunca renombrar el `id` de una lección existente**: el progreso (`completed_lessons`) se guarda por id. El `order` lo calcula el script por posición.
@@ -186,14 +187,14 @@ Clean architecture simplificada:
 - **Identidad sonora**: todo en Do mayor pentatónica, suave y a bajo volumen. No agregar sonidos estridentes ni "de casino": es una app de bienestar.
 - **Todos los sonidos son propios**, sintetizados con `tools/audio/generate_sounds.py` (numpy + imageio-ffmpeg, MP3). Para cambiar uno, editar el script y regenerar. Los sonidos nuevos se exportan **al final de `main()`**: comparten el generador aleatorio con semilla fija, así que insertarlos antes alteraría los existentes. No meter audios descargados sin revisar la licencia. ~5.5 MB en total.
 - Dos interruptores persistidos en SharedPreferences: "Efectos de sonido" en Perfil (`sound_effects_enabled`, afecta a `Sfx`, `note` y `combo`) y el botón 🎵 en la barra de la lección (`lesson_ambient_enabled`). Las señales de respiración tienen su propio switch en esa pantalla.
-- **Ambiente por ruta** en lecciones (`SoundService.ambientForRoute`): emociones → música calma, autoconocimiento → noche con grillos, mindfulness → arroyo, resiliencia → viento con campanas, autoestima → amanecer, relaciones → kalimba, amor → caja musical. `LessonScreen` necesita `routeId` para elegirlo. `setBaseAmbient`/`clearBaseAmbient`; la práctica guiada pone música calma y al terminar llama a `returnToBaseAmbient`.
+- **Ambiente por ruta** en lecciones (`SoundService.ambientForRoute`): emociones → música calma, autoconocimiento → noche con grillos, mindfulness → arroyo, resiliencia → viento con campanas, autoestima → amanecer, relaciones → kalimba, amor → caja musical, ansiedad → olas lentas (`tide`: cada ola sube ~4 s y baja ~6 s, invita a respirar 4-6), sueño → canción de cuna (`lullaby`, grave y lenta). `LessonScreen` necesita `routeId` para elegirlo. `setBaseAmbient`/`clearBaseAmbient`; la práctica guiada pone música calma y al terminar llama a `returnToBaseAmbient`.
 - **En lecciones**: acierto y error; desde el 2.º acierto seguido cada uno suena más agudo (`combo`); `order` toca la escala nota por nota, así que al ordenar se arma una melodía (pasa `sound: false` a `onAnswer`); tic en slider; on/off en pick; burbuja en historias; swipe en mito/realidad; tono ascendente mientras se mantiene presionado el compromiso; campanitas al completar.
 - **En el mapa**: toque de nodo; al volver de una lección suena `unlock` si se desbloqueó otra o `routeComplete` si terminó la ruta.
 - **Hitos de la app**: subir de nivel y logros (`CelebrationDialog`), semillas (`RewardDialog`), check-in de ánimo, hábito cumplido, entrada de diario guardada, jardín (plantar, cosechar, booster) y compra en la tienda.
 
 ### Respiración guiada
 - 3 técnicas (Box, 4-7-8, Flow).
-- Sonidos ambientales locales (música calma, lluvia, bosque, océano, arroyo, noche, campanas de viento, ruido suave). Antes se reproducían desde URLs de mixkit.co, frágiles y con licencia dudosa.
+- Sonidos ambientales locales (música calma, lluvia, bosque, océano, arroyo, noche, olas lentas, canción de cuna, campanas de viento, ruido suave). Antes se reproducían desde URLs de mixkit.co, frágiles y con licencia dudosa.
 - Señal sonora al inicio de cada fase (inhalar, sostener, exhalar) y cuenco tibetano al terminar; se pueden apagar.
 - Recompensa XP + semillas (`RewardSource.breathing`) solo en la primera sesión del día (`progress/breathing`, hora del servidor).
 
@@ -283,7 +284,7 @@ flutter clean; flutter pub get
 7. ~~Tarjeta para compartir al completar una ruta~~: hecho, ver "Compartir ruta y reseñas".
 8. ~~Pedir reseña en Play Store~~: hecho.
 10. **Personalización de Lumi como apoyo al proyecto** (idea de Ángel, 2026-09-16): colores, accesorios (gorrito, bufanda, lentes…) y quizá animaciones especiales, a precio bajo vía RevenueCat. Solo cosmético: nunca bloquear contenido de bienestar ni ayuda. El `LumiPainter` ya dibuja todo por código, así que los accesorios se pueden pintar como capas encima.
-9. Rutas nuevas **Ansiedad y Estrés** y **Sueño**, candidatas a contenido premium (la ayuda en crisis siempre gratis).
+9. ~~Rutas nuevas **Ansiedad y Estrés** y **Sueño**~~: hechas. Si se vuelven premium, revisar `WeeklySummary.recommendedLessons` (hoy recomienda `ans_*`/`sue_*`).
 
 **Pulido**:
 - La pantalla de lección solo tiene modo oscuro.

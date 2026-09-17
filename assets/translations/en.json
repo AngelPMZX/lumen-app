@@ -1604,7 +1604,9 @@
       "music": "Calm music",
       "stream": "Stream",
       "night": "Night",
-      "chimes": "Wind chimes"
+      "chimes": "Wind chimes",
+      "tide": "Slow waves",
+      "lullaby": "Lullaby"
     },
     "motivational": {
       "0": "Your nervous system thanks you 🙏",

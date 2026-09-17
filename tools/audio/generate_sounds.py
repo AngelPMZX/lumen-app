@@ -849,6 +849,60 @@ def sfx_chest_open():
     return normalize(oneshot_reverb(x, 2.4, 0.35), -3)
 
 
+# ── Rutas Ansiedad y Sueño ──────────────────────────────────────────────────
+def tide():
+    """Ansiedad y estrés: olas lentas al ritmo de una respiración 4-6.
+
+    Cada ola dura 9.6 s (5 por bucle): sube durante el 40 % (inhalar ~4 s) y
+    se retira durante el 60 % (exhalar ~6 s), así el ambiente invita a bajar
+    el ritmo sin decir nada.
+    """
+    cycles = 5
+    period = LOOP / cycles
+    phase = (t_loop % period) / period
+    rise = 0.4
+    swell = np.where(
+        phase < rise,
+        np.sin(np.pi / 2 * phase / rise) ** 2,
+        np.cos(np.pi / 2 * (phase - rise) / (1 - rise)) ** 2,
+    )
+    body = spectral_noise(N, slope=1.2, low=70, high=1600) * (0.15 + 0.85 * swell)
+    foam = spectral_noise(N, slope=0.4, low=1500, high=7000)
+    # la espuma aparece justo cuando la ola rompe y empieza a retirarse
+    foam *= swell ** 4 * 0.18
+    pad = soft_pad([[48, 55, 62, 64], [45, 52, 57, 64], [41, 48, 55, 60], [43, 50, 55, 62]], LOOP / 4, 0.12, 900)
+    pad *= 0.75 + 0.25 * periodic_lfo(cycles, -np.pi / 2)
+    bells = np.zeros(N)
+    for c in range(cycles):
+        if c % 2 == 0:
+            m = penta(72, [0, 2, 4, 1, 3][c % 5])
+            clip = note(midi(m), 4.0, GLASS, attack=0.02, decay=1.4)
+            add_wrapped(bells, clip * 0.07, int((c * period + period * rise) * SR))
+    mix = body * 0.7 + foam + pad * 0.28 + circular_reverb(bells, 3.5, 0.55, 5000)
+    return normalize_rms(circular_reverb(mix, 2.0, 0.25, 6000), -23)
+
+
+def lullaby():
+    """Sueño: canción de cuna oscura y lenta sobre un murmullo muy grave."""
+    hush = spectral_noise(N, slope=2.0, low=40, high=500) * 0.22
+    hush *= 0.85 + 0.15 * periodic_lfo(4)
+    pad = soft_pad([[36, 43, 52, 55], [33, 40, 48, 52], [29, 36, 45, 48], [31, 38, 47, 50]], LOOP / 4, 0.08, 650)
+    pad *= 0.85 + 0.15 * periodic_lfo(8, 1.2)
+    celesta = [(1, 1.0, 1.0), (2.0, 0.12, 0.5), (4.0, 0.03, 0.25)]
+    melody = [4, 2, 0, None, 2, 4, 5, None, 4, 2, 1, None, 2, 0, None, None,
+              4, 2, 0, None, 1, 2, 4, None, 2, 1, 0, None, None, None]
+    beat = LOOP / len(melody) / 1  # 1.6 s por nota
+    tones = np.zeros(N)
+    for i, deg in enumerate(melody):
+        if deg is None:
+            continue
+        clip = note(midi(penta(60, deg)), 4.5, celesta, attack=0.03, decay=1.6)
+        add_wrapped(tones, clip * (0.09 if i % 2 else 0.12), int(i * beat * SR))
+    tones = fft_filter(tones, 100, 2500)
+    mix = hush + pad * 0.42 + circular_reverb(tones, 4.0, 0.55, 3500)
+    return normalize_rms(circular_reverb(mix, 3.0, 0.3, 4000), -24)
+
+
 def main():
     print('Ambientes (bucles de %.0f s):' % LOOP)
     export(rain(), 'ambient/rain.mp3', '80k')
@@ -923,6 +977,11 @@ def main():
     export(sfx_mission_claim(), 'sfx/mission_claim.mp3')
     export(sfx_chest_shake(), 'sfx/chest_shake.mp3')
     export(sfx_chest_open(), 'sfx/chest_open.mp3')
+
+    # Sexta tanda: rutas Ansiedad y estrés y Sueño
+    print('Rutas nuevas:')
+    export(tide(), 'ambient/tide.mp3', '80k')
+    export(lullaby(), 'ambient/lullaby.mp3', '64k')
 
 
 if __name__ == '__main__':

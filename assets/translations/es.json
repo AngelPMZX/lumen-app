@@ -1604,7 +1604,9 @@
       "music": "Música calma",
       "stream": "Arroyo",
       "night": "Noche",
-      "chimes": "Campanas de viento"
+      "chimes": "Campanas de viento",
+      "tide": "Olas lentas",
+      "lullaby": "Canción de cuna"
     },
     "motivational": {
       "0": "Tu sistema nervioso te lo agradece 🙏",

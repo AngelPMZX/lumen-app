@@ -115,6 +115,8 @@ const _ambientSounds = [
   _AmbientSound(id: 'ocean',  labelKey: 'breathing.sound.ocean',  emoji: '🌊', ambient: Ambient.ocean),
   _AmbientSound(id: 'stream', labelKey: 'breathing.sound.stream', emoji: '🏞️', ambient: Ambient.stream),
   _AmbientSound(id: 'night',  labelKey: 'breathing.sound.night',  emoji: '🌙', ambient: Ambient.night),
+  _AmbientSound(id: 'tide',   labelKey: 'breathing.sound.tide',   emoji: '🐚', ambient: Ambient.tide),
+  _AmbientSound(id: 'lullaby', labelKey: 'breathing.sound.lullaby', emoji: '💤', ambient: Ambient.lullaby),
   _AmbientSound(id: 'chimes', labelKey: 'breathing.sound.chimes', emoji: '🎐', ambient: Ambient.mountain),
   _AmbientSound(id: 'white',  labelKey: 'breathing.sound.white',  emoji: '☁️', ambient: Ambient.softNoise),
   _AmbientSound(id: 'none',   labelKey: 'breathing.sound.none',   emoji: '🔇', ambient: null),

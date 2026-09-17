@@ -213,12 +213,12 @@ class WeeklySummary {
 
   /// Lecciones sugeridas según la emoción difícil que más se repitió.
   static const recommendedLessons = {
-    MoodType.anxious: ['emo_9', 'mind_4', 'res_5'],
-    MoodType.stressed: ['res_7', 'mind_2', 'emo_5'],
+    MoodType.anxious: ['ans_4', 'ans_1', 'emo_9', 'mind_4', 'res_5'],
+    MoodType.stressed: ['ans_8', 'ans_2', 'res_7', 'mind_2', 'emo_5'],
     MoodType.sad: ['emo_7', 'est_6', 'res_6'],
     MoodType.angry: ['emo_8', 'emo_5', 'rel_4'],
     MoodType.lonely: ['amor_8', 'rel_8', 'res_6'],
-    MoodType.tired: ['res_8', 'auto_5'],
+    MoodType.tired: ['sue_1', 'res_8', 'auto_5'],
     MoodType.bored: ['auto_1', 'auto_10'],
   };
 }
