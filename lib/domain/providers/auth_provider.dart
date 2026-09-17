@@ -12,6 +12,8 @@ import '../../domain/services/achievement_service.dart';
 import '../providers/garden_provider.dart';
 import '../services/notification_service.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../data/models/journal_insights.dart';
+import '../services/diary_draft_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -807,6 +809,8 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       for (final name in _userSubcollections) {
         await _deleteCollection(userDoc.collection(name));
       }
+      // El borrador del diario vive solo en el teléfono
+      await DiaryDraftService.instance.clear(user.uid);
       final username = _userModel?.username?.toLowerCase();
       if (username != null && username.isNotEmpty) {
         try {
@@ -1258,6 +1262,27 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
           .doc(checkIn.docId).update({'completed': false});
       notifyListeners();
     } catch (e) { rethrow; }
+  }
+
+  /// Historial de todos los hábitos (racha y última semana), en una sola
+  /// lectura de `habit_checkins`.
+  Future<Map<String, HabitHistory>> getHabitHistory() async {
+    if (firebaseUser == null) return {};
+    try {
+      final snapshot = await _firestore
+          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins').get();
+      final days = <String, List<DateTime>>{};
+      for (final doc in snapshot.docs) {
+        if (doc.data()['completed'] != true) continue;
+        final parsed = HabitHistory.parseDocId(doc.id);
+        if (parsed == null) continue;
+        days.putIfAbsent(parsed.$1, () => []).add(parsed.$2);
+      }
+      return {for (final e in days.entries) e.key: HabitHistory(e.value)};
+    } catch (e) {
+      debugPrint('Error loading habit history: $e');
+      return {};
+    }
   }
 
   Future<Set<String>> getTodayHabitCheckIns() async {

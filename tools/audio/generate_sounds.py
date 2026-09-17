@@ -903,6 +903,34 @@ def lullaby():
     return normalize_rms(circular_reverb(mix, 3.0, 0.3, 4000), -24)
 
 
+# ── Diario ──────────────────────────────────────────────────────────────────
+def sfx_page_turn():
+    """Hoja de papel que se pasa: roce suave que sube y baja."""
+    dur = 0.55
+    n = int(dur * SR)
+    tt = np.arange(n) / n
+    rustle = rng.normal(size=n)
+    # grano del papel: pequeñas irregularidades de amplitud
+    grain = 0.7 + 0.3 * np.abs(fft_filter(rng.normal(size=n), 20, 90))
+    rustle = fft_filter(rustle * grain, 900, 6500)
+    env = np.sin(np.pi * tt) ** 1.6 * (1 - 0.4 * tt)
+    x = silence(0.8)
+    place(x, rustle * env * 0.5, 0)
+    # un leve "tac" al asentarse la hoja
+    place(x, fft_filter(rng.normal(size=int(0.03 * SR)), 300, 2500) * 0.15, 0.48)
+    return normalize(oneshot_reverb(x, 0.6, 0.15, 5000), -12)
+
+
+def sfx_journal_saved():
+    """Guardar en el diario: acorde cálido que se abre y un brillo al final."""
+    x = silence(2.4)
+    for i, m in enumerate([60, 64, 67, 72]):
+        place(x, note(midi(m), 1.8, GLASS, attack=0.02, decay=1.1), i * 0.07, 0.5)
+    place(x, note(midi(79), 1.4, BELL, attack=0.004, decay=0.7), 0.42, 0.35)
+    place(x, note(midi(84), 1.2, GLASS, attack=0.004, decay=0.6), 0.55, 0.25)
+    return normalize(oneshot_reverb(x, 1.6, 0.35, 6000), -8)
+
+
 def main():
     print('Ambientes (bucles de %.0f s):' % LOOP)
     export(rain(), 'ambient/rain.mp3', '80k')
@@ -982,6 +1010,11 @@ def main():
     print('Rutas nuevas:')
     export(tide(), 'ambient/tide.mp3', '80k')
     export(lullaby(), 'ambient/lullaby.mp3', '64k')
+
+    # Séptima tanda: diario
+    print('Diario:')
+    export(sfx_page_turn(), 'sfx/page_turn.mp3')
+    export(sfx_journal_saved(), 'sfx/journal_saved.mp3')
 
 
 if __name__ == '__main__':

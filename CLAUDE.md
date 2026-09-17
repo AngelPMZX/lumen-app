@@ -13,10 +13,13 @@ App Flutter para bienestar emocional. Estilo "Duolingo del bienestar" con rachas
 
 - **Frontend**: Flutter (Dart) + Material 3
 - **Estado**: Provider
-- **Backend**: Firebase (Auth, Firestore, Storage)
+- **Backend**: Firebase (Auth, Firestore, Storage, Analytics, Crashlytics)
 - **i18n**: easy_localization (ES/EN)
 - **Notificaciones**: flutter_local_notifications + timezone + flutter_timezone
 - **Auth**: Email/password + Google Sign-In (web + Android)
+- **Animación y diseño**: flutter_animate, confetti, google_fonts (Poppins en la app; Caveat y Lora en el diario), `CustomPainter` propios (Lumi, cielos, cofre, mapa)
+- **Sonido**: audioplayers con sonidos sintetizados propios (`tools/audio/generate_sounds.py`)
+- **Compartir y reseñas**: share_plus, in_app_review
 - **Persistencia moneda del jardín**: Firestore
 - **Monetización planeada**: RevenueCat (aún no activo)
 
@@ -41,9 +44,10 @@ Clean architecture simplificada:
 - `lib/core/` — constantes (rutas, colores), tema, utilidades (validators)
 - `lib/data/models/` — Modelos (UserModel, UserProgress, MoodEntry, Reminder, WellnessRoute, GardenItem, GardenState, GardenMechanics, etc.)
 - `lib/domain/providers/` — Providers (AuthProvider, GardenProvider, ThemeProvider)
-- `lib/domain/services/` — Servicios (NotificationService singleton, RoutesService singleton con cache)
+- `lib/domain/services/` — Servicios singleton (Notification, Routes con caché, Sound, Motion, Analytics, Commitment, Mission, WeeklySummary, AppReview, DiaryDraft)
 - `lib/ui/screens/` — Pantallas organizadas por feature
-- `lib/ui/widgets/` — Widgets reutilizables (SeedIcon, AuraContainer, RewardDialog, etc.)
+- `lib/ui/widgets/` — Widgets reutilizables (Lumi, `journal/` estilo cuaderno, `MinTapTarget`, SeedIcon, AuraContainer, RewardDialog, etc.)
+- **Lógica pura con pruebas** en `lib/data/models/` (sin Flutter ni Firebase): `WeeklySummary`, `WeeklyMissions`, `ReviewDeck`, `LumiDialog`, `RoutesOverview`, `DiaryInsights`/`HabitHistory`. Las pantallas nuevas traen `preview*` (`@visibleForTesting`) para renderizarlas sin Firebase.
 
 ## Reglas de código IMPORTANTES
 
@@ -63,6 +67,21 @@ Clean architecture simplificada:
 14. **Nada de curvas con rebote (`easeOutBack`, `elasticOut`) en `AnimatedContainer` que cambie sombras**: el rebote interpola el `blurRadius` por debajo de 0 y lanza una aserción. Usar `easeOutCubic`; el rebote va bien en `scale`/`slide`.
 15. **Bucles de animación respetan "Reducir animaciones"**: `.animate(onPlay: MotionService.loop(context, reverse: true))` en vez de `(c) => c.repeat(...)`, `controller..repeatUnlessReduced()` en vez de `..repeat()`, y el confeti solo si `!MotionService.instance.reducedNow`.
 
+## Guía de diseño y polish (lo que ya tiene la app)
+
+Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diario, misiones y repaso. Checklist:
+
+1. **Personalidad y calidez**: Lumi presente cuando aporta (saludo, reacción al ánimo, estados vacíos, celebraciones) con `LumiAvatar`/`LumiNote`; su mood acompaña (cariñosa ante lo difícil, nunca decepcionada). Textos amables y en lenguaje neutro.
+2. **Animaciones con sentido**: entradas escalonadas con flutter_animate (`fadeIn` + `slide`/`scale` suaves), microinteracciones al tocar (hundirse con `AnimatedScale` ~0.97, destellos con `SparkleBurst`, anillos de progreso que se llenan), celebraciones (confeti, `RewardDialog`) solo en logros reales. Nada de rebote en contenedores con sombra (regla 14).
+3. **Sonidos propios** para acciones clave (tocar, marcar, guardar, completar, celebrar), suaves y en la misma escala; se agregan al final del generador (ver "Sonido").
+4. **Modo claro y oscuro** revisados los dos; colores legibles (en claro, acentos oscurecidos para texto).
+5. **Reducir animaciones**: bucles con `MotionService.loop`/`repeatUnlessReduced`, sin confeti ni sacudidas si está activo (regla 15).
+6. **Accesibilidad**: `Semantics` con etiqueta y estado, `onTap` si se excluyen hijos, áreas de toque de 48 dp (`MinTapTarget`), nada que dependa solo de un gesto.
+7. **Confianza y privacidad**: decir claramente qué es privado, no perder lo que escribe el usuario (borradores), confirmar antes de borrar.
+8. **i18n completa** (ES/EN, sin textos fijos) y `flutter analyze` en 0.
+9. **Lógica separada y probada** cuando haya cálculos (rachas, totales, recomendaciones).
+10. **Revisar el diseño con capturas**: una prueba temporal en `test/tmp_*_test.dart` con `matchesGoldenFile` + `--update-goldens`, fuente `C:\Windows\Fonts\segoeui.ttf` cargada con `FontLoader`, `EasyLocalization` real, `SoundService.setEffectsEnabled(false)` y `JournalStyle.useSystemFonts = true`. Generar cada caso con `--name '<nombre>$'` (varias pruebas seguidas en el mismo proceso salen en blanco). Los emojis e iconos se ven como cuadros: es normal. Borrar las pruebas y PNG temporales al terminar.
+
 ## Features implementadas
 
 ### Autenticación
@@ -75,13 +94,14 @@ Clean architecture simplificada:
 - Cambiar contraseña desde Editar perfil (solo cuentas de email).
 - Eliminar cuenta desde Editar perfil: reautentica, borra todas las subcolecciones, `users/{uid}`, `_server_time` y el usuario de Auth.
 
-### Home
+### Home (menú principal)
 - Check-in de ánimo diario con 12 emojis.
 - Racha diaria con validación anti-trampa vía server timestamp (colección `_server_time`).
 - La racha mostrada es `AuthProvider.currentStreak` (0 si ya se perdió un día); `currentStreak` en Firestore solo se recalcula al hacer check-in.
-- Lección del día + diario rápido.
+- `LumiCompanionCard` (ver "Lumi"), lección del día + diario rápido, tarjeta de repaso diario, `MissionsHomeCard`, `CommitmentCheckCard` (reto de ayer), `WeeklySummaryCard` (domingo y lunes) y `CrisisSupportCard` cuando corresponde.
 - Reto diario aleatorio.
 - Timeline emocional semanal.
+- **Pendiente: polish completo** (ver "Pulido" en el roadmap).
 
 ### Rutas de bienestar (Wellness Routes)
 - 9 rutas. Meta: **10 lecciones por ruta, 5-7 pasos cada una**, sin dos lecciones con la misma secuencia de tipos. Antes eran 19 lecciones con la misma forma (reading + quiz + exercise), por eso se sentían repetitivas.
@@ -116,11 +136,12 @@ Clean architecture simplificada:
 - Plantar semillas, crecen en tiempo real, cosechar recompensas.
 - 5 plantas base + 2 estacionales (christmas_tree en dic, pumpkin en oct).
 - 4 decoraciones, 4 boosters (water/sun/fertilizer/elixir).
-- Assets ilustrados estilo watercolor children's book (PNG en `assets/images/plants/`, `decorations/`, `boosters/`, `currency/`).
+- Assets ilustrados estilo watercolor children's book (WebP en `assets/images/plants/`, `decorations/`, `boosters/`, `currency/`).
 - Sistema de auras (color+intensidad por rareza).
 - Tienda con precios en semillas + premium ($0.99 vía RevenueCat futuro).
 - Escudos de racha: el home guarda la racha rota (`saveStreakBeforeBreak`, tras cargar las mecánicas) y el escudo solo se puede usar ese día (`streakBreakDate` en `garden/mechanics`), antes o después del check-in. Si ya hizo check-in, hoy también cuenta.
 - Múltiples jardines (meadow, forest, mountain, lake, greenhouse).
+- **Pendiente: polish completo** (ver "Pulido" en el roadmap).
 
 ### Retos de lecciones (seguimiento)
 - Al comprometerse en un paso `commit`, `CommitmentService` guarda el reto en `users/{uid}/commitments` (está en `_userSubcollections`). Máximo uno pendiente por día: elegir otro el mismo día lo reemplaza, así la recompensa no se repite.
@@ -179,13 +200,22 @@ Clean architecture simplificada:
 - Declarar Analytics y Crashlytics en la política de privacidad y en "Seguridad de los datos" de Play Console.
 
 ### Hábitos y recordatorios
-- Hábitos custom por usuario.
+- Hábitos custom por usuario. `RemindersScreen`: tarjeta "Hábitos de hoy" con anillo de progreso, mensaje y Lumi según el avance (celebración y `Sfx.achievement` al completar todos). Cada hábito muestra racha 🔥 y los últimos 7 días; al marcar responde al instante (se revierte si falla) con destellos.
+- **Historial**: `AuthProvider.getHabitHistory()` lee `habit_checkins` una vez y arma `HabitHistory` por hábito (`lib/data/models/journal_insights.dart`, con pruebas): racha (si hoy aún no, cuenta hasta ayer), semana y `parseDocId` de `habitId_YYYY-MM-DD` (los ids pueden tener guiones bajos).
+- Recordatorios con su **cielo** (`reminder_sky.dart`: amanecer 5-10, día 10-17, atardecer 17-20, noche; sol, nubes, luna y estrellas animados; en gris si está apagado). El editor muestra la hora sobre el cielo, mensajes sugeridos y **vista previa de la notificación**. Se quitó la nota "las notificaciones se activarán cuando instales la app" (confundía; la clave `reminders.mobileInstallNote` quedó sin uso).
+- `AddHabitScreen`: Lumi y sugeridos en cuadrícula de tarjetas.
 - Recordatorios locales programables con timezone correcto.
 - Selector 12h con AM/PM forzado y badge visible.
 
-### Diario emocional
-- Entradas con mood, texto, tags.
-- Historial semanal y mensual.
+### Diario emocional (estilo cuaderno personal)
+- **Estilo compartido** en `lib/ui/widgets/journal/journal_style.dart`: `JournalStyle` (papel cálido, tinta, renglones, sombra; `paperFor(mood)` tiñe el papel con el ánimo; `lumiFor(mood)`), `JournalPaper` (hoja con renglones y margen), `RuledText` (renglones alineados con el propio texto, no con la hoja), `WashiTape`, `StickyNote`, `LumiNote` (Lumi con globo manuscrito) y `SparkleBurst`. Tipografías con google_fonts (igual que Poppins): **Caveat** a mano para fechas, notas y Lumi (nunca para textos largos) y **Lora** para lo que escribe el usuario. `JournalStyle.useSystemFonts` (`@visibleForTesting`) evita descargar fuentes en pruebas.
+- `DiaryScreen`: saludo según la hora con el nombre, Lumi con la pregunta del día (toca para escribir con esa pregunta), "hoja de hoy", 3 contadores (`DiaryInsights`: días seguidos escribiendo, entradas del mes, ánimo frecuente en 30 días), calendario con el emoji del ánimo en cada día y páginas agrupadas por día (Hoy, Ayer, fecha) con cinta del color del ánimo.
+- `NewDiaryEntryScreen`: la página y el fondo toman el color del ánimo, Lumi reacciona al ánimo y trae una pregunta que se puede cambiar (🎲), hoja con renglones alineados al texto, contador de palabras, frase de ánimo desde 25 palabras, gratitud como nota adhesiva, "🔒 solo tú puedes leer tu diario" y animación al guardar (`Sfx.journalSaved`, libro → corazón, Lumi agradece; cariñosa si el ánimo es difícil).
+- **Borrador automático** (`DiaryDraftService`, SharedPreferences `diary_draft_{uid}`, **solo en el teléfono**): se guarda al escribir y al cerrar; al volver aparece "Recuperamos tu borrador" con opción de descartar. Si falla guardar, el texto sigue ahí. Se borra al guardar la entrada y al eliminar la cuenta.
+- `DiaryDetailScreen`: la página como en el cuaderno (fecha a mano, cintas, texto seleccionable sobre renglones, gratitud en nota adhesiva, unas palabras de Lumi según el ánimo).
+- Las preguntas salen de `DiaryPrompts.*PromptKeys` traducidas (antes se usaban los textos fijos en español) y en lenguaje neutro.
+- Sonidos propios: `Sfx.pageTurn` (abrir/escribir, cambiar pregunta) y `Sfx.journalSaved`.
+- `previewEntries`/`previewName` (`DiaryScreen`) y `preview` (`NewDiaryEntryScreen`) son `@visibleForTesting`.
 
 ### Sonido
 - `SoundService` (singleton, `lib/domain/services/sound_service.dart`): efectos (`Sfx`), notas (`note(0-7)`), aciertos en racha (`combo(0-5)`), señales de respiración (`BreathCue`) y ambientes en bucle (`Ambient`). Se inicializa en `main.dart` y se mezcla con la música del usuario (`AudioContextConfigFocus.mixWithOthers`).
@@ -283,7 +313,6 @@ flutter clean; flutter pub get
 
 - **RevenueCat activo** para monetización.
 - **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
-- **Polish visual de `lesson_screen.dart`** con personajes.
 - **Panel admin** de rutas de bienestar (sin script Node.js).
 - **Guía de batería para Xiaomi/Huawei/Oppo** al detectar el fabricante.
 - **Pre-publicación**: generar keystore de release + `key.properties` + registrar su SHA-1 en Firebase, íconos, screenshots, política de privacidad.
@@ -306,6 +335,9 @@ flutter clean; flutter pub get
 **Pulido**:
 - ~~Modo claro de la lección~~, ~~"Reducir animaciones"~~ y ~~dividir `lesson_screen.dart`~~: hechos (2026-09-16).
 - ~~Accesibilidad de pasos y menú~~: hecha (2026-09-17), ver "Accesibilidad".
+- ~~Menú de rutas~~ (2026-09-17) y ~~diario, hábitos y recordatorios estilo cuaderno~~ (2026-09-17): hechos.
+- **Jardín: polish completo** (pedido por Ángel, 2026-09-17). Debe cumplir la "Guía de diseño y polish": animaciones (plantas que se mecen y crecen, cosecha con destellos, compra/booster con celebración), Lumi presente (acompaña, reacciona al cosechar o a un jardín vacío), sonidos propios donde falten, modo claro/oscuro, reducir animaciones, accesibilidad y el mismo nivel visual que rutas y diario. Revisar antes `garden_screen.dart` (~3 100 líneas): probablemente convenga dividirlo como se hizo con la lección.
+- **Menú principal (Home): polish completo** (pedido por Ángel, 2026-09-17). Mismo checklist: jerarquía clara de las tarjetas (hoy hay muchas; `home_screen.dart` tiene ~1 800 líneas), animaciones de entrada y microinteracciones, Lumi como protagonista del saludo, check-in de ánimo más expresivo, sonidos, modo claro/oscuro, reducir animaciones y accesibilidad. Coherente con el estilo de rutas, diario y misiones.
 
 **Antes de publicar**:
 - ~~Caché del contenido de rutas con documento de versión~~: hecho.

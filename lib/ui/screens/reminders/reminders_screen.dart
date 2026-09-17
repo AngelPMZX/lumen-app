@@ -1,22 +1,42 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'package:easy_localization/easy_localization.dart';
-import '../../../core/constants/app_colors.dart';
-import '../../../data/models/reminder.dart';
-import '../../../data/models/habit.dart';
-import '../../../domain/providers/auth_provider.dart';
-import '../../../domain/services/notification_service.dart';
-import '../../widgets/animated_particles_background.dart';
-import '../../widgets/discovery_dialog.dart';
-import 'edit_reminder_screen.dart';
-import 'add_habit_screen.dart';
-import '../../../domain/services/sound_service.dart';
-import '../../../domain/services/analytics_service.dart';
 
+import '../../../data/models/habit.dart';
+import '../../../data/models/journal_insights.dart';
+import '../../../data/models/lumi.dart';
+import '../../../data/models/reminder.dart';
+import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/services/analytics_service.dart';
+import '../../../domain/services/notification_service.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../widgets/discovery_dialog.dart';
+import '../../widgets/journal/journal_style.dart';
+import '../../widgets/lumi/lumi_avatar.dart';
+import '../../widgets/min_tap_target.dart';
+import '../routes/widgets/route_progress_ring.dart';
+import 'add_habit_screen.dart';
+import 'edit_reminder_screen.dart';
+import 'reminder_sky.dart';
+
+/// Hábitos del día (con racha y semana) y recordatorios con su "cielo".
 class RemindersScreen extends StatefulWidget {
-  const RemindersScreen({super.key});
+  /// Solo para pruebas: datos fijos, sin Firebase ni notificaciones.
+  @visibleForTesting
+  final List<Habit>? previewHabits;
+  @visibleForTesting
+  final Map<String, HabitHistory>? previewHistory;
+  @visibleForTesting
+  final List<Reminder>? previewReminders;
+
+  const RemindersScreen({
+    super.key,
+    this.previewHabits,
+    this.previewHistory,
+    this.previewReminders,
+  });
 
   @override
   State<RemindersScreen> createState() => _RemindersScreenState();
@@ -25,299 +45,216 @@ class RemindersScreen extends StatefulWidget {
 class _RemindersScreenState extends State<RemindersScreen> {
   List<Reminder> _reminders = [];
   List<Habit> _habits = [];
+  Map<String, HabitHistory> _history = {};
+
+  /// Marcados hoy (se actualiza al instante al tocar, antes de recargar).
   Set<String> _todayCheckIns = {};
   bool _isLoading = true;
+
+  /// Hábito recién marcado: muestra destellos en su tarjeta.
+  String? _burstHabit;
+  int _burstSeed = 0;
+
+  bool get _preview => widget.previewHabits != null;
 
   @override
   void initState() {
     super.initState();
+    if (_preview) {
+      _habits = widget.previewHabits!;
+      _history = widget.previewHistory ?? {};
+      _reminders = widget.previewReminders ?? [];
+      _todayCheckIns = {for (final e in _history.entries) if (e.value.doneToday) e.key};
+      _isLoading = false;
+      return;
+    }
     _loadAll();
-    // Pedir permisos de notificación al abrir esta pantalla.
-    // Si ya están concedidos, no-op silencioso.
+    // Pedir permisos de notificación al abrir esta pantalla (no-op si ya están).
     _requestNotificationPermissions().then((_) {
-      if (mounted) {
-        DiscoveryDialog.maybeShow(context, DiscoveryFeature.reminders);
-      }
+      if (mounted) DiscoveryDialog.maybeShow(context, DiscoveryFeature.reminders);
     });
   }
 
   Future<void> _requestNotificationPermissions() async {
     try {
-      final granted =
-          await NotificationService.instance.requestAllPermissions();
-      debugPrint('🔔 Notification permissions granted: $granted');
+      await NotificationService.instance.requestAllPermissions();
     } catch (e) {
       debugPrint('Error requesting notification permissions: $e');
     }
   }
 
   Future<void> _loadAll() async {
+    if (_preview) return;
     try {
       final auth = context.read<AuthProvider>();
-      final reminders = await auth.getReminders();
-      final habits = await auth.getHabits();
-      final checkIns = await auth.getTodayHabitCheckIns();
-      if (mounted) {
-        setState(() {
-          _reminders = reminders;
-          _habits = habits;
-          _todayCheckIns = checkIns;
-          _isLoading = false;
-        });
-      }
+      final results = await Future.wait([
+        auth.getReminders(),
+        auth.getHabits(),
+        auth.getHabitHistory(),
+      ]);
+      if (!mounted) return;
+      final history = results[2] as Map<String, HabitHistory>;
+      setState(() {
+        _reminders = results[0] as List<Reminder>;
+        _habits = results[1] as List<Habit>;
+        _history = history;
+        _todayCheckIns = {for (final e in history.entries) if (e.value.doneToday) e.key};
+        _isLoading = false;
+      });
     } catch (e) {
+      debugPrint('Error loading habits/reminders: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  String _localizedHabitTitle(Habit habit) {
-    switch (habit.title) {
-      case 'Hacer ejercicio':
-      case 'Exercise':
-        return 'habits.exercise'.tr();
-      case 'Tomar 2L de agua':
-      case 'Drink 2L of water':
-        return 'habits.water'.tr();
-      case 'Escribir en el diario':
-      case 'Write in diary':
-        return 'habits.writeDiary'.tr();
-      case 'Meditar 5 minutos':
-      case 'Meditate 5 minutes':
-        return 'habits.meditate'.tr();
-      case 'Leer 15 minutos':
-      case 'Read 15 minutes':
-        return 'habits.read'.tr();
-      case 'Dormir 8 horas':
-      case 'Sleep 8 hours':
-        return 'habits.sleep'.tr();
-      case 'Sin redes 1 hora':
-      case 'No social media 1 hour':
-        return 'habits.noSocial'.tr();
-      case 'Practicar gratitud':
-      case 'Practice gratitude':
-        return 'habits.gratitude'.tr();
-      default:
-        return habit.title;
-    }
+  // ── Textos de hábitos predeterminados guardados en otro idioma ─────────────
+  static const _presetKeys = {
+    'Hacer ejercicio': 'habits.exercise',
+    'Exercise': 'habits.exercise',
+    'Tomar 2L de agua': 'habits.water',
+    'Drink 2L of water': 'habits.water',
+    'Escribir en el diario': 'habits.writeDiary',
+    'Write in diary': 'habits.writeDiary',
+    'Meditar 5 minutos': 'habits.meditate',
+    'Meditate 5 minutes': 'habits.meditate',
+    'Leer 15 minutos': 'habits.read',
+    'Read 15 minutes': 'habits.read',
+    'Dormir 8 horas': 'habits.sleep',
+    'Sleep 8 hours': 'habits.sleep',
+    'Sin redes 1 hora': 'habits.noSocial',
+    'No social media 1 hour': 'habits.noSocial',
+    'Practicar gratitud': 'habits.gratitude',
+    'Practice gratitude': 'habits.gratitude',
+  };
+
+  static const _presetDescKeys = {
+    '30 min de actividad física': 'habits.exerciseDesc',
+    '30 min of physical activity': 'habits.exerciseDesc',
+    'Hidrátate durante el día': 'habits.waterDesc',
+    'Stay hydrated throughout the day': 'habits.waterDesc',
+    'Reflexiona sobre tu día': 'habits.writeDiaryDesc',
+    'Reflect on your day': 'habits.writeDiaryDesc',
+    'Un momento de calma': 'habits.meditateDesc',
+    'A moment of calm': 'habits.meditateDesc',
+    'Alimenta tu mente': 'habits.readDesc',
+    'Feed your mind': 'habits.readDesc',
+    'Descansa bien': 'habits.sleepDesc',
+    'Rest well': 'habits.sleepDesc',
+    'Desconéctate un rato': 'habits.noSocialDesc',
+    'Disconnect for a while': 'habits.noSocialDesc',
+    '3 cosas que agradeces': 'habits.gratitudeDesc',
+    "3 things you're grateful for": 'habits.gratitudeDesc',
+  };
+
+  String _habitTitle(Habit h) => _presetKeys[h.title]?.tr() ?? h.title;
+
+  String? _habitDescription(Habit h) {
+    final d = h.description;
+    if (d == null) return null;
+    return _presetDescKeys[d]?.tr() ?? d;
   }
 
-  String? _localizedHabitDescription(Habit habit) {
-    switch (habit.description) {
-      case '30 min de actividad física':
-      case '30 min of physical activity':
-        return 'habits.exerciseDesc'.tr();
-      case 'Hidrátate durante el día':
-      case 'Stay hydrated throughout the day':
-        return 'habits.waterDesc'.tr();
-      case 'Reflexiona sobre tu día':
-      case 'Reflect on your day':
-        return 'habits.writeDiaryDesc'.tr();
-      case 'Un momento de calma':
-      case 'A moment of calm':
-        return 'habits.meditateDesc'.tr();
-      case 'Alimenta tu mente':
-      case 'Feed your mind':
-        return 'habits.readDesc'.tr();
-      case 'Descansa bien':
-      case 'Rest well':
-        return 'habits.sleepDesc'.tr();
-      case 'Desconéctate un rato':
-      case 'Disconnect for a while':
-        return 'habits.noSocialDesc'.tr();
-      case '3 cosas que agradeces':
-      case "3 things you're grateful for":
-        return 'habits.gratitudeDesc'.tr();
-      case null:
-        return null;
-      default:
-        return habit.description;
-    }
-  }
+  // ── Acciones: hábitos ──────────────────────────────────────────────────────
+  Future<void> _toggleHabit(Habit habit) async {
+    final wasChecked = _todayCheckIns.contains(habit.id);
+    final allBefore = _habits.isNotEmpty && _habits.every((h) => _todayCheckIns.contains(h.id));
 
-  String _repeatLabel(Reminder reminder) {
-    if (reminder.repeatDays.isEmpty) return 'reminders.once'.tr();
-    if (reminder.repeatDays.length == 7) return 'reminders.everyday'.tr();
-    final weekdays = [1, 2, 3, 4, 5];
-    final weekend = [6, 7];
-    if (reminder.repeatDays.length == 5 &&
-        weekdays.every((d) => reminder.repeatDays.contains(d))) {
-      return 'reminders.weekdaysShort'.tr();
-    }
-    if (reminder.repeatDays.length == 2 &&
-        weekend.every((d) => reminder.repeatDays.contains(d))) {
-      return 'reminders.weekends'.tr();
-    }
-    final dayNames = {
-      1: 'days.monShort'.tr(),
-      2: 'days.tueShort'.tr(),
-      3: 'days.wedShort'.tr(),
-      4: 'days.thuShort'.tr(),
-      5: 'days.friShort'.tr(),
-      6: 'days.satShort'.tr(),
-      7: 'days.sunShort'.tr(),
-    };
-    final sorted = List<int>.from(reminder.repeatDays)..sort();
-    return sorted.map((d) => dayNames[d] ?? '').join(', ');
-  }
-
-  Future<void> _toggleHabitCheckIn(Habit habit) async {
-    HapticFeedback.mediumImpact();
-    final auth = context.read<AuthProvider>();
-    final isChecked = _todayCheckIns.contains(habit.id);
-    final localizedTitle = _localizedHabitTitle(habit);
-
-    try {
-      if (isChecked) {
-        await auth.uncheckHabit(habit.id);
-        setState(() => _todayCheckIns.remove(habit.id));
+    // Respuesta inmediata en pantalla; si falla se revierte.
+    setState(() {
+      if (wasChecked) {
+        _todayCheckIns.remove(habit.id);
       } else {
-        final earnedXp = await auth.checkInHabit(habit.id);
-        SoundService.instance.play(Sfx.habit, volume: 0.6);
-        AnalyticsService.instance.habitCheckIn();
-        setState(() => _todayCheckIns.add(habit.id));
-        if (mounted) {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Text(habit.emoji, style: const TextStyle(fontSize: 18)),
-                  const SizedBox(width: 10),
-                  Text(
-                    earnedXp
-                        ? 'habits.completedNamedXp'.tr(namedArgs: {'title': localizedTitle})
-                        : 'habits.completedNamed'.tr(namedArgs: {'title': localizedTitle}),
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-              backgroundColor: habit.color.withValues(alpha: 0.9),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              margin: const EdgeInsets.all(16),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
+        _todayCheckIns.add(habit.id);
+        _burstHabit = habit.id;
+        _burstSeed++;
       }
+    });
+
+    final allNow = _habits.isNotEmpty && _habits.every((h) => _todayCheckIns.contains(h.id));
+    if (wasChecked) {
+      HapticFeedback.lightImpact();
+      SoundService.instance.play(Sfx.toggleOff, volume: 0.45);
+    } else if (allNow && !allBefore) {
+      HapticFeedback.heavyImpact();
+      SoundService.instance.play(Sfx.achievement, volume: 0.65);
+    } else {
+      HapticFeedback.mediumImpact();
+      SoundService.instance.play(Sfx.habit, volume: 0.6);
+    }
+
+    if (_preview) return;
+    final auth = context.read<AuthProvider>();
+    try {
+      if (wasChecked) {
+        await auth.uncheckHabit(habit.id);
+      } else {
+        await auth.checkInHabit(habit.id);
+        AnalyticsService.instance.habitCheckIn();
+      }
+      final history = await auth.getHabitHistory();
+      if (mounted) setState(() => _history = history);
     } catch (e) {
       debugPrint('Error toggling habit: $e');
+      if (mounted) {
+        setState(() {
+          if (wasChecked) {
+            _todayCheckIns.add(habit.id);
+          } else {
+            _todayCheckIns.remove(habit.id);
+          }
+        });
+      }
     }
   }
 
   Future<void> _deleteHabit(Habit habit) async {
-    final localizedTitle = _localizedHabitTitle(habit);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('habits.deleteHabit'.tr(),
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        content: Text('habits.deleteConfirmWithHistory'
-            .tr(namedArgs: {'title': localizedTitle})),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('common.cancel'.tr(),
-                style: const TextStyle(color: AppColors.textSecondary)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text('common.delete'.tr()),
-          ),
-        ],
-      ),
+    final confirm = await _confirmDelete(
+      title: 'habits.deleteHabit'.tr(),
+      body: 'habits.deleteConfirmWithHistory'.tr(namedArgs: {'title': _habitTitle(habit)}),
     );
     if (confirm != true || !mounted) return;
     await context.read<AuthProvider>().deleteHabit(habit.id);
     if (mounted) _loadAll();
   }
 
-  Future<void> _deleteReminder(Reminder reminder) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('reminders.deleteReminder'.tr(),
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        content: Text('reminders.deleteConfirmNamed'
-            .tr(namedArgs: {'title': reminder.title})),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('common.cancel'.tr(),
-                style: const TextStyle(color: AppColors.textSecondary)),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text('common.delete'.tr()),
-          ),
-        ],
-      ),
+  Future<void> _addHabit() async {
+    HapticFeedback.selectionClick();
+    final existing = _habits.map((h) => h.title).toSet();
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => AddHabitScreen(existingHabitTitles: existing)),
     );
-    if (confirm != true || !mounted) return;
-    final auth = context.read<AuthProvider>();
-    // Cancelar notificación local antes de borrar de Firestore
-    await NotificationService.instance.cancelReminder(reminder.id);
-    await auth.deleteReminder(reminder.id);
-    if (mounted) _loadAll();
+    if (result == true) _loadAll();
   }
 
-  // ── Toggle con integración de NotificationService ─────────────────────────
+  // ── Acciones: recordatorios ────────────────────────────────────────────────
+  Future<void> _schedule(Reminder r) => NotificationService.instance.scheduleReminder(
+        reminderId: r.id,
+        title: r.title,
+        body: (r.message != null && r.message!.isNotEmpty) ? r.message! : 'reminders.defaultBody'.tr(),
+        hour: r.timeInMinutes ~/ 60,
+        minute: r.timeInMinutes % 60,
+        repeatDays: r.repeatDays,
+      );
+
   Future<void> _toggleReminder(Reminder reminder) async {
     HapticFeedback.lightImpact();
-    final newEnabled = !reminder.isEnabled;
-
-    // Actualizar en Firestore
-    await context.read<AuthProvider>().toggleReminder(reminder.id, newEnabled);
-
-    // Programar o cancelar la notificación local
+    final enable = !reminder.isEnabled;
+    SoundService.instance.play(enable ? Sfx.toggleOn : Sfx.toggleOff, volume: 0.5);
+    if (_preview) return;
+    await context.read<AuthProvider>().toggleReminder(reminder.id, enable);
     try {
-      if (newEnabled) {
-        final hour = reminder.timeInMinutes ~/ 60;
-        final minute = reminder.timeInMinutes % 60;
-        final body = (reminder.message != null && reminder.message!.isNotEmpty)
-            ? reminder.message!
-            : 'reminders.defaultBody'.tr();
-
-        await NotificationService.instance.scheduleReminder(
-          reminderId: reminder.id,
-          title: reminder.title,
-          body: body,
-          hour: hour,
-          minute: minute,
-          repeatDays: reminder.repeatDays,
-        );
-
+      if (enable) {
+        await _schedule(reminder);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Row(children: [
               const Text('🔔', style: TextStyle(fontSize: 18)),
               const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'reminders.scheduled'.tr(),
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-              ),
+              Expanded(child: Text('reminders.scheduled'.tr(), style: const TextStyle(fontWeight: FontWeight.w600))),
             ]),
-            backgroundColor: AppColors.primary,
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             margin: const EdgeInsets.all(16),
             duration: const Duration(seconds: 2),
           ));
@@ -328,765 +265,693 @@ class _RemindersScreenState extends State<RemindersScreen> {
     } catch (e) {
       debugPrint('Error scheduling/canceling notification: $e');
     }
-
     _loadAll();
   }
 
-  Future<void> _navigateToAddHabit() async {
-    final existingTitles = _habits.map((h) => h.title).toSet();
-    final result = await Navigator.push<bool>(context,
-        MaterialPageRoute(
-            builder: (_) =>
-                AddHabitScreen(existingHabitTitles: existingTitles)));
-    if (result == true) _loadAll();
+  Future<void> _deleteReminder(Reminder reminder) async {
+    final confirm = await _confirmDelete(
+      title: 'reminders.deleteReminder'.tr(),
+      body: 'reminders.deleteConfirmNamed'.tr(namedArgs: {'title': reminder.title}),
+    );
+    if (confirm != true || !mounted) return;
+    final auth = context.read<AuthProvider>();
+    await NotificationService.instance.cancelReminder(reminder.id);
+    await auth.deleteReminder(reminder.id);
+    if (mounted) _loadAll();
   }
 
-  Future<void> _navigateToCreateReminder() async {
+  Future<void> _editReminder([Reminder? reminder]) async {
+    HapticFeedback.selectionClick();
     final result = await Navigator.push<bool>(
-        context, MaterialPageRoute(builder: (_) => const EditReminderScreen()));
-    // Al crear un recordatorio, si viene habilitado lo programamos
-    if (result == true) {
-      await _loadAll();
-      // Programar notificaciones de los recordatorios activos recién cargados
-      for (final r in _reminders.where((r) => r.isEnabled)) {
-        try {
-          await NotificationService.instance.scheduleReminder(
-            reminderId: r.id,
-            title: r.title,
-            body: (r.message != null && r.message!.isNotEmpty)
-                ? r.message!
-                : 'reminders.defaultBody'.tr(),
-            hour: r.timeInMinutes ~/ 60,
-            minute: r.timeInMinutes % 60,
-            repeatDays: r.repeatDays,
-          );
-        } catch (e) {
-          debugPrint('Error scheduling new reminder: $e');
+      context,
+      MaterialPageRoute(builder: (_) => EditReminderScreen(reminder: reminder)),
+    );
+    if (result != true) return;
+    await _loadAll();
+    // Programa lo creado o reprograma lo editado
+    final targets = reminder == null
+        ? _reminders.where((r) => r.isEnabled)
+        : _reminders.where((r) => r.id == reminder.id);
+    for (final r in targets) {
+      try {
+        if (r.isEnabled) {
+          await _schedule(r);
+        } else {
+          await NotificationService.instance.cancelReminder(r.id);
         }
+      } catch (e) {
+        debugPrint('Error scheduling reminder: $e');
       }
     }
   }
 
-  Future<void> _navigateToEditReminder(Reminder reminder) async {
-    final result = await Navigator.push<bool>(context,
-        MaterialPageRoute(builder: (_) => EditReminderScreen(reminder: reminder)));
-    if (result == true) {
-      await _loadAll();
-      // Re-programar este recordatorio con los nuevos datos
-      final updated = _reminders.firstWhere(
-        (r) => r.id == reminder.id,
-        orElse: () => reminder,
-      );
-      if (updated.isEnabled) {
-        try {
-          await NotificationService.instance.scheduleReminder(
-            reminderId: updated.id,
-            title: updated.title,
-            body: (updated.message != null && updated.message!.isNotEmpty)
-                ? updated.message!
-                : 'reminders.defaultBody'.tr(),
-            hour: updated.timeInMinutes ~/ 60,
-            minute: updated.timeInMinutes % 60,
-            repeatDays: updated.repeatDays,
-          );
-        } catch (e) {
-          debugPrint('Error rescheduling reminder: $e');
-        }
-      } else {
-        await NotificationService.instance.cancelReminder(updated.id);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final completedCount =
-        _habits.where((h) => _todayCheckIns.contains(h.id)).length;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'home.habitsReminders'.tr(),
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Stack(
-        children: [
-          AnimatedParticlesBackground(
-            particleCount: 12,
-            maxShootingStars: 0,
-            particleColor: isDark
-                ? Colors.white.withValues(alpha: 0.3)
-                : const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+  Future<bool?> _confirmDelete({required String title, required String body}) {
+    HapticFeedback.mediumImpact();
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        content: Text(body),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('common.cancel'.tr())),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text('common.delete'.tr()),
           ),
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── HÁBITOS HEADER ─────────────────────────────────────
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isDark
-                                ? [
-                                    const Color(0xFF10B981)
-                                        .withValues(alpha: 0.12),
-                                    const Color(0xFF10B981)
-                                        .withValues(alpha: 0.04)
-                                  ]
-                                : [
-                                    const Color(0xFFECFDF5),
-                                    const Color(0xFFF0FDF4)
-                                  ],
-                          ),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                              color: const Color(0xFF10B981)
-                                  .withValues(alpha: isDark ? 0.2 : 0.15)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981)
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: const Icon(Icons.track_changes_rounded,
-                                  color: Color(0xFF10B981), size: 24),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'home.habitsToday'.tr(),
-                                    style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w700,
-                                        color: isDark
-                                            ? Colors.white
-                                            : AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _habits.isEmpty
-                                        ? 'habits.emptyStateDesc'.tr()
-                                        : 'habits.todayProgress'.tr(namedArgs: {
-                                            'completed': '$completedCount',
-                                            'total': '${_habits.length}',
-                                          }),
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.textSecondary),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (_habits.isNotEmpty)
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: completedCount == _habits.length &&
-                                          _habits.isNotEmpty
-                                      ? const Color(0xFF10B981)
-                                      : const Color(0xFF10B981)
-                                          .withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '$completedCount/${_habits.length}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: completedCount == _habits.length &&
-                                              _habits.isNotEmpty
-                                          ? Colors.white
-                                          : const Color(0xFF10B981),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ).animate().fadeIn(duration: 500.ms),
-                      if (_habits.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: LinearProgressIndicator(
-                            value: _habits.isEmpty
-                                ? 0
-                                : completedCount / _habits.length,
-                            backgroundColor: isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.grey.shade200,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                                Color(0xFF10B981)),
-                            minHeight: 6,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-
-                      // ── LISTA DE HÁBITOS ────────────────────────────────────
-                      if (_habits.isEmpty)
-                        _buildEmptyState(
-                          isDark: isDark,
-                          icon: Icons.track_changes_rounded,
-                          title: 'habits.emptyState'.tr(),
-                          subtitle: 'habits.emptyTrackingDesc'.tr(),
-                          color: const Color(0xFF10B981),
-                        )
-                      else
-                        ...List.generate(_habits.length, (i) {
-                          final habit = _habits[i];
-                          final isChecked =
-                              _todayCheckIns.contains(habit.id);
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Dismissible(
-                              key: Key(habit.id),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding:
-                                    const EdgeInsets.only(right: 20),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444)
-                                      .withValues(alpha: 0.12),
-                                  borderRadius:
-                                      BorderRadius.circular(18),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.end,
-                                  children: [
-                                    const Icon(Icons.delete_rounded,
-                                        color: Color(0xFFEF4444),
-                                        size: 22),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'common.delete'.tr(),
-                                      style: const TextStyle(
-                                        color: Color(0xFFEF4444),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              confirmDismiss: (_) async {
-                                _deleteHabit(habit);
-                                return false;
-                              },
-                              child: _buildHabitCard(
-                                  habit, isChecked, isDark, i),
-                            ),
-                          );
-                        }),
-
-                      const SizedBox(height: 6),
-                      GestureDetector(
-                        onTap: _navigateToAddHabit,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: const Color(0xFF10B981).withValues(
-                                  alpha: isDark ? 0.3 : 0.2),
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                            color: const Color(0xFF10B981)
-                                .withValues(alpha: isDark ? 0.05 : 0.03),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.add_rounded,
-                                  color: Color(0xFF10B981), size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'habits.addHabit'.tr(),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF10B981),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Text(
-                          'habits.swipeToDelete'.tr(),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // ── RECORDATORIOS HEADER ────────────────────────────────
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: isDark
-                                ? [
-                                    AppColors.primary
-                                        .withValues(alpha: 0.12),
-                                    AppColors.primary
-                                        .withValues(alpha: 0.04)
-                                  ]
-                                : [
-                                    const Color(0xFFEEF2FF),
-                                    const Color(0xFFF5F3FF)
-                                  ],
-                          ),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                              color: AppColors.primary
-                                  .withValues(alpha: isDark ? 0.2 : 0.15)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary
-                                    .withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                  Icons.notifications_active_rounded,
-                                  color: AppColors.primary,
-                                  size: 24),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'reminders.title'.tr(),
-                                    style: TextStyle(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w700,
-                                        color: isDark
-                                            ? Colors.white
-                                            : AppColors.textPrimary),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _reminders.isEmpty
-                                        ? 'reminders.scheduleWellbeingAlerts'
-                                            .tr()
-                                        : 'reminders.activeCount'.tr(
-                                            namedArgs: {
-                                                'count':
-                                                    '${_reminders.where((r) => r.isEnabled).length}',
-                                              }),
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.textSecondary),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            GestureDetector(
-                              onTap: _navigateToCreateReminder,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius:
-                                      BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.add_rounded,
-                                        color: Colors.white, size: 16),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'common.new'.tr(),
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
-                      const SizedBox(height: 12),
-
-                      const SizedBox(height: 14),
-
-                      // ── LISTA DE RECORDATORIOS ──────────────────────────────
-                      if (_reminders.isEmpty)
-                        _buildEmptyState(
-                          isDark: isDark,
-                          icon: Icons.notifications_none_rounded,
-                          title: 'reminders.emptyState'.tr(),
-                          subtitle: 'reminders.mobileInstallNote'.tr(),
-                          color: AppColors.primary,
-                        )
-                      else
-                        ...List.generate(_reminders.length, (i) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Dismissible(
-                              key: Key(_reminders[i].id),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                alignment: Alignment.centerRight,
-                                padding:
-                                    const EdgeInsets.only(right: 20),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444)
-                                      .withValues(alpha: 0.12),
-                                  borderRadius:
-                                      BorderRadius.circular(16),
-                                ),
-                                child: const Icon(Icons.delete_rounded,
-                                    color: Color(0xFFEF4444), size: 22),
-                              ),
-                              confirmDismiss: (_) async {
-                                _deleteReminder(_reminders[i]);
-                                return false;
-                              },
-                              child: _buildReminderCard(
-                                  _reminders[i], isDark, i),
-                            ),
-                          );
-                        }),
-                    ],
-                  ),
-                ),
         ],
       ),
     );
   }
 
-  Widget _buildHabitCard(
-      Habit habit, bool isChecked, bool isDark, int index) {
-    final localizedTitle = _localizedHabitTitle(habit);
-    final localizedDescription = _localizedHabitDescription(habit);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUILD
+  // ═══════════════════════════════════════════════════════════════════════════
+  @override
+  Widget build(BuildContext context) {
+    final s = JournalStyle.of(context);
 
-    return GestureDetector(
-      onTap: () => _toggleHabitCheckIn(habit),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: isChecked
-              ? LinearGradient(colors: [
-                  habit.color.withValues(alpha: isDark ? 0.2 : 0.12),
-                  habit.color.withValues(alpha: isDark ? 0.1 : 0.06),
-                ])
-              : null,
-          color: isChecked
-              ? null
-              : isDark
-                  ? Colors.white.withValues(alpha: 0.06)
-                  : AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-              color: isChecked
-                  ? habit.color.withValues(alpha: 0.3)
-                  : isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.grey.shade200),
-          boxShadow: isChecked
-              ? [
-                  BoxShadow(
-                      color: habit.color.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2)),
-                ]
-              : [],
-        ),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isChecked
-                    ? habit.color
-                    : habit.color
-                        .withValues(alpha: isDark ? 0.15 : 0.1),
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: isChecked
-                    ? [
-                        BoxShadow(
-                            color: habit.color.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2)),
-                      ]
-                    : [],
-              ),
-              child: Center(
-                child: isChecked
-                    ? const Icon(Icons.check_rounded,
-                        color: Colors.white, size: 24)
-                    : Text(habit.emoji,
-                        style: const TextStyle(fontSize: 22)),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    localizedTitle,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppColors.textPrimary,
-                      decoration:
-                          isChecked ? TextDecoration.lineThrough : null,
-                      decorationColor: AppColors.textSecondary,
-                    ),
-                  ),
-                  if (localizedDescription != null &&
-                      localizedDescription.isNotEmpty)
-                    Text(
-                      localizedDescription,
-                      style: const TextStyle(
-                          fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                ],
-              ),
-            ),
-            if (!isChecked)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: habit.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  'habits.checkInXp'.tr(),
-                  style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: habit.color),
-                ),
-              )
-            else
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: habit.color.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.check_circle_rounded,
-                    color: habit.color, size: 20),
-              ),
-          ],
-        ),
-      ),
-    )
-        .animate()
-        .fadeIn(delay: (80 * index).ms, duration: 400.ms)
-        .slideX(begin: -0.05, end: 0);
-  }
-
-  Widget _buildReminderCard(Reminder reminder, bool isDark, int index) {
-    return GestureDetector(
-      onTap: () => _navigateToEditReminder(reminder),
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 300),
-        opacity: reminder.isEnabled ? 1.0 : 0.5,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.06)
-                : AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: reminder.isEnabled
-                    ? reminder.timeColor
-                        .withValues(alpha: isDark ? 0.2 : 0.15)
-                    : isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.grey.shade200),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                    reminder.timeColor
-                        .withValues(alpha: isDark ? 0.25 : 0.15),
-                    reminder.timeColor
-                        .withValues(alpha: isDark ? 0.1 : 0.05),
-                  ]),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(reminder.timeIcon,
-                    color: reminder.timeColor, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: s.isDark ? null : const Color(0xFFFBF8F2),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: JournalStyle.accent))
+            : RefreshIndicator(
+                color: JournalStyle.accent,
+                onRefresh: _loadAll,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          reminder.timeLabel,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: reminder.isEnabled
-                                ? reminder.timeColor
-                                : AppColors.textSecondary,
+                    _buildTopBar(s),
+                    const SizedBox(height: 12),
+                    _buildHabitsHero(s),
+                    const SizedBox(height: 16),
+                    if (_habits.isEmpty)
+                      _buildEmpty(
+                        s,
+                        mood: LumiMood.curious,
+                        title: 'habits.emptyState'.tr(),
+                        body: 'journal.habitsEmptyBody'.tr(),
+                      )
+                    else
+                      for (int i = 0; i < _habits.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Dismissible(
+                            key: Key(_habits[i].id),
+                            direction: DismissDirection.endToStart,
+                            background: _deleteBackground(),
+                            confirmDismiss: (_) async {
+                              _deleteHabit(_habits[i]);
+                              return false;
+                            },
+                            child: _buildHabitCard(s, _habits[i], i),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            reminder.title,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.textPrimary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    _AddButton(
+                      label: 'habits.addHabit'.tr(),
+                      color: JournalStyle.accent,
+                      onTap: _addHabit,
                     ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        const Icon(Icons.repeat_rounded,
-                            size: 12, color: AppColors.textSecondary),
-                        const SizedBox(width: 4),
-                        Text(
-                          _repeatLabel(reminder),
-                          style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary),
+                    if (_habits.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          'habits.swipeToDelete'.tr(),
+                          style: TextStyle(fontSize: 11.5, color: s.inkSoft, fontStyle: FontStyle.italic),
                         ),
-                        if (reminder.message != null &&
-                            reminder.message!.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          const Icon(
-                              Icons.chat_bubble_outline_rounded,
-                              size: 12,
-                              color: AppColors.textSecondary),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              reminder.message!,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                                fontStyle: FontStyle.italic,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      ),
+                    ],
+                    const SizedBox(height: 30),
+                    _buildRemindersHeader(s),
+                    const SizedBox(height: 12),
+                    if (_reminders.isEmpty)
+                      _buildEmpty(
+                        s,
+                        mood: LumiMood.sleepy,
+                        title: 'reminders.emptyState'.tr(),
+                        body: 'journal.remindersEmptyBody'.tr(),
+                      )
+                    else
+                      for (int i = 0; i < _reminders.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Dismissible(
+                            key: Key(_reminders[i].id),
+                            direction: DismissDirection.endToStart,
+                            background: _deleteBackground(),
+                            confirmDismiss: (_) async {
+                              _deleteReminder(_reminders[i]);
+                              return false;
+                            },
+                            child: _buildReminderCard(s, _reminders[i], i),
                           ),
-                        ],
-                      ],
-                    ),
+                        ),
                   ],
                 ),
               ),
-              Switch.adaptive(
-                value: reminder.isEnabled,
-                onChanged: (_) => _toggleReminder(reminder),
-                activeThumbColor: reminder.timeColor,
+      ),
+    );
+  }
+
+  Widget _buildTopBar(JournalStyle s) {
+    return Row(
+      children: [
+        if (Navigator.of(context).canPop())
+          MinTapTarget(
+            onTap: () => Navigator.pop(context),
+            child: Icon(Icons.arrow_back_rounded, color: s.ink, semanticLabel: MaterialLocalizations.of(context).backButtonTooltip),
+          ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'journal.routinesKicker'.tr(),
+                style: JournalStyle.hand(const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: JournalStyle.accent)),
+              ),
+              Semantics(
+                header: true,
+                child: Text(
+                  'home.habitsReminders'.tr(),
+                  style: TextStyle(fontSize: 23, height: 1.15, fontWeight: FontWeight.w900, color: s.ink),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ).animate().fadeIn(duration: 300.ms);
+  }
+
+  Widget _buildHabitsHero(JournalStyle s) {
+    final total = _habits.length;
+    final done = _habits.where((h) => _todayCheckIns.contains(h.id)).length;
+    final allDone = total > 0 && done == total;
+    final message = total == 0
+        ? 'journal.habitsNone'.tr()
+        : allDone
+            ? 'journal.habitsAllDone'.tr()
+            : done == 0
+                ? 'journal.habitsStart'.tr()
+                : 'journal.habitsLeft'.plural(total - done);
+    final lumi = allDone ? LumiMood.excited : (done > 0 ? LumiMood.happy : LumiMood.curious);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 14, 18),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: allDone
+              ? const [Color(0xFFFBBF24), Color(0xFFF59E0B), Color(0xFFEA580C)]
+              : const [Color(0xFF34D399), Color(0xFF10B981), Color(0xFF0F766E)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (allDone ? const Color(0xFFF59E0B) : JournalStyle.accent).withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Semantics(
+            label: 'habits.todayProgress'.tr(namedArgs: {'completed': '$done', 'total': '$total'}),
+            excludeSemantics: true,
+            child: RouteProgressRing(
+              progress: total == 0 ? 0 : done / total,
+              color: Colors.white,
+              track: Colors.white.withValues(alpha: 0.25),
+              size: 78,
+              stroke: 7,
+              child: Text(
+                '$done/$total',
+                style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: Colors.white),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'home.habitsToday'.tr(),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Text(
+                    message,
+                    key: ValueKey(message),
+                    style: JournalStyle.hand(const TextStyle(fontSize: 20, height: 1.1, color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          LumiAvatar(mood: lumi, size: 58),
+        ],
+      ),
+    ).animate().fadeIn(delay: 80.ms, duration: 400.ms).slideY(begin: 0.06, end: 0);
+  }
+
+  Widget _buildHabitCard(JournalStyle s, Habit habit, int index) {
+    final checked = _todayCheckIns.contains(habit.id);
+    // Historial con hoy según lo que se ve en pantalla (se marca al instante,
+    // antes de que termine de recargar).
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final days = {...?_history[habit.id]?.doneDays};
+    checked ? days.add(today) : days.remove(today);
+    final history = HabitHistory(days, now: now);
+    final streak = history.streak;
+    final week = history.lastWeek;
+    final title = _habitTitle(habit);
+    final description = _habitDescription(habit);
+    final color = habit.color;
+    const dayKeys = ['days.monMini', 'days.tueMini', 'days.wedMini', 'days.thuMini', 'days.friMini', 'days.satMini', 'days.sunMini'];
+
+    return Semantics(
+      button: true,
+      checked: checked,
+      label: '$title${description == null ? '' : ', $description'}',
+      hint: streak >= 2 ? 'journal.streakDays'.plural(streak) : null,
+      onTap: () => _toggleHabit(habit),
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () => _toggleHabit(habit),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: checked
+                ? Color.lerp(s.paper, color, s.isDark ? 0.16 : 0.1)
+                : s.paper,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: checked ? color.withValues(alpha: 0.5) : s.paperEdge,
+              width: checked ? 1.6 : 1,
+            ),
+            boxShadow: s.paperShadow,
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 280),
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(17),
+                            color: checked ? color : color.withValues(alpha: s.isDark ? 0.18 : 0.12),
+                          ),
+                          child: Center(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              transitionBuilder: (child, a) => ScaleTransition(scale: a, child: child),
+                              child: checked
+                                  ? const Icon(Icons.check_rounded, key: ValueKey('c'), color: Colors.white, size: 30)
+                                  : Text(habit.emoji, key: const ValueKey('e'), style: const TextStyle(fontSize: 26)),
+                            ),
+                          ),
+                        ),
+                        if (_burstHabit == habit.id && checked)
+                          Positioned(
+                            child: SparkleBurst(key: ValueKey('burst_$_burstSeed'), color: color, size: 110, seed: _burstSeed),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: s.ink),
+                        ),
+                        if (description != null && description.isNotEmpty)
+                          Text(
+                            description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12.5, color: s.inkSoft),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  if (streak >= 2)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF97316).withValues(alpha: s.isDark ? 0.2 : 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '🔥 $streak',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w900,
+                          color: s.isDark ? const Color(0xFFFDBA74) : const Color(0xFFC2410C),
+                        ),
+                      ),
+                    )
+                  else if (!checked)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'habits.checkInXp'.tr(),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color.lerp(color, s.isDark ? Colors.white : Colors.black, 0.2)),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Semana: 7 puntos, hoy a la derecha
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (int i = 0; i < 7; i++)
+                    () {
+                      final (day, done) = week[i];
+                      final isToday = i == 6;
+                      return Column(
+                        children: [
+                          Text(
+                            dayKeys[day.weekday - 1].tr(),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
+                              color: isToday ? s.ink : s.inkSoft,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 280),
+                            width: isToday ? 22 : 18,
+                            height: isToday ? 22 : 18,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: done ? color : Colors.transparent,
+                              border: Border.all(
+                                color: done ? color : s.inkSoft.withValues(alpha: 0.3),
+                                width: isToday ? 2 : 1.3,
+                              ),
+                            ),
+                            child: done ? const Icon(Icons.check_rounded, size: 12, color: Colors.white) : null,
+                          ),
+                        ],
+                      );
+                    }(),
+                ],
               ),
             ],
           ),
         ),
       ),
-    ).animate().fadeIn(delay: (80 * index).ms, duration: 400.ms);
+    ).animate().fadeIn(delay: (60 * index).ms, duration: 350.ms).slideY(begin: 0.06, end: 0);
   }
 
-  Widget _buildEmptyState({
-    required bool isDark,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28),
+  Widget _buildRemindersHeader(JournalStyle s) {
+    final active = _reminders.where((r) => r.isEnabled).length;
+    return Row(
+      children: [
+        const Text('🔔', style: TextStyle(fontSize: 22)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Semantics(
+                header: true,
+                child: Text('reminders.title'.tr(), style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: s.ink)),
+              ),
+              Text(
+                _reminders.isEmpty
+                    ? 'reminders.scheduleWellbeingAlerts'.tr()
+                    : 'reminders.activeCount'.tr(namedArgs: {'count': '$active'}),
+                style: TextStyle(fontSize: 12.5, color: s.inkSoft),
+              ),
+            ],
+          ),
+        ),
+        MinTapTarget(
+          onTap: () => _editReminder(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF818CF8), Color(0xFF6366F1)]),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [BoxShadow(color: const Color(0xFF6366F1).withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 3))],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add_alarm_rounded, color: Colors.white, size: 17),
+                const SizedBox(width: 5),
+                Text('common.new'.tr(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReminderCard(JournalStyle s, Reminder reminder, int index) {
+    final sky = ReminderSky.of(reminder.time.hour, isDark: s.isDark);
+    final enabled = reminder.isEnabled;
+    final time = MaterialLocalizations.of(context).formatTimeOfDay(reminder.time, alwaysUse24HourFormat: false);
+    const dayKeys = ['days.monMini', 'days.tueMini', 'days.wedMini', 'days.thuMini', 'days.friMini', 'days.satMini', 'days.sunMini'];
+    // Sin días de repetición = una sola vez
+    final onceOnly = reminder.repeatDays.isEmpty;
+
+    return Semantics(
+      button: true,
+      label: '$time, ${reminder.title}',
+      child: GestureDetector(
+        onTap: () => _editReminder(reminder),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 250),
+          opacity: enabled ? 1 : 0.55,
+          child: Container(
+            decoration: BoxDecoration(
+              color: s.paper,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: enabled ? sky.colors.last.withValues(alpha: 0.35) : s.paperEdge),
+              boxShadow: s.paperShadow,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: Row(
+                children: [
+                  ReminderSkyTile(sky: sky, width: 78, height: 110, enabled: enabled),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            time,
+                            style: TextStyle(fontSize: 24, height: 1.1, fontWeight: FontWeight.w900, color: s.ink),
+                          ),
+                          Text(
+                            reminder.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: s.ink),
+                          ),
+                          if (reminder.message != null && reminder.message!.isNotEmpty)
+                            Text(
+                              reminder.message!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: JournalStyle.hand(TextStyle(fontSize: 16, color: s.inkSoft)),
+                            ),
+                          const SizedBox(height: 6),
+                          if (onceOnly)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: sky.accent.withValues(alpha: s.isDark ? 0.3 : 0.16),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'reminders.once'.tr(),
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: s.ink),
+                              ),
+                            )
+                          else
+                            Row(
+                              children: [
+                                for (int d = 1; d <= 7; d++)
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 3),
+                                    width: 19,
+                                    height: 19,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: reminder.repeatDays.contains(d)
+                                          ? sky.accent.withValues(alpha: s.isDark ? 0.4 : 0.22)
+                                          : Colors.transparent,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        dayKeys[d - 1].tr(),
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: reminder.repeatDays.contains(d) ? s.ink : s.inkSoft.withValues(alpha: 0.45),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Switch.adaptive(
+                    value: enabled,
+                    onChanged: (_) => _toggleReminder(reminder),
+                    activeThumbColor: sky.accent,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ).animate().fadeIn(delay: (60 * index).ms, duration: 350.ms).slideY(begin: 0.06, end: 0);
+  }
+
+  Widget _buildEmpty(JournalStyle s, {required LumiMood mood, required String title, required String body}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: isDark ? 0.12 : 0.08),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child:
-                Icon(icon, color: color.withValues(alpha: 0.5), size: 28),
-          ),
-          const SizedBox(height: 12),
+          LumiAvatar(mood: mood, size: 72),
+          const SizedBox(height: 6),
           Text(
             title,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white70 : AppColors.textPrimary,
+            textAlign: TextAlign.center,
+            style: JournalStyle.hand(TextStyle(fontSize: 23, fontWeight: FontWeight.w700, color: s.ink)),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            body,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, height: 1.45, color: s.inkSoft),
+          ),
+          const SizedBox(height: 12),
+        ],
+      ),
+    ).animate().fadeIn(duration: 350.ms);
+  }
+
+  Widget _deleteBackground() {
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: 22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: const Icon(Icons.delete_rounded, color: Color(0xFFEF4444), size: 24),
+    );
+  }
+}
+
+/// Botón punteado para agregar.
+class _AddButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _AddButton({required this.label, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = JournalStyle.of(context);
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: CustomPaint(
+          painter: _DashedBorderPainter(color: color.withValues(alpha: 0.55)),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: s.isDark ? 0.06 : 0.05),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_circle_rounded, color: color, size: 22),
+                const SizedBox(width: 8),
+                Text(label, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color.lerp(color, Colors.black, s.isDark ? 0 : 0.2))),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.textSecondary),
-          ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  _DashedBorderPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(20));
+    final path = Path()..addRRect(rrect.deflate(1));
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+    for (final m in path.computeMetrics()) {
+      for (double d = 0; d < m.length; d += 12) {
+        canvas.drawPath(m.extractPath(d, d + 7), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter old) => old.color != color;
 }

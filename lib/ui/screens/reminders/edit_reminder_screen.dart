@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/reminder.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/services/sound_service.dart';
 import '../../widgets/animated_particles_background.dart';
+import '../../widgets/journal/journal_style.dart';
+import 'reminder_sky.dart';
 
 class EditReminderScreen extends StatefulWidget {
   final Reminder? reminder;
@@ -43,11 +47,21 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
 
   bool get _canSave => _titleController.text.trim().isNotEmpty;
 
-  Color get _currentTimeColor {
-    if (_selectedTime.hour < 12) return const Color(0xFFF59E0B);
-    if (_selectedTime.hour < 18) return const Color(0xFFF97316);
-    return const Color(0xFF6366F1);
-  }
+  ReminderSky get _sky => ReminderSky.of(
+        _selectedTime.hour,
+        isDark: Theme.of(context).brightness == Brightness.dark,
+      );
+
+  Color get _currentTimeColor => _sky.accent;
+
+  /// Mensajes sugeridos para no empezar en blanco.
+  static const _suggestionKeys = [
+    'journal.suggestBreathe',
+    'journal.suggestCheckIn',
+    'journal.suggestLesson',
+    'journal.suggestWater',
+    'journal.suggestDiary',
+  ];
 
   IconData get _currentTimeIcon {
     if (_selectedTime.hour < 12) return Icons.wb_sunny_rounded;
@@ -55,11 +69,7 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
     return Icons.nightlight_round;
   }
 
-  String get _currentTimePeriod {
-    if (_selectedTime.hour < 12) return 'reminders.morning'.tr();
-    if (_selectedTime.hour < 18) return 'reminders.afternoon'.tr();
-    return 'reminders.night'.tr();
-  }
+  String get _currentTimePeriod => _sky.labelKey.tr();
 
   /// Devuelve 'AM' o 'PM' según la hora seleccionada (formato 12h)
   String get _amPmLabel => _selectedTime.hour < 12 ? 'AM' : 'PM';
@@ -101,12 +111,14 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
     );
     if (picked != null) {
       HapticFeedback.lightImpact();
+      SoundService.instance.play(Sfx.pop, volume: 0.5);
       setState(() => _selectedTime = picked);
     }
   }
 
   void _toggleDay(int day) {
     HapticFeedback.lightImpact();
+    SoundService.instance.play(_selectedDays.contains(day) ? Sfx.toggleOff : Sfx.toggleOn, volume: 0.4);
     setState(() {
       if (_selectedDays.contains(day)) {
         _selectedDays.remove(day);
@@ -153,6 +165,7 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
         createdAt: widget.reminder?.createdAt,
       );
       await authProvider.saveReminder(reminder);
+      SoundService.instance.play(Sfx.save, volume: 0.6);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -256,114 +269,128 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        GestureDetector(
+                        Semantics(
+                          button: true,
+                          label: '$_currentTimePeriod, $h12:$m $_amPmLabel. ${'reminders.tapToChangeTime'.tr()}',
                           onTap: _pickTime,
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  _currentTimeColor.withValues(alpha: isDark ? 0.2 : 0.12),
-                                  _currentTimeColor.withValues(alpha: isDark ? 0.08 : 0.04),
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            onTap: _pickTime,
+                            child: Container(
+                              width: double.infinity,
+                              height: 210,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(28),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _currentTimeColor.withValues(alpha: 0.3),
+                                    blurRadius: 22,
+                                    offset: const Offset(0, 8),
+                                  ),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(28),
-                              border: Border.all(
-                                color: _currentTimeColor.withValues(alpha: isDark ? 0.25 : 0.15)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: _currentTimeColor.withValues(alpha: isDark ? 0.1 : 0.06),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: _currentTimeColor.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(_currentTimeIcon, color: _currentTimeColor, size: 16),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        _currentTimePeriod,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: _currentTimeColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                // ── HORA GRANDE (12h) + BADGE AM/PM ─────────────
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '$h12:$m',
-                                      style: TextStyle(
-                                        fontSize: 64,
-                                        fontWeight: FontWeight.w800,
-                                        color: isDark ? Colors.white : _currentTimeColor,
-                                        letterSpacing: 4,
-                                        height: 1,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 500),
+                                      child: ReminderSkyTile(
+                                        key: ValueKey(_sky.period),
+                                        sky: _sky,
+                                        width: double.infinity,
+                                        height: 210,
+                                        radius: 28,
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  ),
+                                  // Velo para que la hora se lea sobre cualquier cielo
+                                  Positioned.fill(
+                                    child: DecoratedBox(
                                       decoration: BoxDecoration(
-                                        color: _currentTimeColor,
-                                        borderRadius: BorderRadius.circular(14),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: _currentTimeColor.withValues(alpha: 0.4),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 3),
+                                        borderRadius: BorderRadius.circular(28),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [Colors.black.withValues(alpha: 0.0), Colors.black.withValues(alpha: 0.28)],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 20,
+                                    top: 16,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(_currentTimeIcon, color: Colors.white, size: 15),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            _currentTimePeriod,
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white),
                                           ),
                                         ],
                                       ),
-                                      child: Text(
-                                        _amPmLabel,
-                                        style: const TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w900,
-                                          color: Colors.white,
-                                          letterSpacing: 1,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    left: 20,
+                                    right: 20,
+                                    bottom: 18,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              '$h12:$m',
+                                              style: const TextStyle(
+                                                fontSize: 60,
+                                                height: 1,
+                                                fontWeight: FontWeight.w900,
+                                                color: Colors.white,
+                                                shadows: [Shadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 2))],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Padding(
+                                              padding: const EdgeInsets.only(bottom: 8),
+                                              child: Text(
+                                                _amPmLabel,
+                                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.touch_app_rounded, size: 14, color: Colors.white70),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'reminders.tapToChangeTime'.tr(),
+                                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white70),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.touch_app_rounded,
-                                        size: 14, color: AppColors.textSecondary),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'reminders.tapToChangeTime'.tr(),
-                                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
+                        ).animate().fadeIn(duration: 350.ms).scale(
+                              begin: const Offset(0.97, 0.97),
+                              end: const Offset(1, 1),
+                              curve: Curves.easeOutCubic,
+                            ),
                         const SizedBox(height: 24),
 
                         Container(
@@ -430,6 +457,7 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
                               const SizedBox(height: 12),
                               TextField(
                                 controller: _messageController,
+                                onChanged: (_) => setState(() {}),
                                 maxLines: 2,
                                 maxLength: 150,
                                 style: TextStyle(fontSize: 15,
@@ -447,6 +475,35 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
                                   counterStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                                   contentPadding: const EdgeInsets.all(16),
                                 ),
+                              ),
+                              Text(
+                                'journal.suggestionsLabel'.tr(),
+                                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final key in _suggestionKeys)
+                                    ActionChip(
+                                      label: Text(key.tr()),
+                                      labelStyle: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: isDark ? Colors.white : AppColors.textPrimary),
+                                      backgroundColor: _currentTimeColor.withValues(alpha: isDark ? 0.14 : 0.08),
+                                      side: BorderSide(color: _currentTimeColor.withValues(alpha: 0.25)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                      onPressed: () {
+                                        HapticFeedback.selectionClick();
+                                        SoundService.instance.play(Sfx.pop, volume: 0.4);
+                                        setState(() {
+                                          _messageController.text = key.tr();
+                                          if (_titleController.text.trim().isEmpty) {
+                                            _titleController.text = 'journal.suggestTitle'.tr();
+                                          }
+                                        });
+                                      },
+                                    ),
+                                ],
                               ),
                             ],
                           ),
@@ -516,32 +573,12 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.08 : 0.05),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.15 : 0.1)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.info_outline_rounded, color: Color(0xFF3B82F6), size: 18),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'reminders.mobileInstallNote'.tr(),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    height: 1.4,
-                                    color: isDark ? Colors.white60 : const Color(0xFF1E40AF),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        Text(
+                          'journal.previewLabel'.tr(),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textPrimary),
                         ),
+                        const SizedBox(height: 10),
+                        _buildNotificationPreview(isDark),
                       ],
                     ),
                   ),
@@ -552,6 +589,58 @@ class _EditReminderScreenState extends State<EditReminderScreen> {
         ],
       ),
     );
+  }
+
+  /// Así se verá la notificación en el teléfono.
+  Widget _buildNotificationPreview(bool isDark) {
+    final title = _titleController.text.trim().isEmpty ? 'reminders.customTitleHint'.tr() : _titleController.text.trim();
+    final body = _messageController.text.trim().isEmpty ? 'reminders.defaultBody'.tr() : _messageController.text.trim();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2A2B3D) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08), blurRadius: 16, offset: const Offset(0, 6)),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF34D399), JournalStyle.accentDeep]),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: const Center(child: Text('🌱', style: TextStyle(fontSize: 19))),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Lumen', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: isDark ? Colors.white60 : AppColors.textSecondary)),
+                    const SizedBox(width: 6),
+                    Text('· $_hour12:${_selectedTime.minute.toString().padLeft(2, '0')} $_amPmLabel',
+                        style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : AppColors.textSecondary)),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: isDark ? Colors.white : AppColors.textPrimary)),
+                const SizedBox(height: 2),
+                Text(body, maxLines: 2, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13.5, height: 1.35, color: isDark ? Colors.white70 : AppColors.textSecondary)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms);
   }
 
   Widget _buildPresetChip(String label, String preset, bool isSelected, bool isDark) {

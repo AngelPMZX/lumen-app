@@ -42,6 +42,9 @@ enum Sfx {
   missionClaim,
   chestShake,
   chestOpen,
+  // Diario
+  pageTurn,
+  journalSaved,
 }
 
 /// Señales de la respiración guiada.
@@ -116,6 +119,8 @@ class SoundService {
       Sfx.missionClaim: 'mission_claim',
       Sfx.chestShake: 'chest_shake',
       Sfx.chestOpen: 'chest_open',
+      Sfx.pageTurn: 'page_turn',
+      Sfx.journalSaved: 'journal_saved',
     };
     return 'sounds/sfx/${names[s] ?? s.name}.mp3';
   }

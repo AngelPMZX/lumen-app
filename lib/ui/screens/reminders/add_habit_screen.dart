@@ -6,7 +6,10 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/models/habit.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../data/models/lumi.dart';
+import '../../../domain/services/sound_service.dart';
 import '../../widgets/animated_particles_background.dart';
+import '../../widgets/journal/journal_style.dart';
 
 class AddHabitScreen extends StatefulWidget {
   /// Títulos de hábitos que el usuario ya tiene (para evitar duplicados)
@@ -97,6 +100,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         color: preset.color,
       );
       await auth.saveHabit(habit);
+      SoundService.instance.play(Sfx.plant, volume: 0.6);
       if (mounted) {
         final translatedTitle = _presetTitle(preset);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -140,6 +144,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         color: _selectedColor,
       );
       await auth.saveHabit(habit);
+      SoundService.instance.play(Sfx.plant, volume: 0.6);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       debugPrint('Error saving custom habit: $e');
@@ -189,54 +194,11 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header card
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(22),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: isDark
-                                  ? [const Color(0xFF10B981).withValues(alpha: 0.15),
-                                     const Color(0xFF059669).withValues(alpha: 0.08)]
-                                  : [const Color(0xFFECFDF5), const Color(0xFFD1FAE5)],
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.2 : 0.15)),
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 64, height: 64,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Icon(Icons.add_task_rounded,
-                                    color: Color(0xFF10B981), size: 32),
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                'habits.chooseHabit'.tr(),
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark ? Colors.white : const Color(0xFF065F46),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'habits.chooseSuggestedOrCustom'.tr(),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: isDark ? Colors.white60 : const Color(0xFF047857),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
+                        // Lumi presenta la pantalla
+                        LumiNote(
+                          text: 'journal.habitsLumi'.tr(),
+                          mood: LumiMood.excited,
+                        ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
                         const SizedBox(height: 24),
 
                         // Presets section
@@ -250,111 +212,38 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        ...List.generate(Habit.presets.length, (index) {
-                          final preset = Habit.presets[index];
-                          final translatedTitle = _presetTitle(preset);
-                          final translatedDescription = _presetDescription(preset);
-                          final isAlreadyAdded = _isPresetAlreadyAdded(preset);
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: GestureDetector(
-                              onTap: isAlreadyAdded ? null : () => _savePreset(preset),
-                              child: AnimatedOpacity(
-                                duration: const Duration(milliseconds: 300),
-                                opacity: isAlreadyAdded ? 0.5 : 1.0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        preset.color.withValues(alpha: isDark ? 0.12 : 0.06),
-                                        preset.color.withValues(alpha: isDark ? 0.06 : 0.02),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: preset.color.withValues(alpha: isDark ? 0.2 : 0.12)),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final tileWidth = (constraints.maxWidth - 12) / 2;
+                            return Wrap(
+                              spacing: 12,
+                              runSpacing: 12,
+                              children: List.generate(Habit.presets.length, (index) {
+                                final preset = Habit.presets[index];
+                                return SizedBox(
+                                  width: tileWidth,
+                                  child: _PresetTile(
+                                    emoji: preset.emoji,
+                                    title: _presetTitle(preset),
+                                    description: _presetDescription(preset),
+                                    color: preset.color,
+                                    added: _isPresetAlreadyAdded(preset),
+                                    onTap: () => _savePreset(preset),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 46, height: 46,
-                                        decoration: BoxDecoration(
-                                          color: preset.color.withValues(alpha: isDark ? 0.2 : 0.12),
-                                          borderRadius: BorderRadius.circular(14),
-                                        ),
-                                        child: Center(
-                                          child: Text(preset.emoji,
-                                              style: const TextStyle(fontSize: 22)),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              translatedTitle,
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w700,
-                                                color: isDark ? Colors.white : AppColors.textPrimary,
-                                              ),
-                                            ),
-                                            if (translatedDescription != null)
-                                              Text(
-                                                translatedDescription,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: AppColors.textSecondary,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                      // Botón: check si ya agregado, + si disponible
-                                      if (isAlreadyAdded)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.textSecondary.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(Icons.check_rounded,
-                                                  size: 14, color: AppColors.textSecondary),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'habits.alreadyAdded'.tr(),
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.textSecondary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      else
-                                        Container(
-                                          width: 34, height: 34,
-                                          decoration: BoxDecoration(
-                                            color: preset.color.withValues(alpha: isDark ? 0.15 : 0.1),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Icon(Icons.add_rounded, color: preset.color, size: 18),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ).animate().fadeIn(delay: (60 * index).ms, duration: 400.ms)
-                              .slideX(begin: -0.03, end: 0);
-                        }),
+                                )
+                                    .animate()
+                                    .fadeIn(delay: (50 * index).ms, duration: 350.ms)
+                                    .scale(
+                                      begin: const Offset(0.9, 0.9),
+                                      end: const Offset(1, 1),
+                                      delay: (50 * index).ms,
+                                      duration: 350.ms,
+                                      curve: Curves.easeOutBack,
+                                    );
+                              }),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 24),
 
                         // Divider
@@ -613,5 +502,124 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         ],
       ),
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
+  }
+}
+
+/// Hábito sugerido como tarjeta: emoji grande, nombre y descripción.
+class _PresetTile extends StatefulWidget {
+  final String emoji;
+  final String title;
+  final String? description;
+  final Color color;
+  final bool added;
+  final VoidCallback onTap;
+
+  const _PresetTile({
+    required this.emoji,
+    required this.title,
+    required this.description,
+    required this.color,
+    required this.added,
+    required this.onTap,
+  });
+
+  @override
+  State<_PresetTile> createState() => _PresetTileState();
+}
+
+class _PresetTileState extends State<_PresetTile> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = JournalStyle.of(context);
+    final color = widget.color;
+    return Semantics(
+      button: true,
+      enabled: !widget.added,
+      label: '${widget.title}. ${widget.description ?? ''}',
+      hint: widget.added ? 'habits.alreadyAdded'.tr() : null,
+      onTap: widget.added ? null : widget.onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTapDown: widget.added ? null : (_) => setState(() => _down = true),
+        onTapUp: (_) => setState(() => _down = false),
+        onTapCancel: () => setState(() => _down = false),
+        onTap: widget.added ? null : widget.onTap,
+        child: AnimatedScale(
+          scale: _down ? 0.95 : 1,
+          duration: const Duration(milliseconds: 120),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 250),
+            opacity: widget.added ? 0.55 : 1,
+            child: Container(
+              height: 150,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color.lerp(s.paper, color, s.isDark ? 0.22 : 0.14)!,
+                    s.paper,
+                  ],
+                ),
+                border: Border.all(color: color.withValues(alpha: s.isDark ? 0.3 : 0.2)),
+                boxShadow: s.paperShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: s.isDark ? 0.25 : 0.16),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Center(child: Text(widget.emoji, style: const TextStyle(fontSize: 24))),
+                      ),
+                      const Spacer(),
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: widget.added ? s.inkSoft.withValues(alpha: 0.15) : color,
+                        ),
+                        child: Icon(
+                          widget.added ? Icons.check_rounded : Icons.add_rounded,
+                          size: 17,
+                          color: widget.added ? s.inkSoft : Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    widget.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14, height: 1.2, fontWeight: FontWeight.w800, color: s.ink),
+                  ),
+                  if (widget.description != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.added ? 'habits.alreadyAdded'.tr() : widget.description!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11.5, color: s.inkSoft),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
