@@ -1669,15 +1669,15 @@
     "subtitle": "Nurture your mind, cultivate your garden",
     "seeds": "Seeds of Light",
     "seedsCount": "{count} seeds",
-    "inventory": "Inventory",
-    "inventoryEmpty": "Your inventory is empty",
-    "inventoryEmptyDesc": "Complete challenges to earn seeds and items",
+    "inventory": "Your backpack",
+    "inventoryEmpty": "Your backpack is empty",
+    "inventoryEmptyDesc": "Visit the shop or complete challenges to earn seeds",
     "shop": "Shop",
     "shopTitle": "Garden Shop",
     "buyWithSeeds": "Buy · {cost} seeds",
     "buyPremium": "Premium · ${price}",
     "notEnoughSeeds": "Not enough seeds",
-    "purchaseSuccess": "Item added to your inventory!",
+    "purchaseSuccess": "Added to your backpack!",
     "seasonal": "Seasonal",
     "seasonalLocked": "Available in {month}",
     "plant": "Plant",
@@ -1705,7 +1705,9 @@
     },
     "decoOptions": {
       "move": "Move",
-      "moveHint": "Long press and drag"
+      "moveHint": "Long press and drag",
+      "store": "Put in backpack",
+      "storeHint": "You can place it again anytime"
     },
     "shields": {
       "title": "Streak Wildcards",
@@ -1720,7 +1722,8 @@
       "multiplierLine": "×{mult} XP for {mins} min",
       "multiplierHint": "Rare effect! Complete lessons now",
       "shieldEarned": "Streak Wildcard",
-      "shieldFromPlant": "Gift from your {plant}"
+      "shieldFromPlant": "Gift from your {plant}",
+      "fromPlant": "From your {plant}"
     },
     "stats": {
       "title": "Garden progress",
@@ -1833,7 +1836,8 @@
       "itemMessage": "You earned {name} for your garden",
       "streakTitle": "Streak bonus!",
       "streakMessage": "{days} days in a row! Bonus of {count} seeds 🔥",
-      "tapToContinue": "Tap to continue"
+      "tapToContinue": "Tap to continue",
+      "inBackpack": "It is in your garden backpack"
     },
     "welcome": {
       "title": "Welcome to your garden!",
@@ -1879,7 +1883,83 @@
       "plantNotFound": "Plant not found",
       "alreadyAdult": "This plant is already fully grown",
       "boosterFailed": "Could not apply the booster. Try again."
-    }
+    },
+    "loading": "Watering your garden…",
+    "ambientOn": "Turn garden sound on",
+    "ambientOff": "Mute garden sound",
+    "multiplierChip": "×{mult} XP · {mins} min",
+    "timeShort": "{hours}h {minutes}m",
+    "timeShortMinutes": "{minutes}m",
+    "readyIn": "Grown in {time}",
+    "readyToHarvest": "Ready to harvest",
+    "harvestTomorrow": "Harvested today. More seeds tomorrow.",
+    "harvestClaimSeeds": "Harvest +{count}",
+    "perSeedsDay": "{count}/day",
+    "useBooster": "Give it a boost",
+    "boostHours": "+{hours} h",
+    "boostInstant": "Instant",
+    "returnToInventory": "Put in backpack",
+    "returnPlantTitle": "Put away {plant}?",
+    "returnPlantBody": "It goes back to your backpack as a seed and its growth starts over.",
+    "plantReturned": "Put in your backpack",
+    "tapSoilToPlant": "Tap a patch of soil to plant",
+    "tapPlantToBoost": "Tap a plant that is still growing",
+    "noGrowingPlants": "No plants are growing in this garden",
+    "dragHint": "Drag it up and drop it in the garden",
+    "decoNearPlant": "Too close to a plant: give it room to grow",
+    "decoNearDeco": "There is already a decoration there",
+    "decoOutside": "Drop it inside the garden",
+    "plantsCount": "{count}/{total} plants",
+    "selectGardenKicker": "Change the scenery",
+    "ownedCount": "{count} in your backpack",
+    "missingSeeds": "{count} to go",
+    "buyFor": "Buy for {cost}",
+    "premiumSoon": "Coming soon, so you can get it and support Lumen.",
+    "boosterEffect": "Speeds up growth",
+    "decoHowTo": "Drag it from your backpack anywhere in the garden",
+    "growsIn": "Fully grown in",
+    "dailyHarvest": "Daily harvest",
+    "xpChance": "Chance of ×{mult} XP",
+    "givesShields": "Can gift streak shields",
+    "durationDays": {
+      "one": "{} day",
+      "other": "{} days"
+    },
+    "durationHours": "{hours} h",
+    "shopKicker": "Seeds, light and a little magic",
+    "shopSeedsKicker": "With your seeds of light",
+    "shopSeedsTitle": "For your garden",
+    "shopPremiumKicker": "Special pieces",
+    "shopSeasonalKicker": "Back every year",
+    "shopFooter": "You earned every seed by taking care of yourself. Spend them kindly 🌱",
+    "shopLumi": {
+      "plants": "What shall we plant today? The rarest ones glow with their own aura ✨",
+      "decorations": "A lantern or a fountain brings the garden to life. Which one do you like?",
+      "boosters": "Eager to see your plants grow? These help a lot.",
+      "save": "Keep up with lessons and challenges: seeds will come on their own."
+    },
+    "lumi": {
+      "planting": "Pick a glowing patch of soil. Your plant will grow there 🌱",
+      "boosting": "Tap a growing plant to give it the boost!",
+      "dragging": "Drop it wherever you like, away from the plants so they have room.",
+      "harvestOne": "A plant is ready to harvest! Tap it to collect your seeds.",
+      "harvestMany": "{count} plants are ready to harvest! Tap them to collect.",
+      "emptyWithSeeds": "This garden is waiting for its first plant. Pick one from your backpack.",
+      "emptyNoSeeds": "Your garden is calm. There are seeds waiting for you in the shop.",
+      "growingBoosters": "Your plants are growing. A booster from your backpack can speed them up.",
+      "decoHint": "You have decorations in your backpack. Drag them up to place them.",
+      "growing": "Everything grows at its own pace, just like you. Come back soon.",
+      "allHarvested": "Harvest collected. Tomorrow your plants will have more seeds for you.",
+      "tip": {
+        "0": "Every grown plant gives seeds once a day.",
+        "1": "The Cherry Tree and the Lotus sometimes gift a streak shield.",
+        "2": "Press and hold a decoration to move it.",
+        "3": "Harvesting can give you extra XP for a while. A good time for a lesson!",
+        "4": "The rarest plants glow with an aura of their color.",
+        "5": "Tap the garden name to change the scenery."
+      }
+    },
+    "timeShortDays": "{days}d {hours}h"
   },
   "crisis": {
     "title": "You are not alone in this",

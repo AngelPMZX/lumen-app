@@ -1669,15 +1669,15 @@
     "subtitle": "Cuida tu mente, cultiva tu jardín",
     "seeds": "Semillas de Luz",
     "seedsCount": "{count} semillas",
-    "inventory": "Inventario",
-    "inventoryEmpty": "Tu inventario está vacío",
-    "inventoryEmptyDesc": "Completa retos para ganar semillas y items",
+    "inventory": "Tu mochila",
+    "inventoryEmpty": "Tu mochila está vacía",
+    "inventoryEmptyDesc": "Visita la tienda o completa retos para ganar semillas",
     "shop": "Tienda",
     "shopTitle": "Tienda del Jardín",
     "buyWithSeeds": "Comprar · {cost} semillas",
     "buyPremium": "Premium · ${price}",
     "notEnoughSeeds": "No tienes suficientes semillas",
-    "purchaseSuccess": "¡Item añadido a tu inventario!",
+    "purchaseSuccess": "¡Añadido a tu mochila!",
     "seasonal": "Temporada",
     "seasonalLocked": "Disponible en {month}",
     "plant": "Plantar",
@@ -1705,7 +1705,9 @@
     },
     "decoOptions": {
       "move": "Mover",
-      "moveHint": "Mantén presionado y arrastra"
+      "moveHint": "Mantén presionado y arrastra",
+      "store": "Guardar en la mochila",
+      "storeHint": "La puedes volver a poner cuando quieras"
     },
     "shields": {
       "title": "Comodines de Racha",
@@ -1720,7 +1722,8 @@
       "multiplierLine": "×{mult} XP por {mins} min",
       "multiplierHint": "¡Efecto raro! Completa lecciones ahora",
       "shieldEarned": "Comodín de Racha",
-      "shieldFromPlant": "Regalo de tu {plant}"
+      "shieldFromPlant": "Regalo de tu {plant}",
+      "fromPlant": "De tu {plant}"
     },
     "stats": {
       "title": "Progreso del jardín",
@@ -1833,7 +1836,8 @@
       "itemMessage": "Has ganado {name} para tu jardín",
       "streakTitle": "¡Bonus de racha!",
       "streakMessage": "¡{days} días seguidos! Bonus de {count} semillas 🔥",
-      "tapToContinue": "Toca para continuar"
+      "tapToContinue": "Toca para continuar",
+      "inBackpack": "Ya está en tu mochila del jardín"
     },
     "welcome": {
       "title": "¡Bienvenido a tu jardín!",
@@ -1879,7 +1883,83 @@
       "plantNotFound": "Planta no encontrada",
       "alreadyAdult": "Esta planta ya está adulta",
       "boosterFailed": "Error al aplicar el booster. Intenta de nuevo."
-    }
+    },
+    "loading": "Regando tu jardín…",
+    "ambientOn": "Activar sonido del jardín",
+    "ambientOff": "Silenciar sonido del jardín",
+    "multiplierChip": "×{mult} XP · {mins} min",
+    "timeShort": "{hours}h {minutes}m",
+    "timeShortMinutes": "{minutes}m",
+    "readyIn": "Adulta en {time}",
+    "readyToHarvest": "Cosecha lista",
+    "harvestTomorrow": "Ya cosechaste hoy. Mañana habrá más semillas.",
+    "harvestClaimSeeds": "Cosechar +{count}",
+    "perSeedsDay": "{count}/día",
+    "useBooster": "Darle un impulso",
+    "boostHours": "+{hours} h",
+    "boostInstant": "Al instante",
+    "returnToInventory": "Guardar en la mochila",
+    "returnPlantTitle": "¿Guardar {plant}?",
+    "returnPlantBody": "Vuelve a tu mochila como semilla y su crecimiento empieza de cero.",
+    "plantReturned": "Guardada en tu mochila",
+    "tapSoilToPlant": "Toca un parche de tierra para plantar",
+    "tapPlantToBoost": "Toca una planta que esté creciendo",
+    "noGrowingPlants": "No hay plantas creciendo en este jardín",
+    "dragHint": "Arrástrala hacia arriba y suéltala en el jardín",
+    "decoNearPlant": "Muy cerca de una planta: déjale espacio para crecer",
+    "decoNearDeco": "Ahí ya hay otra decoración",
+    "decoOutside": "Suéltala dentro del jardín",
+    "plantsCount": "{count}/{total} plantas",
+    "selectGardenKicker": "Cambia de paisaje",
+    "ownedCount": "{count} en tu mochila",
+    "missingSeeds": "Faltan {count}",
+    "buyFor": "Comprar por {cost}",
+    "premiumSoon": "Muy pronto podrás conseguirla y apoyar a Lumen.",
+    "boosterEffect": "Acelera el crecimiento",
+    "decoHowTo": "Arrástrala desde tu mochila al lugar que quieras del jardín",
+    "growsIn": "Llega a adulta en",
+    "dailyHarvest": "Cosecha diaria",
+    "xpChance": "Probabilidad de XP ×{mult}",
+    "givesShields": "Puede regalar escudos de racha",
+    "durationDays": {
+      "one": "{} día",
+      "other": "{} días"
+    },
+    "durationHours": "{hours} h",
+    "shopKicker": "Semillas, luz y un poco de magia",
+    "shopSeedsKicker": "Con tus semillas de luz",
+    "shopSeedsTitle": "Para tu jardín",
+    "shopPremiumKicker": "Piezas especiales",
+    "shopSeasonalKicker": "Vuelven cada año",
+    "shopFooter": "Cada semilla la ganaste cuidándote. Úsalas con cariño 🌱",
+    "shopLumi": {
+      "plants": "¿Qué plantamos hoy? Las más raras brillan con su propia aura ✨",
+      "decorations": "Una linterna o una fuente le dan vida al jardín. ¿Cuál te gusta?",
+      "boosters": "¿Prisa por ver tus plantas crecer? Estos ayudan un montón.",
+      "save": "Sigue con tus lecciones y retos: las semillas llegan solitas."
+    },
+    "lumi": {
+      "planting": "Elige un parche de tierra que brille. Ahí crecerá tu planta 🌱",
+      "boosting": "¡Toca una planta que esté creciendo para darle el impulso!",
+      "dragging": "Suéltala donde quieras, lejos de las plantas para que tengan espacio.",
+      "harvestOne": "¡Una planta tiene cosecha lista! Tócala para recoger tus semillas.",
+      "harvestMany": "¡{count} plantas tienen cosecha lista! Tócalas para recogerla.",
+      "emptyWithSeeds": "Este jardín espera su primera planta. Elige una de tu mochila.",
+      "emptyNoSeeds": "Tu jardín está en calma. En la tienda hay semillas esperándote.",
+      "growingBoosters": "Tus plantas crecen. Un booster de tu mochila puede acelerarlas.",
+      "decoHint": "Tienes decoraciones en la mochila. Arrástralas hacia arriba para ponerlas.",
+      "growing": "Todo crece a su ritmo, igual que tú. Vuelve pronto a verlas.",
+      "allHarvested": "Cosecha recogida. Mañana tus plantas tendrán más semillas para ti.",
+      "tip": {
+        "0": "Cada planta adulta da semillas una vez al día.",
+        "1": "El Cerezo y el Loto a veces regalan un escudo para tu racha.",
+        "2": "Mantén presionada una decoración para moverla.",
+        "3": "Al cosechar puede tocarte XP extra un rato. ¡Buen momento para una lección!",
+        "4": "Las plantas más raras brillan con un aura de su color.",
+        "5": "Toca el nombre del jardín para cambiar de paisaje."
+      }
+    },
+    "timeShortDays": "{days}d {hours}h"
   },
   "crisis": {
     "title": "No estás solo en esto",

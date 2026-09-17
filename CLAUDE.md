@@ -146,11 +146,27 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - 5 plantas base + 2 estacionales (christmas_tree en dic, pumpkin en oct).
 - 4 decoraciones, 4 boosters (water/sun/fertilizer/elixir).
 - Assets ilustrados estilo watercolor children's book (WebP en `assets/images/plants/`, `decorations/`, `boosters/`, `currency/`).
-- Sistema de auras (color+intensidad por rareza).
+- **Auras de rareza (no quitar, lo pidió Ángel)**: cada item tiene `auraColor`/`auraOpacity`/`auraBlurRadius` en `GardenItem`. `AuraContainer` las dibuja como degradado radial (sin blur) y con `pulse` late despacio; `AuraContainer.pulsesFor` lo activa en épico, legendario y de temporada. Las plantas adultas tienen además halo del mismo color y destellos que suben.
+- **Siempre con nuestras ilustraciones**: `GardenAssets` (`garden_defs.dart`) da la ruta de cada planta por etapa, decoración, booster, semilla y fondo; `GardenItemImage` las muestra con su aura y cae en el emoji si falla. Una prueba verifica que existan todos los archivos.
 - Tienda con precios en semillas + premium ($0.99 vía RevenueCat futuro).
 - Escudos de racha: el home guarda la racha rota (`saveStreakBeforeBreak`, tras cargar las mecánicas) y el escudo solo se puede usar ese día (`streakBreakDate` en `garden/mechanics`), antes o después del check-in. Si ya hizo check-in, hoy también cuenta.
-- Múltiples jardines (meadow, forest, mountain, lake, greenhouse).
-- **Pendiente: polish completo** (ver "Pulido" en el roadmap).
+- Múltiples jardines (meadow y mountain abiertos; forest, lake y greenhouse "próximamente"). El último elegido se guarda en SharedPreferences (`garden_active_id`).
+
+**Pantalla del jardín** (`lib/ui/screens/garden/`, rediseño 2026-09-17; `garden_screen.dart` pasó de ~3 100 a ~880 líneas):
+- `garden_defs.dart`: `GardenDef`/`GardensCatalog` (fondo, huecos, ambiente y tono), `GardenAssets`, `RarityStyle` (color de etiqueta por rareza), `GardenPalette` (claro/oscuro) y `PlacedDeco`.
+- `garden_logic.dart` (lógica pura con pruebas en `test/ui/garden_logic_test.dart`): `GardenLayout` convierte entre la ilustración (1536×2752, `BoxFit.cover`) y la pantalla; `GardenRules.checkDecoration` (lejos de plantas, sin amontonar, dentro de lo visible); `GardenLumi.lineFor` elige qué dice Lumi.
+- **La escena ocupa el espacio sobre la mochila** (`InventoryTray.height`), para que ninguna planta quede tapada. Plantas y decoraciones se ordenan por altura (profundidad).
+- `widgets/`: `garden_plant_slot.dart` (hueco vacío que brilla al plantar, planta que se mece, píldora con anillo de crecimiento, burbuja "+N" con cosecha lista, anillo dorado en modo booster), `plant_info_panel.dart` (etapas con sus ilustraciones, boosters ahí mismo, cosecha, guardar en la mochila), `garden_hud.dart` (barra superior con contador de semillas animado, logros, sonido y chips de multiplicador/escudos; mochila; Lumi con globo), `harvest_dialog.dart`, `garden_sheets.dart` (elegir jardín, progreso y logros, opciones de decoración, escudos, confirmar), `shop_widgets.dart`, `garden_common.dart` (`GardenItemImage`, `RarityChip`, `GlassPanel`, `SeedCounter`, `GardenPressable`, `GardenSheet`, `GardenToast`, `LightRays`).
+- **Interacción**: tocar una planta con cosecha lista cosecha directo; si no, abre su panel. Planta de la mochila → modo plantar (los huecos libres brillan). Booster de la mochila → modo potenciar (tocar una planta que crece). Decoraciones: se arrastran hacia arriba desde la mochila (`Draggable` con `affinity: Axis.vertical`, así la lista sigue deslizándose); tocar una colocada abre opciones y mantenerla presionada la mueve.
+- **Decoraciones en coordenadas de la ilustración** (`v: 2` en `garden/decorations`). Las viejas eran fracciones de la pantalla (`legacy`): se muestran igual y se convierten al moverlas. Antes moverlas no funcionaba (el `DragTarget<String>` rechazaba la decoración colocada) y la posición al soltar tomaba la esquina y no el centro.
+- De noche (20-6 h) el jardín se oscurece y hay luciérnagas. Ambiente sonoro por jardín (prado → bosque, montaña → montaña, noche → grillos) con botón propio (`garden_ambient_enabled`); se apaga al salir.
+- Ya no se lanza una notificación de cosecha al entrar (el usuario ya está en el jardín); suena `harvestReady`.
+
+**Tienda** (`shop_screen.dart`): encabezado con la ilustración del invernadero, semillas y Lumi de tendera; categorías fijas arriba con nuestras ilustraciones; vitrinas en cuadrícula (`SliverGridDelegateWithMaxCrossAxisExtent`) con el aura del item de fondo, etiqueta de rareza, cuántos tienes y botón de precio ("Faltan N" si no alcanza). Secciones: con semillas, premium y de temporada bloqueadas. Tocar una vitrina abre el detalle (rayos de luz, etapas de la planta, cosecha diaria, probabilidad de XP, escudos) y se puede comprar ahí. **Antes no se podía volver a comprar algo que ya tenías** (el botón se cambiaba por un check), aunque plantas y boosters son consumibles. `ShopScreen(previewState:)` (`@visibleForTesting`) renderiza sin Firebase.
+
+**`RewardDialog`**: la ilustración del item con su aura y rayos, etiqueta de rareza, Lumi, contador de semillas y brillo sonoro según rareza. Sin partículas con movimiento reducido.
+
+**Sonidos del jardín** (octava tanda del generador): `leafTap` (tocar planta), `decoPlace` (colocar decoración), `shine(0-2)` (mirar/comprar un item, más notas cuanto más raro) y `harvestReady`.
 
 ### Retos de lecciones (seguimiento)
 - Al comprometerse en un paso `commit`, `CommitmentService` guarda el reto en `users/{uid}/commitments` (está en `_userSubcollections`). Máximo uno pendiente por día: elegir otro el mismo día lo reemplaza, así la recompensa no se repite.
@@ -234,7 +250,7 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - **Ambiente por ruta** en lecciones (`SoundService.ambientForRoute`): emociones → música calma, autoconocimiento → noche con grillos, mindfulness → arroyo, resiliencia → viento con campanas, autoestima → amanecer, relaciones → kalimba, amor → caja musical, ansiedad → olas lentas (`tide`: cada ola sube ~4 s y baja ~6 s, invita a respirar 4-6), sueño → canción de cuna (`lullaby`, grave y lenta). `LessonScreen` necesita `routeId` para elegirlo. `setBaseAmbient`/`clearBaseAmbient`; la práctica guiada pone música calma y al terminar llama a `returnToBaseAmbient`.
 - **En lecciones**: acierto y error; desde el 2.º acierto seguido cada uno suena más agudo (`combo`); `order` toca la escala nota por nota, así que al ordenar se arma una melodía (pasa `sound: false` a `onAnswer`); tic en slider; on/off en pick; burbuja en historias; swipe en mito/realidad; tono ascendente mientras se mantiene presionado el compromiso; campanitas al completar.
 - **En el mapa**: toque de nodo; al volver de una lección suena `unlock` si se desbloqueó otra o `routeComplete` si terminó la ruta.
-- **Hitos de la app**: subir de nivel y logros (`CelebrationDialog`), semillas (`RewardDialog`), check-in de ánimo, hábito cumplido, entrada de diario guardada, jardín (plantar, cosechar, booster) y compra en la tienda.
+- **Hitos de la app**: subir de nivel y logros (`CelebrationDialog`), semillas (`RewardDialog`), check-in de ánimo, hábito cumplido, entrada de diario guardada, jardín (plantar, cosechar, booster, tocar planta, colocar decoración, cosecha lista, brillo por rareza) y compra en la tienda.
 
 ### Respiración guiada
 - 3 técnicas (Box, 4-7-8, Flow).
@@ -345,7 +361,7 @@ flutter clean; flutter pub get
 - ~~Modo claro de la lección~~, ~~"Reducir animaciones"~~ y ~~dividir `lesson_screen.dart`~~: hechos (2026-09-16).
 - ~~Accesibilidad de pasos y menú~~: hecha (2026-09-17), ver "Accesibilidad".
 - ~~Menú de rutas~~ (2026-09-17) y ~~diario, hábitos y recordatorios estilo cuaderno~~ (2026-09-17): hechos.
-- **Jardín: polish completo** (pedido por Ángel, 2026-09-17). Debe cumplir la "Guía de diseño y polish": animaciones (plantas que se mecen y crecen, cosecha con destellos, compra/booster con celebración), Lumi presente (acompaña, reacciona al cosechar o a un jardín vacío), sonidos propios donde falten, modo claro/oscuro, reducir animaciones, accesibilidad y el mismo nivel visual que rutas y diario. Revisar antes `garden_screen.dart` (~3 100 líneas): probablemente convenga dividirlo como se hizo con la lección.
+- ~~**Jardín y tienda: polish completo**~~: hecho (2026-09-17), ver "Jardín".
 - ~~**Menú principal (Home): polish completo**~~: hecho (2026-09-17), ver "Home". Pedido original (2026-09-17): Mismo checklist: jerarquía clara de las tarjetas (hoy hay muchas; `home_screen.dart` tiene ~1 800 líneas), animaciones de entrada y microinteracciones, Lumi como protagonista del saludo, check-in de ánimo más expresivo, sonidos, modo claro/oscuro, reducir animaciones y accesibilidad. Coherente con el estilo de rutas, diario y misiones.
 
 **Antes de publicar**:

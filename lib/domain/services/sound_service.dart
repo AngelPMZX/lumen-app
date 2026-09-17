@@ -45,6 +45,10 @@ enum Sfx {
   // Diario
   pageTurn,
   journalSaved,
+  // Jardín
+  leafTap,
+  decoPlace,
+  harvestReady,
 }
 
 /// Señales de la respiración guiada.
@@ -82,9 +86,11 @@ class SoundService {
 
   static const _prefEffects = 'sound_effects_enabled';
   static const _prefLessonAmbient = 'lesson_ambient_enabled';
+  static const _prefGardenAmbient = 'garden_ambient_enabled';
 
   bool _effectsEnabled = true;
   bool _lessonAmbientEnabled = true;
+  bool _gardenAmbientEnabled = true;
   bool _initialized = false;
 
   final Map<String, AudioPlayer> _oneShots = {};
@@ -103,6 +109,7 @@ class SoundService {
 
   bool get effectsEnabled => _effectsEnabled;
   bool get lessonAmbientEnabled => _lessonAmbientEnabled;
+  bool get gardenAmbientEnabled => _gardenAmbientEnabled;
 
   static String _sfxPath(Sfx s) {
     const names = {
@@ -121,6 +128,9 @@ class SoundService {
       Sfx.chestOpen: 'chest_open',
       Sfx.pageTurn: 'page_turn',
       Sfx.journalSaved: 'journal_saved',
+      Sfx.leafTap: 'leaf_tap',
+      Sfx.decoPlace: 'deco_place',
+      Sfx.harvestReady: 'harvest_ready',
     };
     return 'sounds/sfx/${names[s] ?? s.name}.mp3';
   }
@@ -156,6 +166,7 @@ class SoundService {
       final prefs = await SharedPreferences.getInstance();
       _effectsEnabled = prefs.getBool(_prefEffects) ?? true;
       _lessonAmbientEnabled = prefs.getBool(_prefLessonAmbient) ?? true;
+      _gardenAmbientEnabled = prefs.getBool(_prefGardenAmbient) ?? true;
     } catch (e) {
       debugPrint('SoundService prefs error: $e');
     }
@@ -183,6 +194,13 @@ class SoundService {
     } else if (_baseAmbient != null) {
       await stopAmbient(fadeOut: const Duration(milliseconds: 500));
     }
+  }
+
+  /// Botón de sonido del jardín: solo guarda la preferencia; la pantalla
+  /// inicia o detiene su ambiente.
+  Future<void> setGardenAmbientEnabled(bool value) async {
+    _gardenAmbientEnabled = value;
+    await _savePref(_prefGardenAmbient, value);
   }
 
   Future<void> _savePref(String key, bool value) async {
@@ -225,6 +243,13 @@ class SoundService {
   Future<void> star(int index, {double volume = 0.6}) async {
     if (!_effectsEnabled) return;
     await _playOneShot('sounds/sfx/star_${index.clamp(0, 2)}.mp3', volume);
+  }
+
+  /// Brillo al mirar un item del jardín: 0 común o raro, 1 épico,
+  /// 2 legendario o de temporada.
+  Future<void> shine(int level, {double volume = 0.5}) async {
+    if (!_effectsEnabled) return;
+    await _playOneShot('sounds/sfx/shine_${level.clamp(0, 2)}.mp3', volume);
   }
 
   /// La voz de Lumi al tocarla: rota entre tres variantes.

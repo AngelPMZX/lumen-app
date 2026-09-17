@@ -931,6 +931,48 @@ def sfx_journal_saved():
     return normalize(oneshot_reverb(x, 1.6, 0.35, 6000), -8)
 
 
+# ── Jardín ─────────────────────────────────────────────────────────────────
+def sfx_leaf_tap():
+    """Tocar una planta: hojas que se mueven y una nota de madera."""
+    n = int(0.22 * SR)
+    tt = np.arange(n) / n
+    rustle = fft_filter(rng.normal(size=n), 1800, 7500) * np.sin(np.pi * tt) ** 2 * 0.22
+    x = silence(0.8)
+    place(x, rustle, 0)
+    place(x, note(midi(81), 0.45, MARIMBA, attack=0.002, decay=0.12), 0.03, 0.55)
+    return normalize(oneshot_reverb(x, 0.6, 0.18), -11)
+
+
+def sfx_deco_place():
+    """Colocar una decoración: apoyo suave en la tierra y dos notas claras."""
+    t = t_axis(0.3)
+    thud = np.sin(2 * np.pi * (110 * np.exp(-t * 9) + 60) * t) * np.exp(-t / 0.06)
+    grit = fft_filter(rng.normal(size=len(t)), 300, 2200) * np.exp(-t / 0.03) * 0.25
+    x = silence(1.3)
+    place(x, thud + grit, 0, 0.8)
+    place(x, note(midi(79), 0.9, BELL, decay=0.35), 0.12, 0.3)
+    place(x, note(midi(86), 0.9, GLASS, decay=0.3), 0.2, 0.25)
+    return normalize(oneshot_reverb(x, 0.9, 0.22), -7)
+
+
+def sfx_shine(level):
+    """Brillo al mirar un item: más notas y destellos cuanto más raro (0-2)."""
+    notes = [[84, 88], [81, 84, 88], [79, 84, 88, 91]][level]
+    x = silence(1.8)
+    for i, m in enumerate(notes):
+        place(x, note(midi(m), 1.0, GLASS, attack=0.004, decay=0.45), i * 0.07, 0.45)
+    sparkles(x, 0.15, 0.6 + level * 0.25, 3 + level * 4, 0.08 + level * 0.02)
+    return normalize(oneshot_reverb(x, 1.2, 0.3), -9 + level)
+
+
+def sfx_harvest_ready():
+    """Hay cosecha lista: dos campanitas suaves, como un aviso amable."""
+    x = silence(1.6)
+    place(x, note(midi(88), 1.0, BELL, attack=0.003, decay=0.5), 0, 0.5)
+    place(x, note(midi(93), 1.0, BELL, attack=0.003, decay=0.55), 0.14, 0.45)
+    return normalize(oneshot_reverb(x, 1.1, 0.3), -10)
+
+
 def main():
     print('Ambientes (bucles de %.0f s):' % LOOP)
     export(rain(), 'ambient/rain.mp3', '80k')
@@ -1015,6 +1057,14 @@ def main():
     print('Diario:')
     export(sfx_page_turn(), 'sfx/page_turn.mp3')
     export(sfx_journal_saved(), 'sfx/journal_saved.mp3')
+
+    # Octava tanda: jardín
+    print('Jardín:')
+    export(sfx_leaf_tap(), 'sfx/leaf_tap.mp3')
+    export(sfx_deco_place(), 'sfx/deco_place.mp3')
+    for i in range(3):
+        export(sfx_shine(i), f'sfx/shine_{i}.mp3')
+    export(sfx_harvest_ready(), 'sfx/harvest_ready.mp3')
 
 
 if __name__ == '__main__':

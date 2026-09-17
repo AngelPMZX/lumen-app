@@ -1,713 +1,360 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
+
 import '../../../data/models/garden_item.dart';
+import '../../../data/models/garden_state.dart';
+import '../../../data/models/lumi.dart';
 import '../../../domain/providers/garden_provider.dart';
-import '../../widgets/aura_container.dart';
-import '../../widgets/seed_icon.dart';
-import '../../../domain/services/sound_service.dart';
 import '../../../domain/services/analytics_service.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../widgets/journal/journal_style.dart';
+import '../../widgets/lumi/lumi_avatar.dart';
+import 'garden_defs.dart';
+import 'widgets/garden_common.dart';
+import 'widgets/garden_hud.dart';
+import 'widgets/shop_widgets.dart';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SHOP SCREEN
-// ═════════════════════════════════════════════════════════════════════════════
-
+/// Tienda del jardín: vitrinas con las ilustraciones y su aura de rareza,
+/// detalle de cada item y compra con semillas.
 class ShopScreen extends StatefulWidget {
-  const ShopScreen({super.key});
+  /// Solo para pruebas: muestra este estado sin Firebase.
+  @visibleForTesting
+  final GardenState? previewState;
+
+  const ShopScreen({super.key, this.previewState});
 
   @override
   State<ShopScreen> createState() => _ShopScreenState();
 }
 
-class _ShopScreenState extends State<ShopScreen>
-    with SingleTickerProviderStateMixin {
+class _ShopScreenState extends State<ShopScreen> {
+  ItemType _category = ItemType.plant;
+  final Map<String, int> _bursts = {};
+  int _burstSeq = 0;
 
-  late TabController _tabCtrl;
-  static const _tabs = [
-    ItemType.plant,
-    ItemType.decoration,
-    ItemType.booster,
-  ];
+  static final _categoryIcons = {
+    ItemType.plant: GardenCatalog.findById('plant_clover')!,
+    ItemType.decoration: GardenCatalog.findById('deco_lantern')!,
+    ItemType.booster: GardenCatalog.findById('boost_water')!,
+  };
 
-  @override
-  void initState() {
-    super.initState();
-    _tabCtrl = TabController(length: _tabs.length, vsync: this);
+  List<GardenItem> _itemsOf(ItemType type) => switch (type) {
+    ItemType.plant => GardenCatalog.allPlants,
+    ItemType.decoration => GardenCatalog.allDecorations,
+    ItemType.booster => GardenCatalog.allBoosters,
+    ItemType.theme => const [],
+  };
+
+  void _select(ItemType type) {
+    if (type == _category) return;
+    SoundService.instance.play(Sfx.tapNode, volume: 0.4);
+    setState(() => _category = type);
   }
 
-  @override
-  void dispose() {
-    _tabCtrl.dispose();
-    super.dispose();
+  Future<bool> _buy(GardenItem item, GardenProvider garden) async {
+    HapticFeedback.mediumImpact();
+    final (ok, error) = await garden.buyItem(item);
+    if (!mounted) return false;
+    if (ok) {
+      SoundService.instance.play(Sfx.buy, volume: 0.6);
+      Future.delayed(const Duration(milliseconds: 180), () => SoundService.instance.shine(RarityStyle.shine(item.rarity), volume: 0.4));
+      AnalyticsService.instance.gardenAction('buy', itemId: item.id);
+      setState(() => _bursts[item.id] = ++_burstSeq);
+      GardenToast.show(
+        context,
+        text: 'garden.purchaseSuccess'.tr(),
+        leading: GardenItemImage(item: item, size: 30, aura: false),
+      );
+    } else {
+      SoundService.instance.play(Sfx.wrong, volume: 0.45);
+      GardenToast.show(context, text: error ?? 'garden.notEnoughSeeds'.tr(), color: const Color(0xFFDC6B4A));
+    }
+    return ok;
   }
 
-// ── Helper: imagen del item (PNG real con fallback a emoji + aura) ─────────
-
-Widget _itemVisual(GardenItem item, {double size = 32}) {
-  Widget baseVisual;
-
-  if (item.type == ItemType.plant) {
-    final name = item.id.replaceFirst('plant_', '');
-    baseVisual = Image.asset(
-      'assets/images/plants/${name}_4_adult.webp',
-      width: size, height: size,
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) => Image.asset(
-        'assets/images/plants/${name}_1_seed.webp',
-        width: size, height: size,
-        fit: BoxFit.contain,
-        errorBuilder: (_, _, _) =>
-            Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
+  Future<void> _open(GardenItem item) async {
+    SoundService.instance.shine(RarityStyle.shine(item.rarity), volume: 0.45);
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.9),
+        child: Consumer<GardenProvider>(
+          builder: (_, garden, _) =>
+              ShopItemDetail(item: item, owned: () => garden.state.quantityOf(item.id), seeds: () => garden.seeds, onBuy: () => _buy(item, garden)),
+        ),
       ),
     );
-  } else if (item.type == ItemType.decoration) {
-    final name = item.id.replaceFirst('deco_', '');
-    baseVisual = Image.asset(
-      'assets/images/decorations/$name.webp',
-      width: size, height: size,
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) =>
-          Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
-    );
-  } else if (item.type == ItemType.booster) {
-    final name = item.id.replaceFirst('boost_', '');
-    baseVisual = Image.asset(
-      'assets/images/boosters/$name.webp',
-      width: size, height: size,
-      fit: BoxFit.contain,
-      errorBuilder: (_, _, _) =>
-          Text(item.emoji, style: TextStyle(fontSize: size * 0.8)),
-    );
-  } else {
-    baseVisual = Text(item.emoji, style: TextStyle(fontSize: size * 0.8));
   }
-
-  // Envolver con aura por color/rareza
-  return AuraContainer(
-    item: item,
-    sizeMultiplier: size / 32,
-    child: SizedBox(
-      width: size, height: size,
-      child: baseVisual,
-    ),
-  );
-}
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // BUILD
-  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final p = GardenPalette(isDark);
+    final GardenState state = widget.previewState ?? context.watch<GardenProvider>().state;
+    final items = _itemsOf(_category);
+    final forSeeds = items.where((i) => shopAvailabilityOf(i) == ShopAvailability.seeds).toList();
+    final premium = items.where((i) => shopAvailabilityOf(i) == ShopAvailability.premium).toList();
+    final seasonal = items.where((i) => shopAvailabilityOf(i) == ShopAvailability.seasonalLocked).toList();
+
+    Widget grid(List<GardenItem> list, int sectionIndex) => SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 230, mainAxisSpacing: 12, crossAxisSpacing: 12, mainAxisExtent: 238),
+        delegate: SliverChildBuilderDelegate((context, i) {
+          final item = list[i];
+          return ShopItemCard(
+                key: ValueKey(item.id),
+                item: item,
+                owned: state.quantityOf(item.id),
+                seeds: state.seeds,
+                isDark: isDark,
+                purchaseBurst: _bursts[item.id] ?? 0,
+                onOpen: () => _open(item),
+                onBuy: () => _buy(item, context.read<GardenProvider>()),
+              )
+              .animate(key: ValueKey('in_${_category.name}_${item.id}'))
+              .fadeIn(delay: (50 * i + 40 * sectionIndex).ms, duration: 320.ms)
+              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic);
+        }, childCount: list.length),
+      ),
+    );
+
+    final background = isDark ? const Color(0xFF0F1A15) : const Color(0xFFF6F1E4);
+    final top = MediaQuery.viewPaddingOf(context).top;
 
     return Scaffold(
-      backgroundColor: isDark
-          ? const Color(0xFF0A1628)
-          : const Color(0xFFF1F8F1),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(isDark),
-            _buildTabBar(isDark),
-            Expanded(
-              child: Consumer<GardenProvider>(
-                builder: (_, garden, _) => TabBarView(
-                  controller: _tabCtrl,
-                  children: _tabs.map((type) =>
-                      _buildItemGrid(type, garden, isDark)).toList(),
+      backgroundColor: background,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _ShopHeader(seeds: state.seeds, isDark: isDark, line: _lumiLine(state.seeds)),
+              ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _PinnedCategories(
+                  background: background,
+                  topInset: top,
+                  child: ShopCategoryBar(
+                    isDark: isDark,
+                    selected: _category,
+                    onSelect: _select,
+                    categories: [
+                      (ItemType.plant, _categoryIcons[ItemType.plant]!, 'garden.categories.plants'.tr()),
+                      (ItemType.decoration, _categoryIcons[ItemType.decoration]!, 'garden.categories.decorations'.tr()),
+                      (ItemType.booster, _categoryIcons[ItemType.booster]!, 'garden.categories.boosters'.tr()),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Top bar ────────────────────────────────────────────────────────────────
-
-  Widget _buildTopBar(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-      child: Row(children: [
-        GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            width: 38, height: 38,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.arrow_back_rounded,
-                color: isDark ? Colors.white70 : Colors.black54, size: 20),
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Text('garden.shopTitle'.tr(), style: TextStyle(
-            fontSize: 20, fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF1A2E1A),
-          )),
-        ),
-        Consumer<GardenProvider>(
-          builder: (_, garden, _) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.3)),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const SeedIcon(size: 24),
-const SizedBox(width: 6),
-              Text('${garden.seeds}', style: const TextStyle(
-                color: Color(0xFF10B981),
-                fontSize: 14, fontWeight: FontWeight.w800,
-              )),
-            ]),
-          ),
-        ),
-      ]),
-    ).animate().fadeIn(duration: 400.ms);
-  }
-
-  // ── Tab bar ────────────────────────────────────────────────────────────────
-
-  Widget _buildTabBar(bool isDark) {
-    final labels = [
-      'garden.categories.plants'.tr(),
-      'garden.categories.decorations'.tr(),
-      'garden.categories.boosters'.tr(),
-    ];
-    final icons = ['🌱', '🪨', '💧'];
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.06)
-              : Colors.black.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: TabBar(
-  controller: _tabCtrl,
-  indicator: BoxDecoration(
-    color: const Color(0xFF10B981),
-    borderRadius: BorderRadius.circular(13),
-  ),
-  indicatorSize: TabBarIndicatorSize.tab,
-  dividerColor: Colors.transparent,
-  labelColor: Colors.white,
-  unselectedLabelColor: isDark ? Colors.white54 : Colors.black45,
-  labelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
-  labelPadding: EdgeInsets.zero,   // ← elimina el padding lateral por defecto
-  tabs: List.generate(labels.length, (i) => Tab(
-    height: 48,
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(icons[i], style: const TextStyle(fontSize: 13)),
-        const SizedBox(width: 3),
-        Flexible(
-          child: Text(
-            labels[i],
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ),
-      ],
-    ),
-  )),
-),
-      ),
-    );
-  }
-
-  // ── Item grid ──────────────────────────────────────────────────────────────
-
-  Widget _buildItemGrid(ItemType type, GardenProvider garden, bool isDark) {
-    final items = _getItemsByType(type);
-
-    if (items.isEmpty) return _buildEmptyCategory(isDark);
-
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-      children: [
-        const SizedBox(height: 8),
-        ...items
-            .where((i) => i.canBuyWithSeeds && i.isCurrentlyAvailable)
-            .map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildItemCard(item, garden, isDark)
-                  .animate(delay: (items.indexOf(item) * 60).ms)
-                  .fadeIn(duration: 400.ms)
-                  .slideX(begin: 0.05, end: 0),
-            )),
-
-        if (items.any((i) => i.isPremium)) ...[
-          const SizedBox(height: 8),
-          _buildPremiumHeader(isDark),
-          const SizedBox(height: 12),
-          ...items
-              .where((i) => i.isPremium)
-              .map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildPremiumCard(item, garden, isDark),
-              )),
-        ],
-
-        if (items.any((i) => i.isSeasonal && !i.isCurrentlyAvailable)) ...[
-          const SizedBox(height: 8),
-          _buildSeasonalHeader(isDark),
-          const SizedBox(height: 12),
-          ...items
-              .where((i) => i.isSeasonal && !i.isCurrentlyAvailable)
-              .map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildLockedSeasonalCard(item, isDark),
-              )),
-        ],
-      ],
-    );
-  }
-
-  List<GardenItem> _getItemsByType(ItemType type) {
-    switch (type) {
-      case ItemType.plant:      return GardenCatalog.allPlants;
-      case ItemType.decoration: return GardenCatalog.allDecorations;
-      case ItemType.booster:    return GardenCatalog.allBoosters;
-      case ItemType.theme:      return [];
-    }
-  }
-
-  // ── Item card (semillas) ───────────────────────────────────────────────────
-
-  Widget _buildItemCard(GardenItem item, GardenProvider garden, bool isDark) {
-    final canAfford = garden.state.canAfford(item);
-    final alreadyOwned = garden.state.hasInInventory(item.id);
-    final rarityColor = _rarityColor(item.rarity);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: alreadyOwned
-              ? const Color(0xFF10B981).withValues(alpha: 0.3)
-              : isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.07),
-        ),
-        boxShadow: isDark ? null : [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8, offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(children: [
-        // ── Visual del item + badge de rareza ──────────────────────────
-        Stack(children: [
-          Container(
-            width: 56, height: 56,
-            decoration: BoxDecoration(
-              color: rarityColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(child: _itemVisual(item, size: 40)),
-          ),
-          Positioned(
-            bottom: 0, right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              decoration: BoxDecoration(
-                color: rarityColor,
-                borderRadius: BorderRadius.circular(4),
+              if (forSeeds.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                    child: ShopSectionTitle(kicker: 'garden.shopSeedsKicker'.tr(), title: 'garden.shopSeedsTitle'.tr(), isDark: isDark),
+                  ),
+                ),
+                grid(forSeeds, 0),
+              ],
+              if (premium.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+                    child: ShopSectionTitle(
+                      kicker: 'garden.shopPremiumKicker'.tr(),
+                      title: 'garden.categories.premium'.tr(),
+                      isDark: isDark,
+                      color: GardenPalette.violet,
+                    ),
+                  ),
+                ),
+                grid(premium, 1),
+              ],
+              if (seasonal.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+                    child: ShopSectionTitle(
+                      kicker: 'garden.shopSeasonalKicker'.tr(),
+                      title: 'garden.seasonal'.tr(),
+                      isDark: isDark,
+                      color: const Color(0xFFEC4899),
+                    ),
+                  ),
+                ),
+                grid(seasonal, 2),
+              ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(24, 24, 24, 28 + MediaQuery.viewPaddingOf(context).bottom),
+                  child: Text(
+                    'garden.shopFooter'.tr(),
+                    textAlign: TextAlign.center,
+                    style: JournalStyle.hand(TextStyle(fontSize: 18, color: p.inkSoft)),
+                  ),
+                ),
               ),
-              child: Text(
-                'garden.rarity.${item.rarity.name}'.tr(),
-                style: const TextStyle(
-                    fontSize: 7, color: Colors.white, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-        ]),
-        const SizedBox(width: 14),
-
-        // ── Info ───────────────────────────────────────────────────────
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(item.nameKey.tr(), style: TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : const Color(0xFF1A2E1A),
-            )),
-            const SizedBox(height: 3),
-            Text(item.descriptionKey.tr(), style: TextStyle(
-              fontSize: 12, height: 1.4,
-              color: isDark ? Colors.white54 : Colors.black45,
-            ), maxLines: 2, overflow: TextOverflow.ellipsis),
-            if (item.growthTime != null) ...[
-              const SizedBox(height: 4),
-              Row(children: [
-                Icon(Icons.schedule_rounded, size: 12,
-                    color: isDark ? Colors.white38 : Colors.black38),
-                const SizedBox(width: 3),
-                Text(_formatDuration(item.growthTime!), style: TextStyle(
-                  fontSize: 11,
-                  color: isDark ? Colors.white38 : Colors.black38,
-                )),
-              ]),
             ],
-          ],
-        )),
-        const SizedBox(width: 12),
-
-        // ── Botón comprar ──────────────────────────────────────────────
-        alreadyOwned
-            ? _buildOwnedBadge()
-            : _buildBuyButton(item, canAfford, garden, isDark),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildOwnedBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF10B981).withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
-      ),
-      child: const Icon(Icons.check_rounded, color: Color(0xFF10B981), size: 16),
-    );
+  LumiLine _lumiLine(int seeds) {
+    final cheapest = _itemsOf(
+      _category,
+    ).where((i) => shopAvailabilityOf(i) == ShopAvailability.seeds).fold<int?>(null, (m, i) => m == null || i.seedCost < m ? i.seedCost : m);
+    if (cheapest != null && seeds < cheapest) {
+      return const LumiLine('garden.shopLumi.save', LumiMood.caring);
+    }
+    return switch (_category) {
+      ItemType.decoration => const LumiLine('garden.shopLumi.decorations', LumiMood.curious),
+      ItemType.booster => const LumiLine('garden.shopLumi.boosters', LumiMood.excited),
+      _ => const LumiLine('garden.shopLumi.plants', LumiMood.happy),
+    };
   }
-
-  Widget _buildBuyButton(
-    GardenItem item, bool canAfford, GardenProvider garden, bool isDark) {
-  return GestureDetector(
-    onTap: canAfford ? () => _buyItem(item, garden) : null,
-    child: AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: canAfford
-            ? const Color(0xFF10B981)
-            : isDark
-                ? Colors.white.withValues(alpha: 0.06)
-                : Colors.black.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        const SeedIcon(size: 22),
-        const SizedBox(width: 6),
-        Text('${item.seedCost}', style: TextStyle(
-          fontSize: 14, fontWeight: FontWeight.w800,
-          color: canAfford ? Colors.white : Colors.grey,
-        )),
-      ]),
-    ),
-  );
 }
 
-  // ── Premium card ───────────────────────────────────────────────────────────
+/// Encabezado ilustrado: el invernadero de fondo, las semillas y Lumi.
+class _ShopHeader extends StatelessWidget {
+  final int seeds;
+  final bool isDark;
+  final LumiLine line;
 
-  Widget _buildPremiumCard(GardenItem item, GardenProvider garden, bool isDark) {
-    final alreadyPurchased = garden.state.hasPurchased(item.id);
+  const _ShopHeader({required this.seeds, required this.isDark, required this.line});
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: isDark
-            ? [const Color(0xFF1A1A3E), const Color(0xFF2D1B69).withValues(alpha: 0.5)]
-            : [const Color(0xFFF5F0FF), const Color(0xFFEDE9FE)]),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3)),
-      ),
-      child: Row(children: [
-        // ── Visual del item ────────────────────────────────────────────
-        Container(
-          width: 56, height: 56,
-          decoration: BoxDecoration(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Center(child: _itemVisual(item, size: 40)),
-        ),
-        const SizedBox(width: 14),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.viewPaddingOf(context).top;
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+      child: SizedBox(
+        height: 230 + top,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Row(children: [
-              Text(item.nameKey.tr(), style: TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : const Color(0xFF1A1A2E),
-              )),
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
+            Image.asset(
+              GardensCatalog.greenhouse.assetPath,
+              fit: BoxFit.cover,
+              alignment: const Alignment(0, -0.2),
+              errorBuilder: (_, _, _) => Container(color: GardensCatalog.greenhouse.tint),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.black.withValues(alpha: isDark ? 0.45 : 0.2),
+                    const Color(0xFF0E1A14).withValues(alpha: isDark ? 0.85 : 0.65),
+                  ],
                 ),
-                child: const Text('PRO', style: TextStyle(
-                  fontSize: 9, fontWeight: FontWeight.w900,
-                  color: Color(0xFF8B5CF6),
-                )),
               ),
-            ]),
-            const SizedBox(height: 3),
-            Text(item.descriptionKey.tr(), style: TextStyle(
-              fontSize: 12, height: 1.4,
-              color: isDark ? Colors.white54 : Colors.black45,
-            ), maxLines: 2, overflow: TextOverflow.ellipsis),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(8, top + 4, 14, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      GlassIconButton(icon: Icons.arrow_back_rounded, label: 'common.back'.tr(), onTap: () => Navigator.pop(context)),
+                      const Spacer(),
+                      GlassPanel(
+                        padding: const EdgeInsets.fromLTRB(6, 5, 12, 5),
+                        radius: 20,
+                        borderColor: const Color(0xFFFBBF24).withValues(alpha: 0.5),
+                        child: SeedCounter(seeds: seeds, iconSize: 28),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('garden.shopKicker'.tr(), style: JournalStyle.hand(const TextStyle(fontSize: 22, height: 1.0, color: Color(0xFFA7F3D0)))),
+                              Semantics(
+                                header: true,
+                                child: Text(
+                                  'garden.shopTitle'.tr(),
+                                  style: const TextStyle(fontSize: 27, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: Container(
+                                  key: ValueKey(line.key),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(16),
+                                      topRight: Radius.circular(16),
+                                      bottomLeft: Radius.circular(16),
+                                      bottomRight: Radius.circular(4),
+                                    ),
+                                  ),
+                                  child: Semantics(
+                                    liveRegion: true,
+                                    child: Text(
+                                      line.key.tr(),
+                                      style: const TextStyle(fontSize: 12.5, height: 1.3, fontWeight: FontWeight.w600, color: Color(0xFF26332B)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      LumiAvatar(mood: line.mood, size: 78, onTap: () {}),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
-        )),
-        const SizedBox(width: 12),
-        alreadyPurchased
-            ? _buildOwnedBadge()
-            : GestureDetector(
-                onTap: () => _showPremiumComingSoon(item),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '\$${item.premiumCost?.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white),
-                  ),
-                ),
-              ),
-      ]),
-    );
-  }
-
-  // ── Seasonal locked card ───────────────────────────────────────────────────
-
-  Widget _buildLockedSeasonalCard(GardenItem item, bool isDark) {
-    final monthName = _monthName(item.availableMonth ?? 12);
-
-    return Opacity(
-      opacity: 0.5,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.04)
-              : Colors.black.withValues(alpha: 0.03),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.06)
-                : Colors.black.withValues(alpha: 0.06),
-          ),
         ),
-        child: Row(children: [
-          // ── Visual con lock overlay ────────────────────────────────
-          Stack(children: [
-            Container(
-              width: 56, height: 56,
-              decoration: BoxDecoration(
-                color: Colors.grey.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(child: _itemVisual(item, size: 40)),
-            ),
-            Positioned.fill(child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.lock_rounded, color: Colors.white, size: 22),
-            )),
-          ]),
-          const SizedBox(width: 14),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(item.nameKey.tr(), style: TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white70 : Colors.black54,
-              )),
-              const SizedBox(height: 3),
-              Text(
-                'garden.seasonalLocked'.tr(namedArgs: {'month': monthName}),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.white38 : Colors.black38,
-                ),
-              ),
-            ],
-          )),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text('garden.seasonal'.tr(), style: TextStyle(
-              fontSize: 10, fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white38 : Colors.black38,
-            )),
-          ),
-        ]),
       ),
-    );
+    ).animate().fadeIn(duration: 350.ms);
+  }
+}
+
+class _PinnedCategories extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final Color background;
+
+  /// Alto de la barra de estado: al quedar fija arriba no se mete debajo.
+  final double topInset;
+
+  _PinnedCategories({required this.child, required this.background, required this.topInset});
+
+  @override
+  double get minExtent => 78 + topInset;
+
+  @override
+  double get maxExtent => 78 + topInset;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(color: background, padding: EdgeInsets.fromLTRB(16, 4 + topInset, 16, 4), alignment: Alignment.center, child: child);
   }
 
-  // ── Section headers ────────────────────────────────────────────────────────
-
-  Widget _buildPremiumHeader(bool isDark) {
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)]),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Text('💎', style: TextStyle(fontSize: 12)),
-          const SizedBox(width: 4),
-          Text('garden.categories.premium'.tr(), style: const TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white,
-          )),
-        ]),
-      ),
-      const SizedBox(width: 10),
-      Expanded(child: Divider(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.black.withValues(alpha: 0.08),
-      )),
-    ]);
-  }
-
-  Widget _buildSeasonalHeader(bool isDark) {
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: Colors.grey.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          const Text('📅', style: TextStyle(fontSize: 12)),
-          const SizedBox(width: 4),
-          Text('garden.seasonal'.tr(), style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white54 : Colors.black45,
-          )),
-        ]),
-      ),
-      const SizedBox(width: 10),
-      Expanded(child: Divider(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : Colors.black.withValues(alpha: 0.08),
-      )),
-    ]);
-  }
-
-  Widget _buildEmptyCategory(bool isDark) {
-    return Center(
-      child: Text('garden.inventoryEmpty'.tr(), style: TextStyle(
-        color: isDark ? Colors.white38 : Colors.black38,
-      )),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ACCIONES
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Future<void> _buyItem(GardenItem item, GardenProvider garden) async {
-    HapticFeedback.mediumImpact();
-    final (success, error) = await garden.buyItem(item);
-    SoundService.instance.play(success ? Sfx.buy : Sfx.wrong, volume: 0.6);
-    if (success) AnalyticsService.instance.gardenAction('buy', itemId: item.id);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Row(children: [
-        SizedBox(
-          width: 28, height: 28,
-          child: _itemVisual(item, size: 22),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Text(
-          success
-              ? 'garden.purchaseSuccess'.tr()
-              : (error ?? 'garden.notEnoughSeeds'.tr()),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-        )),
-      ]),
-      backgroundColor: success ? const Color(0xFF10B981) : Colors.red.shade400,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 2),
-    ));
-  }
-
-  void _showPremiumComingSoon(GardenItem item) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(children: [
-          SizedBox(width: 32, height: 32, child: _itemVisual(item, size: 28)),
-          const SizedBox(width: 10),
-          Text(item.nameKey.tr(),
-              style: const TextStyle(fontWeight: FontWeight.w700)),
-        ]),
-        content: Text('common.comingSoon'.tr()),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF8B5CF6),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text('common.ok'.tr()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-
-  Color _rarityColor(ItemRarity rarity) {
-    switch (rarity) {
-      case ItemRarity.common:    return const Color(0xFF6366F1);
-      case ItemRarity.rare:      return const Color(0xFF3B82F6);
-      case ItemRarity.epic:      return const Color(0xFF8B5CF6);
-      case ItemRarity.legendary: return const Color(0xFFF59E0B);
-      case ItemRarity.seasonal:  return const Color(0xFFEC4899);
-    }
-  }
-
-  String _formatDuration(Duration d) {
-    if (d.inHours >= 24) return '${d.inDays}d';
-    if (d.inHours >= 1)  return '${d.inHours}h';
-    return '${d.inMinutes}min';
-  }
-
-  String _monthName(int month) => 'garden.months.$month'.tr();
+  @override
+  bool shouldRebuild(_PinnedCategories old) => true;
 }
