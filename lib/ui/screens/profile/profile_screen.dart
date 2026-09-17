@@ -58,33 +58,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (_) {}
   }
 
-  static List<Color> archetypeColors(String? archetype) => switch (archetype) {
-        'explorador' => const [Color(0xFF6366F1), Color(0xFF4338CA)],
-        'guerrero' => const [Color(0xFFEF4444), Color(0xFFB91C1C)],
-        'social' => const [Color(0xFFEC4899), Color(0xFFBE185D)],
-        'sabio' => const [Color(0xFF10B981), Color(0xFF047857)],
-        'libre' => const [Color(0xFFF59E0B), Color(0xFFC2410C)],
-        _ => const [AppColors.primary, AppColors.primaryDark],
-      };
-
-  static String archetypeEmoji(String? archetype) => switch (archetype) {
-        'explorador' => '🧭',
-        'guerrero' => '🛡️',
-        'social' => '🤝',
-        'sabio' => '🦉',
-        'libre' => '🕊️',
-        _ => '✨',
-      };
-
-  static String archetypeName(String? archetype) => switch (archetype) {
-        'explorador' => 'archetype.explorerName'.tr(),
-        'guerrero' => 'archetype.warriorName'.tr(),
-        'social' => 'archetype.socialName'.tr(),
-        'sabio' => 'archetype.sageName'.tr(),
-        'libre' => 'archetype.freeSpiritName'.tr(),
-        _ => 'profile.noArchetype'.tr(),
-      };
-
   static String levelTitle(int level) {
     if (level <= 3) return 'userProgress.levelTitles.emotionalNovice'.tr();
     if (level <= 7) return 'userProgress.levelTitles.consciousApprentice'.tr();
@@ -277,9 +250,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ProfileHero(
         name: auth.userName,
         username: auth.userModel?.username,
-        archetypeName: archetypeName(archetype),
-        archetypeEmoji: archetypeEmoji(archetype),
-        colors: archetypeColors(archetype),
+        archetypeName: ArchetypeStyle.name(archetype),
+        archetypeEmoji: ArchetypeStyle.emoji(archetype),
+        colors: ArchetypeStyle.colors(archetype),
         level: level,
         levelTitle: levelTitle(level),
         xpInLevel: xpInLevel,
@@ -317,7 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         items: [
           SettingsItem(
             icon: Icons.person_rounded,
-            color: archetypeColors(archetype).first,
+            color: ArchetypeStyle.colors(archetype).first,
             title: 'profile.editProfile'.tr(),
             subtitle: 'profileScreen.editProfileSubtitle'.tr(),
             onTap: _editProfile,

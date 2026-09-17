@@ -1338,7 +1338,7 @@
     "wrongCurrentPassword": "Contraseña actual incorrecta",
     "changePasswordError": "Error al cambiar contraseña",
     "emotionalArchetype": "Tu arquetipo emocional",
-    "archetypeLockedDesc": "Determinado en tu registro inicial. No se puede cambiar.",
+    "archetypeLockedDesc": "Se definió con tus respuestas al crear tu cuenta, así que no cambia.",
     "yourArchetype": "Tu arquetipo",
     "deleteAccount": "Eliminar cuenta",
     "deleteAccountDesc": "Borra tu cuenta y todos tus datos para siempre",
@@ -1365,7 +1365,23 @@
       "libre": {
         "shortDesc": "Creativo, espontáneo, vive el momento"
       }
-    }
+    },
+    "previewLabel": "Así te verás",
+    "infoKicker": "Tus datos",
+    "archetypeKicker": "Quién eres en Lumen",
+    "securityKicker": "Tu cuenta segura",
+    "security": "Contraseña",
+    "changePasswordHint": "Cámbiala cuando quieras",
+    "saveChanges": "Guardar cambios",
+    "verified": "Verificado",
+    "usernameHint": "Solo minúsculas, números, puntos y guiones bajos",
+    "usernameChecking": "Viendo si está libre…",
+    "usernameAvailable": "¡Está libre! Es tuyo al guardar",
+    "togglePasswordVisibility": "Mostrar u ocultar la contraseña",
+    "discardTitle": "¿Dejar los cambios sin guardar?",
+    "discardBody": "Hiciste cambios que todavía no se guardan. Puedes volver y guardarlos.",
+    "discardLeave": "Salir sin guardar",
+    "discardStay": "Seguir editando"
   },
   "profileScreen": {
     "currentStreakStat": "Racha\nactual",
@@ -1373,7 +1389,7 @@
     "totalXpStat": "XP\ntotal",
     "diaryEntriesStat": "Entradas\ndiario",
     "medalsUnlocked": "{unlocked} de {total} desbloqueadas",
-    "editProfileSubtitle": "Nombre, usuario, arquetipo",
+    "editProfileSubtitle": "Nombre, usuario y contraseña",
     "moodHistorySubtitle": "Tu resumen emocional",
     "themeTitle": "Tema",
     "darkModeOn": "Modo oscuro activado",
@@ -1710,11 +1726,30 @@
     "motivational": {
       "0": "Tu sistema nervioso te lo agradece 🙏",
       "1": "Cada respiración consciente es un acto de autocuidado ✨",
-      "2": "Acabas de reducir tu cortisol. Así de poderoso eres 💪",
+      "2": "Acabas de bajar tu cortisol. Qué bien te cuidas 💪",
       "3": "La calma no es ausencia de caos — es dominio del aliento 🌊"
     },
     "cuesLabel": "Señales de sonido",
-    "cuesSubtitle": "Un tono suave al inhalar, sostener y exhalar"
+    "cuesSubtitle": "Un tono suave al inhalar, sostener y exhalar",
+    "getReady": "Prepárate",
+    "minShort": "min",
+    "minutes": {
+      "one": "{} minuto",
+      "other": "{} minutos"
+    },
+    "techniqueKicker": "Elige tu ritmo",
+    "durationKicker": "¿Cuánto tiempo?",
+    "soundKicker": "Escucha y elige",
+    "lumiSetup": "Respirar unos minutos ya cambia cómo te sientes. Yo te acompaño.",
+    "lumiBreathes": "Lumi respira contigo",
+    "cycleOf": "Ciclo {cycle} de {total}",
+    "cyclesHint": "Serán unos {count} ciclos completos",
+    "cyclesLabel": "Ciclos",
+    "timeLeft": "Quedan {time}",
+    "stop": "Terminar y salir",
+    "pause": "Pausar",
+    "resume": "Continuar",
+    "finishNow": "Terminar ahora"
   },
   "garden": {
     "title": "Mi Jardín Zen",

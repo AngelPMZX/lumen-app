@@ -13,6 +13,38 @@ import '../../../widgets/lumi/lumi_avatar.dart';
 import '../../../widgets/medal_badge.dart';
 import '../../routes/widgets/route_progress_ring.dart';
 
+/// Colores, emoji y nombre de cada arquetipo (lo usan el perfil y su editor).
+class ArchetypeStyle {
+  ArchetypeStyle._();
+
+  static List<Color> colors(String? archetype) => switch (archetype) {
+        'explorador' => const [Color(0xFF6366F1), Color(0xFF4338CA)],
+        'guerrero' => const [Color(0xFFEF4444), Color(0xFFB91C1C)],
+        'social' => const [Color(0xFFEC4899), Color(0xFFBE185D)],
+        'sabio' => const [Color(0xFF10B981), Color(0xFF047857)],
+        'libre' => const [Color(0xFFF59E0B), Color(0xFFC2410C)],
+        _ => const [AppColors.primary, AppColors.primaryDark],
+      };
+
+  static String emoji(String? archetype) => switch (archetype) {
+        'explorador' => '🧭',
+        'guerrero' => '🛡️',
+        'social' => '🤝',
+        'sabio' => '🦉',
+        'libre' => '🕊️',
+        _ => '✨',
+      };
+
+  static String name(String? archetype) => switch (archetype) {
+        'explorador' => 'archetype.explorerName'.tr(),
+        'guerrero' => 'archetype.warriorName'.tr(),
+        'social' => 'archetype.socialName'.tr(),
+        'sabio' => 'archetype.sageName'.tr(),
+        'libre' => 'archetype.freeSpiritName'.tr(),
+        _ => 'profile.noArchetype'.tr(),
+      };
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // Encabezado
 // ═════════════════════════════════════════════════════════════════════════════

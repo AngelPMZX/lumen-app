@@ -1,330 +1,198 @@
-import 'dart:math' as math;
+import 'dart:async';
+
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../../data/models/lumi.dart';
 import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
-import '../../../domain/services/sound_service.dart';
-import '../../widgets/discovery_dialog.dart';
-import '../../widgets/reward_dialog.dart';
 import '../../../domain/services/analytics_service.dart';
 import '../../../domain/services/motion_service.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../widgets/discovery_dialog.dart';
+import '../../widgets/journal/journal_style.dart';
+import '../../widgets/lumi/lumi_avatar.dart';
+import '../../widgets/reward_dialog.dart';
+import 'breathing_data.dart';
+import 'widgets/breath_orb.dart';
+import 'widgets/breathing_setup.dart';
+import 'widgets/breathing_sky.dart';
 
-// ─── Breathing technique model ────────────────────────────────────────────────
-class _BreathingTechnique {
-  final String id;
-  final String nameKey;
-  final String descriptionKey;
-  final String benefitKey;
-  final String emoji;
-  final Color color;
-  final List<_BreathPhase> phases;
+enum _Step { science, setup, session, completion }
 
-  const _BreathingTechnique({
-    required this.id,
-    required this.nameKey,
-    required this.descriptionKey,
-    required this.benefitKey,
-    required this.emoji,
-    required this.color,
-    required this.phases,
-  });
-
-  int get totalCycleDuration =>
-      phases.fold(0, (sum, p) => sum + p.durationSeconds);
-}
-
-class _BreathPhase {
-  final String labelKey;
-  final int durationSeconds;
-  final bool expand;
-
-  const _BreathPhase({
-    required this.labelKey,
-    required this.durationSeconds,
-    required this.expand,
-  });
-}
-
-// ─── Ambient sound ────────────────────────────────────────────────────────────
-class _AmbientSound {
-  final String id;
-  final String labelKey;
-  final String emoji;
-
-  /// null = sin sonido. Los bucles son locales (assets/sounds/ambient/).
-  final Ambient? ambient;
-
-  const _AmbientSound({
-    required this.id,
-    required this.labelKey,
-    required this.emoji,
-    required this.ambient,
-  });
-}
-
-// ─── Static data ──────────────────────────────────────────────────────────────
-const _techniques = [
-  _BreathingTechnique(
-    id: 'box',
-    nameKey: 'breathing.box.name',
-    descriptionKey: 'breathing.box.description',
-    benefitKey: 'breathing.box.benefit',
-    emoji: '⬜',
-    color: Color(0xFF6366F1),
-    phases: [
-      _BreathPhase(labelKey: 'breathing.phase.inhale', durationSeconds: 4, expand: true),
-      _BreathPhase(labelKey: 'breathing.phase.hold',   durationSeconds: 4, expand: true),
-      _BreathPhase(labelKey: 'breathing.phase.exhale', durationSeconds: 4, expand: false),
-      _BreathPhase(labelKey: 'breathing.phase.hold',   durationSeconds: 4, expand: false),
-    ],
-  ),
-  _BreathingTechnique(
-    id: 'calm_478',
-    nameKey: 'breathing.calm478.name',
-    descriptionKey: 'breathing.calm478.description',
-    benefitKey: 'breathing.calm478.benefit',
-    emoji: '🌊',
-    color: Color(0xFF0EA5E9),
-    phases: [
-      _BreathPhase(labelKey: 'breathing.phase.inhale', durationSeconds: 4,  expand: true),
-      _BreathPhase(labelKey: 'breathing.phase.hold',   durationSeconds: 7,  expand: true),
-      _BreathPhase(labelKey: 'breathing.phase.exhale', durationSeconds: 8,  expand: false),
-    ],
-  ),
-  _BreathingTechnique(
-    id: 'flow',
-    nameKey: 'breathing.flow.name',
-    descriptionKey: 'breathing.flow.description',
-    benefitKey: 'breathing.flow.benefit',
-    emoji: '🍃',
-    color: Color(0xFF10B981),
-    phases: [
-      _BreathPhase(labelKey: 'breathing.phase.inhale', durationSeconds: 4, expand: true),
-      _BreathPhase(labelKey: 'breathing.phase.exhale', durationSeconds: 8, expand: false),
-    ],
-  ),
-];
-
-const _ambientSounds = [
-  _AmbientSound(id: 'music',  labelKey: 'breathing.sound.music',  emoji: '🎵', ambient: Ambient.calmMusic),
-  _AmbientSound(id: 'rain',   labelKey: 'breathing.sound.rain',   emoji: '🌧️', ambient: Ambient.rain),
-  _AmbientSound(id: 'forest', labelKey: 'breathing.sound.forest', emoji: '🌲', ambient: Ambient.forest),
-  _AmbientSound(id: 'ocean',  labelKey: 'breathing.sound.ocean',  emoji: '🌊', ambient: Ambient.ocean),
-  _AmbientSound(id: 'stream', labelKey: 'breathing.sound.stream', emoji: '🏞️', ambient: Ambient.stream),
-  _AmbientSound(id: 'night',  labelKey: 'breathing.sound.night',  emoji: '🌙', ambient: Ambient.night),
-  _AmbientSound(id: 'tide',   labelKey: 'breathing.sound.tide',   emoji: '🐚', ambient: Ambient.tide),
-  _AmbientSound(id: 'lullaby', labelKey: 'breathing.sound.lullaby', emoji: '💤', ambient: Ambient.lullaby),
-  _AmbientSound(id: 'chimes', labelKey: 'breathing.sound.chimes', emoji: '🎐', ambient: Ambient.mountain),
-  _AmbientSound(id: 'white',  labelKey: 'breathing.sound.white',  emoji: '☁️', ambient: Ambient.softNoise),
-  _AmbientSound(id: 'none',   labelKey: 'breathing.sound.none',   emoji: '🔇', ambient: null),
-];
-
-// Science facts — keys only, text lives in JSON
-const _scienceFactKeys = [
-  ('🧠', 'breathing.science.vagus.title', 'breathing.science.vagus.desc'),
-  ('❤️', 'breathing.science.hrv.title',   'breathing.science.hrv.desc'),
-  ('⚡', 'breathing.science.amygdala.title', 'breathing.science.amygdala.desc'),
-  ('🌙', 'breathing.science.sleep.title', 'breathing.science.sleep.desc'),
-];
-
-// Motivational phrase keys
-const _motivationalKeys = [
-  'breathing.motivational.0',
-  'breathing.motivational.1',
-  'breathing.motivational.2',
-  'breathing.motivational.3',
-];
-
-enum _BreathingStep { science, setup, session, completion }
-
-// ═════════════════════════════════════════════════════════════════════════════
+/// Respiración guiada: eliges técnica, minutos y ambiente, y un orbe te guía
+/// fase por fase con señales de sonido. Lumi respira contigo.
 class BreathingScreen extends StatefulWidget {
   const BreathingScreen({super.key});
+
   @override
   State<BreathingScreen> createState() => _BreathingScreenState();
 }
 
-class _BreathingScreenState extends State<BreathingScreen>
-    with TickerProviderStateMixin {
+class _BreathingScreenState extends State<BreathingScreen> with TickerProviderStateMixin {
+  static const _prefScienceSeen = 'breathing_science_seen';
+  static const int _xpReward = 15;
 
-  _BreathingStep _step = _BreathingStep.science;
-
-  _BreathingTechnique _selectedTechnique = _techniques[0];
-  int _selectedMinutes = 3;
-  _AmbientSound _selectedSound = _ambientSounds[0];
-
-  late AnimationController _breathController;
-  late AnimationController _pulseController;
-
-  int _currentPhaseIndex = 0;
-  int _phaseSecondsLeft = 0;
-  int _totalSecondsLeft = 0;
-  bool _sessionRunning = false;
-  bool _sessionPaused = false;
-
-  /// Señal sonora al inicio de cada fase (inhala / sostén / exhala).
+  _Step _step = _Step.setup;
+  BreathingTechnique _technique = kTechniques.first;
+  int _minutes = 3;
+  AmbientChoice _sound = kAmbientChoices.first;
   bool _cuesEnabled = true;
 
-  late List<_StarData> _stars;
+  late final AnimationController _breath = AnimationController(vsync: this, duration: const Duration(seconds: 4));
 
-  static const int _xpReward = 15;
-  // Solo la primera sesión del día da XP y semillas
+  Timer? _timer;
+  BreathingSession _session = BreathingSession.minutes(kTechniques.first, 3);
+  int _elapsed = 0;
+  int _phaseIndex = -1;
+  bool _paused = false;
+  bool _finishing = false;
   bool _rewardedToday = false;
+  String? _playingAmbientId;
+
+  Color get _color => _technique.color;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        DiscoveryDialog.maybeShow(context, DiscoveryFeature.breathing);
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      DiscoveryDialog.maybeShow(context, DiscoveryFeature.breathing);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        if (!mounted) return;
+        // La primera vez explicamos por qué respirar; luego se entra directo
+        if (!(prefs.getBool(_prefScienceSeen) ?? false)) {
+          setState(() => _step = _Step.science);
+        }
+      } catch (_) {}
     });
-    _breathController = AnimationController(
-      vsync: this, duration: const Duration(seconds: 4));
-    _pulseController = AnimationController(
-      vsync: this, duration: const Duration(seconds: 3))..repeatUnlessReduced(reverse: true);
-
-    final rng = math.Random(42);
-    _stars = List.generate(60, (_) => _StarData(
-      x: rng.nextDouble(), y: rng.nextDouble(),
-      size: 0.8 + rng.nextDouble() * 2.0,
-      opacity: 0.2 + rng.nextDouble() * 0.7,
-      delayMs: rng.nextInt(3000),
-      durationMs: 900 + rng.nextInt(2000),
-    ));
-
   }
 
   @override
   void dispose() {
-    _breathController.dispose();
-    _pulseController.dispose();
-    SoundService.instance.stopAmbient();
+    _timer?.cancel();
+    _breath.dispose();
+    SoundService.instance.stopAmbient(fadeOut: const Duration(milliseconds: 600));
     super.dispose();
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  String _t(String key) {
-    final t = key.tr();
-    return t == key ? key : t;
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Ambiente
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  String _techniqueName(_BreathingTechnique t) => _t(t.nameKey);
-  String _techniqueBenefit(_BreathingTechnique t) => _t(t.benefitKey);
-  String _phaseLabel(_BreathPhase p) => _t(p.labelKey);
-  String _soundLabel(_AmbientSound s) => _t(s.labelKey);
-
-  String _formatTime(int seconds) {
-    final m = (seconds ~/ 60).toString().padLeft(2, '0');
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
-  // ── Audio ─────────────────────────────────────────────────────────────────
-  Future<void> _startAudio() async {
-    final ambient = _selectedSound.ambient;
-    if (ambient == null) return;
-    await SoundService.instance.startAmbient(ambient, volume: 0.5);
-  }
-
-  Future<void> _stopAudio() => SoundService.instance.stopAmbient();
-
-  /// Señal de la fase: el sonido acompaña la dirección del orbe.
-  void _playPhaseCue(_BreathPhase phase) {
-    if (!_cuesEnabled) return;
-    final cue = phase.labelKey.endsWith('inhale')
-        ? BreathCue.inhale
-        : phase.labelKey.endsWith('exhale')
-            ? BreathCue.exhale
-            : BreathCue.hold;
-    SoundService.instance.cue(cue, volume: cue == BreathCue.hold ? 0.45 : 0.6);
-  }
-
-  // ── Session logic ─────────────────────────────────────────────────────────
-  void _startSession() {
+  /// Escucha previa al elegir: el mismo bucle sigue sonando en la sesión.
+  Future<void> _previewAmbient(AmbientChoice choice) async {
     setState(() {
-      _sessionRunning = true;
-      _sessionPaused = false;
-      _totalSecondsLeft = _selectedMinutes * 60;
-      _currentPhaseIndex = 0;
-      _phaseSecondsLeft = _selectedTechnique.phases[0].durationSeconds;
+      _sound = choice;
+      _playingAmbientId = choice.ambient == null ? null : choice.id;
     });
-    _runPhase();
-    _startAudio();
-    HapticFeedback.mediumImpact();
-  }
-
-  void _runPhase() {
-    final phase = _selectedTechnique.phases[_currentPhaseIndex];
-    _playPhaseCue(phase);
-    _breathController.duration = Duration(seconds: phase.durationSeconds);
-    if (phase.expand) {
-      _breathController.forward(from: _breathController.value);
+    SoundService.instance.play(choice.ambient == null ? Sfx.toggleOff : Sfx.toggleOn, volume: 0.35);
+    final ambient = choice.ambient;
+    if (ambient == null) {
+      await SoundService.instance.stopAmbient(fadeOut: const Duration(milliseconds: 400));
     } else {
-      _breathController.reverse(from: _breathController.value);
+      await SoundService.instance.startAmbient(ambient, volume: 0.3, fadeIn: const Duration(milliseconds: 600));
     }
-    _tickSecond();
   }
 
-  void _tickSecond() {
-    if (!mounted || !_sessionRunning || _sessionPaused) return;
-    Future.delayed(const Duration(seconds: 1), () {
-      if (!mounted || !_sessionRunning || _sessionPaused) return;
-      setState(() { _totalSecondsLeft--; _phaseSecondsLeft--; });
-      if (_totalSecondsLeft <= 0) { _finishSession(); return; }
-      if (_phaseSecondsLeft <= 0) {
-        setState(() {
-          _currentPhaseIndex =
-              (_currentPhaseIndex + 1) % _selectedTechnique.phases.length;
-          _phaseSecondsLeft =
-              _selectedTechnique.phases[_currentPhaseIndex].durationSeconds;
-        });
-        HapticFeedback.lightImpact();
-        _runPhase();
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Sesión
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  void _startSession() {
+    _session = BreathingSession.minutes(_technique, _minutes);
+    setState(() {
+      _elapsed = 0;
+      _phaseIndex = -1;
+      _paused = false;
+      _finishing = false;
+      _step = _Step.session;
+    });
+    HapticFeedback.mediumImpact();
+    final ambient = _sound.ambient;
+    if (ambient != null) {
+      SoundService.instance.startAmbient(ambient, volume: 0.5);
+    }
+    _syncPhase(force: true);
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _paused) return;
+      setState(() => _elapsed++);
+      if (_session.isOver(_elapsed)) {
+        _finishSession();
       } else {
-        _tickSecond();
+        _syncPhase();
       }
     });
   }
 
+  /// Pone el orbe donde toca. [force] al empezar o al reanudar.
+  void _syncPhase({bool force = false}) {
+    final pos = _session.positionAt(_elapsed);
+    final changed = pos.phaseIndex != _phaseIndex;
+    if (!changed && !force) return;
+    if (changed) {
+      _phaseIndex = pos.phaseIndex;
+      if (!force) HapticFeedback.lightImpact();
+      if (_cuesEnabled) {
+        SoundService.instance.cue(pos.phase.cue, volume: pos.phase.move == BreathMove.hold ? 0.45 : 0.6);
+      }
+    }
+    // Al reanudar, el orbe recorre solo lo que falta de la fase
+    _breath.duration = Duration(seconds: pos.secondsLeft.clamp(1, pos.phase.seconds));
+    if (pos.phase.expanded) {
+      _breath.forward();
+    } else {
+      _breath.reverse();
+    }
+  }
+
   void _togglePause() {
     HapticFeedback.lightImpact();
-    setState(() => _sessionPaused = !_sessionPaused);
-    if (_sessionPaused) {
-      _breathController.stop();
+    setState(() => _paused = !_paused);
+    if (_paused) {
+      _breath.stop();
       SoundService.instance.pauseAmbient();
     } else {
-      _runPhase();
       SoundService.instance.resumeAmbient();
+      _syncPhase(force: true);
     }
   }
 
   Future<void> _finishSession() async {
+    if (_finishing) return;
+    _finishing = true;
+    _timer?.cancel();
+    _breath.stop();
     final garden = context.read<GardenProvider>();
     final auth = context.read<AuthProvider>();
-    _breathController.stop();
     HapticFeedback.heavyImpact();
-    // El cuenco suena mientras el ambiente se desvanece
     if (_cuesEnabled) SoundService.instance.cue(BreathCue.bowl, volume: 0.8);
-    AnalyticsService.instance.breathingComplete(_selectedTechnique.id, _selectedMinutes);
-    await _stopAudio();
+    AnalyticsService.instance.breathingComplete(_technique.id, _minutes);
+    await SoundService.instance.stopAmbient(fadeOut: const Duration(milliseconds: 1500));
     bool rewarded = false;
     try {
       rewarded = await auth.completeBreathingSession(_xpReward, garden: garden);
-    } catch (e) { debugPrint('Breathing reward error: $e'); }
+    } catch (e) {
+      debugPrint('Breathing reward error: $e');
+    }
     if (!mounted) return;
     setState(() {
-      _sessionRunning = false;
       _rewardedToday = rewarded;
-      _step = _BreathingStep.completion;
+      _playingAmbientId = null;
+      _step = _Step.completion;
     });
     if (!rewarded) return;
-
-    // Semillas: el popup entra después de la animación de cierre
     final reward = await garden.grantReward(RewardSource.breathing);
     await Future.delayed(const Duration(milliseconds: 900));
     if (mounted) await RewardDialog.show(context, reward);
@@ -332,864 +200,594 @@ class _BreathingScreenState extends State<BreathingScreen>
 
   void _stopSession() {
     HapticFeedback.mediumImpact();
-    _stopAudio();
-    _breathController.stop();
-    setState(() { _sessionRunning = false; _step = _BreathingStep.setup; });
+    _timer?.cancel();
+    _breath.stop();
+    _breath.value = 0;
+    SoundService.instance.stopAmbient(fadeOut: const Duration(milliseconds: 600));
+    setState(() {
+      _paused = false;
+      _playingAmbientId = null;
+      _step = _Step.setup;
+    });
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
+  Future<void> _markScienceSeen() async {
+    setState(() => _step = _Step.setup);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefScienceSeen, true);
+    } catch (_) {}
+  }
+
+  String _formatTime(int seconds) {
+    final m = (seconds ~/ 60).toString().padLeft(2, '0');
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // BUILD
-  // ══════════════════════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildBackground(),
-          _buildStarfield(),
-          _buildNebulaBlobs(),
-          SafeArea(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 400),
-              transitionBuilder: (child, anim) => FadeTransition(
-                opacity: anim,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                      begin: const Offset(0, 0.04), end: Offset.zero)
-                      .animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
-                  child: child,
-                ),
-              ),
-              child: _buildCurrentStep(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCurrentStep() {
-    switch (_step) {
-      case _BreathingStep.science:   return _buildScienceCard();
-      case _BreathingStep.setup:     return _buildSetupScreen();
-      case _BreathingStep.session:   return _buildSessionScreen();
-      case _BreathingStep.completion: return _buildCompletionScreen();
-    }
-  }
-
-  // ── Backgrounds ───────────────────────────────────────────────────────────
-  Widget _buildBackground() => Container(
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF060612), Color(0xFF0C0C20), Color(0xFF0D0D22)],
-      ),
-    ),
-  );
-
-  Widget _buildStarfield() => LayoutBuilder(builder: (_, constraints) {
-    final w = constraints.maxWidth;
-    final h = constraints.maxHeight;
-    return Stack(
-      fit: StackFit.expand,
-      children: _stars.map((s) => Positioned(
-        left: s.x * w, top: s.y * h,
-        child: _TwinklingStar(star: s),
-      )).toList(),
-    );
-  });
-
-  Widget _buildNebulaBlobs() => Stack(
-    fit: StackFit.expand,
-    children: [
-      Positioned(
-        top: -100, left: -80,
-        child: Container(
-          width: 300, height: 300,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(colors: [
-              _selectedTechnique.color.withValues(alpha: 0.22),
-              _selectedTechnique.color.withValues(alpha: 0.0),
-            ]),
-          ),
-        ),
-      ),
-      Positioned(
-        bottom: -80, right: -100,
-        child: Container(
-          width: 260, height: 260,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(colors: [
-              const Color(0xFF818CF8).withValues(alpha: 0.15),
-              const Color(0xFF818CF8).withValues(alpha: 0.0),
-            ]),
-          ),
-        ),
-      ),
-    ],
-  );
-
-  // ── Close / Back button ───────────────────────────────────────────────────
-  Widget _closeButton({VoidCallback? onTap, bool isBack = false}) =>
-    GestureDetector(
-      onTap: onTap ?? () => Navigator.pop(context),
-      child: Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-        ),
-        child: Icon(
-          isBack ? Icons.arrow_back_rounded : Icons.close_rounded,
-          size: 18, color: Colors.white60),
-      ),
-    );
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // STEP 1 — SCIENCE CARD
-  // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildScienceCard() {
-    return Center(
-      key: const ValueKey('science'),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Align(alignment: Alignment.topLeft, child: _closeButton()),
-            const SizedBox(height: 24),
-
-            // Lung icon
-            Container(
-              width: 100, height: 100,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(colors: [
-                  const Color(0xFF6366F1).withValues(alpha: 0.3),
-                  const Color(0xFF6366F1).withValues(alpha: 0.05),
-                ]),
-                shape: BoxShape.circle,
-                border: Border.all(
-                    color: const Color(0xFF6366F1).withValues(alpha: 0.4), width: 1.5),
-                boxShadow: [BoxShadow(
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.3),
-                  blurRadius: 30, spreadRadius: 5,
-                )],
-              ),
-              child: const Center(child: Text('🫁', style: TextStyle(fontSize: 48))),
-            )
-                .animate(onPlay: MotionService.loop(context, reverse: true))
-                .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.05, 1.05),
-                    duration: 2000.ms, curve: Curves.easeInOut)
-                .animate()
-                .fadeIn(duration: 600.ms)
-                .scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1),
-                    duration: 700.ms, curve: Curves.easeOutBack),
-
-            const SizedBox(height: 28),
-
-            // Title — from JSON
-            Text(
-              'breathing.scienceTitle'.tr(),
-              style: const TextStyle(
-                fontSize: 22, fontWeight: FontWeight.w900,
-                color: Colors.white, height: 1.2),
-              textAlign: TextAlign.center,
-            ).animate(delay: 200.ms).fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
-
-            const SizedBox(height: 20),
-
-            // Science facts
-            ..._scienceFactKeys.asMap().entries.map((e) {
-              final (emoji, titleKey, descKey) = e.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildScienceFact(emoji, _t(titleKey), _t(descKey))
-                    .animate(delay: (300 + e.key * 120).ms)
-                    .fadeIn(duration: 500.ms)
-                    .slideX(begin: 0.05, end: 0),
-              );
-            }),
-
-            const SizedBox(height: 8),
-
-            // Source badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.07),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.science_rounded, color: Colors.white38, size: 14),
-                const SizedBox(width: 6),
-                Text('breathing.scienceSource'.tr(),
-                    style: const TextStyle(fontSize: 10, color: Colors.white38)),
-              ]),
-            ).animate(delay: 800.ms).fadeIn(duration: 500.ms),
-
-            const SizedBox(height: 32),
-
-            // CTA
-            SizedBox(
-              width: double.infinity, height: 58,
-              child: FilledButton(
-                onPressed: () => setState(() => _step = _BreathingStep.setup),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
-                  elevation: 8,
-                  shadowColor: const Color(0xFF6366F1).withValues(alpha: 0.5),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18)),
-                ),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text('breathing.startSession'.tr(), style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-                ]),
-              ),
-            ).animate(delay: 900.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScienceFact(String emoji, String title, String desc) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-      ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(emoji, style: const TextStyle(fontSize: 24)),
-        const SizedBox(width: 14),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(
-              fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-          const SizedBox(height: 4),
-          Text(desc, style: TextStyle(
-              fontSize: 13, color: Colors.white.withValues(alpha: 0.65), height: 1.4)),
-        ])),
-      ]),
-    );
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // STEP 2 — SETUP
-  // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildSetupScreen() {
-    return Column(
-      key: const ValueKey('setup'),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Row(children: [
-            _closeButton(
-                onTap: () => setState(() => _step = _BreathingStep.science),
-                isBack: true),
-            const SizedBox(width: 14),
-            Text('breathing.configTitle'.tr(), style: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
-          ]),
-        ),
-
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-
-              // Technique label
-              Text('breathing.techniqueLabel'.tr(), style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white60)),
-              const SizedBox(height: 10),
-              ..._techniques.map((t) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _buildTechniqueCard(t),
-              )),
-
-              const SizedBox(height: 20),
-
-              // Duration label
-              Text('breathing.durationLabel'.tr(), style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white60)),
-              const SizedBox(height: 10),
-              Row(children: [1, 3, 5].map((min) {
-                final isSelected = _selectedMinutes == min;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(right: min < 5 ? 10 : 0),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedMinutes = min),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? _selectedTechnique.color.withValues(alpha: 0.2)
-                              : Colors.white.withValues(alpha: 0.07),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected
-                                ? _selectedTechnique.color
-                                : Colors.white.withValues(alpha: 0.1),
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Center(child: Text('$min min', style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w700,
-                          color: isSelected
-                              ? _selectedTechnique.color : Colors.white60,
-                        ))),
-                      ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: PopScope(
+        canPop: _step != _Step.session,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _stopSession();
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFF05060F),
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              BreathingSky(tint: _color, breath: _step == _Step.session ? _breath : null),
+              SafeArea(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  transitionBuilder: (child, anim) => FadeTransition(
+                    opacity: anim,
+                    child: SlideTransition(
+                      position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero)
+                          .animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+                      child: child,
                     ),
                   ),
-                );
-              }).toList()),
-
-              const SizedBox(height: 20),
-
-              // Sound label
-              Text('breathing.soundLabel'.tr(), style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white60)),
-              const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _ambientSounds.map((s) {
-                    final isSelected = _selectedSound.id == s.id;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedSound = s),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? _selectedTechnique.color.withValues(alpha: 0.2)
-                                : Colors.white.withValues(alpha: 0.07),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: isSelected
-                                  ? _selectedTechnique.color
-                                  : Colors.white.withValues(alpha: 0.1),
-                              width: isSelected ? 2 : 1,
-                            ),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Text(s.emoji, style: const TextStyle(fontSize: 18)),
-                            const SizedBox(width: 8),
-                            Text(_soundLabel(s), style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600,
-                              color: isSelected
-                                  ? _selectedTechnique.color : Colors.white60,
-                            )),
-                          ]),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                  child: switch (_step) {
+                    _Step.science => _buildScience(),
+                    _Step.setup => _buildSetup(),
+                    _Step.session => _buildSession(),
+                    _Step.completion => _buildCompletion(),
+                  },
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-              const SizedBox(height: 14),
+  // ── Por qué respirar ──────────────────────────────────────────────────────
 
-              // Señales de sonido por fase
-              GestureDetector(
-                onTap: () => setState(() => _cuesEnabled = !_cuesEnabled),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.07),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                  ),
-                  child: Row(children: [
-                    const Text('🔔', style: TextStyle(fontSize: 18)),
+  Widget _buildScience() {
+    return SingleChildScrollView(
+      key: const ValueKey('science'),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BreathIconButton(icon: Icons.close_rounded, label: 'common.close'.tr(), onTap: () => Navigator.pop(context)),
+          const SizedBox(height: 16),
+          Center(
+            child: Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(colors: [_color.withValues(alpha: 0.35), _color.withValues(alpha: 0.04)]),
+                border: Border.all(color: _color.withValues(alpha: 0.4), width: 1.5),
+              ),
+              child: const Center(child: Text('🫁', style: TextStyle(fontSize: 44))),
+            )
+                .animate(onPlay: MotionService.loop(context, reverse: true))
+                .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.06, 1.06), duration: 2400.ms, curve: Curves.easeInOut),
+          ),
+          const SizedBox(height: 18),
+          Semantics(
+            header: true,
+            child: Text(
+              'breathing.scienceTitle'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 22, height: 1.25, fontWeight: FontWeight.w900, color: Colors.white),
+            ),
+          ).animate().fadeIn(delay: 150.ms, duration: 400.ms),
+          const SizedBox(height: 18),
+          for (final (i, (emoji, titleKey, descKey)) in kScienceFacts.indexed)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(emoji, style: const TextStyle(fontSize: 22)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('breathing.cuesLabel'.tr(), style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
-                          Text('breathing.cuesSubtitle'.tr(), style: const TextStyle(
-                              fontSize: 12, color: Colors.white54)),
+                          Text(titleKey.tr(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white)),
+                          const SizedBox(height: 3),
+                          Text(descKey.tr(), style: TextStyle(fontSize: 12.5, height: 1.4, color: Colors.white.withValues(alpha: 0.62))),
                         ],
                       ),
                     ),
-                    Switch(
-                      value: _cuesEnabled,
-                      activeThumbColor: _selectedTechnique.color,
-                      onChanged: (v) => setState(() => _cuesEnabled = v),
-                    ),
-                  ]),
+                  ],
                 ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Start button
-              SizedBox(
-                width: double.infinity, height: 58,
-                child: FilledButton(
-                  onPressed: () {
-                    setState(() => _step = _BreathingStep.session);
-                    Future.delayed(
-                        const Duration(milliseconds: 300), _startSession);
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _selectedTechnique.color,
-                    elevation: 8,
-                    shadowColor: _selectedTechnique.color.withValues(alpha: 0.5),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18)),
-                  ),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
-                    const SizedBox(width: 8),
-                    Text(
-                      'breathing.startButton'.tr(
-                          namedArgs: {'min': '$_selectedMinutes'}),
-                      style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.w800,
-                          color: Colors.white),
-                    ),
-                  ]),
-                ),
-              ),
-            ]),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTechniqueCard(_BreathingTechnique t) {
-    final isSelected = _selectedTechnique.id == t.id;
-    return GestureDetector(
-      onTap: () { HapticFeedback.lightImpact(); setState(() => _selectedTechnique = t); },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? t.color.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected ? t.color : Colors.white.withValues(alpha: 0.1),
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected ? [BoxShadow(
-            color: t.color.withValues(alpha: 0.2), blurRadius: 12,
-            offset: const Offset(0, 4),
-          )] : null,
-        ),
-        child: Row(children: [
-          Container(
-            width: 48, height: 48,
-            decoration: BoxDecoration(
-              color: t.color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(14),
+              ).animate().fadeIn(delay: (250 + i * 110).ms, duration: 400.ms).slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
             ),
-            child: Center(child: Text(t.emoji, style: const TextStyle(fontSize: 24))),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              'breathing.scienceSource'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10.5, color: Colors.white38),
+            ),
           ),
-          const SizedBox(width: 14),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Text(_techniqueName(t), style: const TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: t.color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(_t(t.descriptionKey), style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w700, color: t.color)),
-              ),
-            ]),
-            const SizedBox(height: 4),
-            Text(_techniqueBenefit(t), style: TextStyle(
-                fontSize: 12, color: Colors.white.withValues(alpha: 0.55), height: 1.3)),
-          ])),
-          if (isSelected)
-            Icon(Icons.check_circle_rounded, color: t.color, size: 22),
-        ]),
+          const SizedBox(height: 22),
+          _PrimaryButton(
+            color: _color,
+            label: 'breathing.startSession'.tr(),
+            icon: Icons.arrow_forward_rounded,
+            onTap: _markScienceSeen,
+          ).animate().fadeIn(delay: 700.ms, duration: 350.ms),
+        ],
       ),
     );
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STEP 3 — SESSION
-  // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildSessionScreen() {
-    final phase = _sessionRunning
-        ? _selectedTechnique.phases[_currentPhaseIndex]
-        : _selectedTechnique.phases[0];
+  // ── Preparar la sesión ────────────────────────────────────────────────────
 
+  Widget _buildSetup() {
     return Column(
-      key: const ValueKey('session'),
+      key: const ValueKey('setup'),
       children: [
-        // Top bar
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Row(children: [
-            _closeButton(onTap: _stopSession),
-            const Spacer(),
-            Text(_formatTime(_totalSecondsLeft), style: const TextStyle(
-                fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
-            const Spacer(),
-            if (_selectedSound.ambient != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+          child: Row(
+            children: [
+              BreathIconButton(icon: Icons.close_rounded, label: 'common.close'.tr(), onTap: () => Navigator.pop(context)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    'breathing.configTitle'.tr(),
+                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: Colors.white),
+                  ),
                 ),
-                child: Text(_selectedSound.emoji,
-                    style: const TextStyle(fontSize: 16)))
-            else
-              const SizedBox(width: 36),
-          ]),
+              ),
+              BreathIconButton(
+                icon: Icons.help_outline_rounded,
+                label: 'breathing.scienceTitle'.tr(),
+                onTap: () => setState(() => _step = _Step.science),
+              ),
+            ],
+          ),
         ),
-
-        const Spacer(),
-
-        Text(_techniqueName(_selectedTechnique), style: TextStyle(
-            fontSize: 14, fontWeight: FontWeight.w600,
-            color: _selectedTechnique.color, letterSpacing: 1)),
-        const SizedBox(height: 8),
-
-        // Breathing circle
-        AnimatedBuilder(
-          animation: _breathController,
-          builder: (_, _) {
-            final scale = 0.65 + _breathController.value * 0.35;
-            final glowOpacity = 0.2 + _breathController.value * 0.4;
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 280 * scale + 40, height: 280 * scale + 40,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: _selectedTechnique.color.withValues(alpha: glowOpacity * 0.3)),
-                  ),
-                ),
-                Container(
-                  width: 280 * scale + 20, height: 280 * scale + 20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: _selectedTechnique.color.withValues(alpha: glowOpacity * 0.5),
-                        width: 1.5),
-                  ),
-                ),
-                Container(
-                  width: 280 * scale, height: 280 * scale,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(colors: [
-                      _selectedTechnique.color.withValues(alpha: 0.35),
-                      _selectedTechnique.color.withValues(alpha: 0.08),
-                    ]),
-                    border: Border.all(
-                        color: _selectedTechnique.color.withValues(alpha: 0.6), width: 2),
-                    boxShadow: [BoxShadow(
-                      color: _selectedTechnique.color.withValues(alpha: glowOpacity),
-                      blurRadius: 40, spreadRadius: 5,
-                    )],
-                  ),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text(
-                      _sessionRunning && !_sessionPaused
-                          ? _phaseLabel(phase)
-                          : (_sessionPaused
-                              ? 'breathing.paused'.tr()
-                              : '...'),
-                      style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.w800,
-                          color: Colors.white, letterSpacing: 0.5),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  LumiAvatar(mood: LumiMood.calm, size: 54, onTap: () {}),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(16),
+                          topRight: Radius.circular(16),
+                          bottomRight: Radius.circular(16),
+                          bottomLeft: Radius.circular(4),
+                        ),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      ),
+                      child: Text(
+                        'breathing.lumiSetup'.tr(),
+                        style: const TextStyle(fontSize: 12.5, height: 1.3, fontWeight: FontWeight.w600, color: Colors.white),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _sessionRunning ? '$_phaseSecondsLeft' : '',
-                      style: TextStyle(
-                          fontSize: 48, fontWeight: FontWeight.w900,
-                          color: _selectedTechnique.color, height: 1),
-                    ),
-                  ]),
+                  ),
+                ],
+              ).animate().fadeIn(duration: 400.ms),
+              const SizedBox(height: 14),
+              BreathSectionTitle(kicker: 'breathing.techniqueKicker'.tr(), title: 'breathing.techniqueLabel'.tr(), color: _color),
+              const SizedBox(height: 10),
+              for (final (i, t) in kTechniques.indexed)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: TechniqueCard(
+                    technique: t,
+                    selected: t.id == _technique.id,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      SoundService.instance.play(Sfx.tapNode, volume: 0.35);
+                      setState(() => _technique = t);
+                    },
+                  ).animate().fadeIn(delay: (80 + i * 70).ms, duration: 350.ms).slideY(begin: 0.1, end: 0, curve: Curves.easeOutCubic),
                 ),
-              ],
-            );
-          },
-        ),
-
-        const SizedBox(height: 40),
-
-        // Phase indicators
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: _selectedTechnique.phases.asMap().entries.map((e) {
-            final isActive = e.key == _currentPhaseIndex;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              width: isActive ? 24 : 8, height: 8,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? _selectedTechnique.color
-                    : _selectedTechnique.color.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(4),
+              const SizedBox(height: 14),
+              BreathSectionTitle(kicker: 'breathing.durationKicker'.tr(), title: 'breathing.durationLabel'.tr(), color: _color),
+              const SizedBox(height: 10),
+              DurationPicker(
+                options: const [1, 3, 5, 10],
+                selected: _minutes,
+                color: _color,
+                onSelect: (m) {
+                  HapticFeedback.selectionClick();
+                  SoundService.instance.play(Sfx.tick, volume: 0.4);
+                  setState(() => _minutes = m);
+                },
               ),
-            );
-          }).toList(),
-        ),
-
-        const SizedBox(height: 16),
-
-        // Phase labels row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: _selectedTechnique.phases.asMap().entries.map((e) {
-            final isActive = e.key == _currentPhaseIndex;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text(
-                '${_phaseLabel(e.value)} ${e.value.durationSeconds}s',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                  color: isActive ? Colors.white : Colors.white38,
+              const SizedBox(height: 18),
+              BreathSectionTitle(
+                kicker: 'breathing.soundKicker'.tr(),
+                title: 'breathing.soundLabel'.tr(),
+                color: _color,
+              ),
+              const SizedBox(height: 10),
+              AmbientPicker(
+                selectedId: _sound.id,
+                playingId: _playingAmbientId,
+                color: _color,
+                onSelect: _previewAmbient,
+              ),
+              const SizedBox(height: 14),
+              CueToggle(
+                value: _cuesEnabled,
+                color: _color,
+                onChanged: (v) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _cuesEnabled = v);
+                  if (v) SoundService.instance.cue(BreathCue.inhale, volume: 0.5);
+                },
+              ),
+              const SizedBox(height: 26),
+              _PrimaryButton(
+                color: _color,
+                icon: Icons.play_arrow_rounded,
+                label: 'breathing.startButton'.tr(namedArgs: {'min': '$_minutes'}),
+                onTap: _startSession,
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  'breathing.cyclesHint'.tr(namedArgs: {'count': '${BreathingSession.minutes(_technique, _minutes).plannedCycles}'}),
+                  style: const TextStyle(fontSize: 12, color: Colors.white38),
                 ),
               ),
-            );
-          }).toList(),
-        ),
-
-        const Spacer(),
-
-        // Controls
-        Padding(
-          padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
-          child: Row(children: [
-            // Stop
-            GestureDetector(
-              onTap: _stopSession,
-              child: Container(
-                width: 56, height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                ),
-                child: const Icon(Icons.stop_rounded, color: Colors.white60, size: 26),
-              ),
-            ),
-            const Spacer(),
-            // Pause/Resume
-            GestureDetector(
-              onTap: _sessionRunning ? _togglePause : null,
-              child: Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                    _selectedTechnique.color,
-                    _selectedTechnique.color.withValues(alpha: 0.7),
-                  ]),
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(
-                    color: _selectedTechnique.color.withValues(alpha: 0.4),
-                    blurRadius: 20, spreadRadius: 2,
-                  )],
-                ),
-                child: Icon(
-                  _sessionPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                  color: Colors.white, size: 36),
-              ),
-            ),
-            const Spacer(),
-            // Finish early
-            GestureDetector(
-              onTap: _finishSession,
-              child: Container(
-                width: 56, height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                ),
-                child: const Icon(Icons.check_rounded, color: Colors.white60, size: 26),
-              ),
-            ),
-          ]),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // STEP 4 — COMPLETION
-  // ══════════════════════════════════════════════════════════════════════════
-  Widget _buildCompletionScreen() {
-    // Pick motivational phrase based on second to avoid always showing same one
-    final phraseKey =
-        _motivationalKeys[DateTime.now().second % _motivationalKeys.length];
+  // ── Sesión ────────────────────────────────────────────────────────────────
 
-    return Center(
-      key: const ValueKey('completion'),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-  width: 110, height: 110,
-  decoration: BoxDecoration(
-    gradient: RadialGradient(colors: [
-      _selectedTechnique.color.withValues(alpha: 0.3),
-      _selectedTechnique.color.withValues(alpha: 0.05),
-    ]),
-    shape: BoxShape.circle,
-    border: Border.all(
-        color: _selectedTechnique.color.withValues(alpha: 0.4), width: 2),
-    boxShadow: [BoxShadow(
-      color: _selectedTechnique.color.withValues(alpha: 0.3),
-      blurRadius: 30, spreadRadius: 5,
-    )],
-  ),
-  child: const Center(child: Text('🫁', style: TextStyle(fontSize: 56))),
-)
-    // Pulse continuo tipo respiración
-    .animate(onPlay: MotionService.loop(context, reverse: true))
-    .scale(
-      begin: const Offset(0.95, 0.95),
-      end: const Offset(1.08, 1.08),
-      duration: 2000.ms,
-      curve: Curves.easeInOut,
-    )
-    // Entrada
-    .animate()
-    .scale(begin: const Offset(0.5, 0.5), end: const Offset(1, 1),
-        duration: 600.ms, curve: Curves.easeOutBack)
-    .fadeIn(duration: 400.ms),
-            const SizedBox(height: 24),
+  Widget _buildSession() {
+    final pos = _session.positionAt(_elapsed);
+    final left = _session.secondsLeftAt(_elapsed);
 
-            Text('breathing.sessionComplete'.tr(), style: const TextStyle(
-                fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white))
-                .animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
-
-            const SizedBox(height: 8),
-            Text(
-              'breathing.sessionSubtitle'.tr(namedArgs: {
-                'min': '$_selectedMinutes',
-                'technique': _techniqueName(_selectedTechnique),
-              }),
-              style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.5)),
-            ).animate(delay: 300.ms).fadeIn(duration: 400.ms),
-
-            const SizedBox(height: 28),
-
-            // XP card
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 22),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [
-                  _selectedTechnique.color.withValues(alpha: 0.22),
-                  const Color(0xFFFBBF24).withValues(alpha: 0.1),
-                ]),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: _selectedTechnique.color.withValues(alpha: 0.35)),
-                boxShadow: [BoxShadow(
-                  color: _selectedTechnique.color.withValues(alpha: 0.2),
-                  blurRadius: 24, spreadRadius: 2,
-                )],
+    return Column(
+      key: const ValueKey('session'),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+          child: Row(
+            children: [
+              BreathIconButton(icon: Icons.close_rounded, label: 'common.close'.tr(), onTap: _stopSession),
+              const Spacer(),
+              Column(
+                children: [
+                  Text(
+                    _technique.nameKey.tr(),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.6, color: Color.lerp(_color, Colors.white, 0.45)),
+                  ),
+                  Semantics(
+                    label: 'breathing.timeLeft'.tr(namedArgs: {'time': _formatTime(left)}),
+                    excludeSemantics: true,
+                    child: Text(
+                      _formatTime(left),
+                      style: const TextStyle(fontSize: 26, height: 1.1, fontWeight: FontWeight.w900, color: Colors.white, fontFeatures: [FontFeature.tabularFigures()]),
+                    ),
+                  ),
+                ],
               ),
-              child: Column(children: [
-                Text(_rewardedToday ? '⚡' : '✅',
-                    style: const TextStyle(fontSize: 32)),
-                const SizedBox(height: 6),
+              const Spacer(),
+              if (_sound.ambient != null)
+                BreathIconButton(
+                  icon: Icons.graphic_eq_rounded,
+                  label: _sound.labelKey.tr(),
+                  onTap: () {},
+                )
+              else
+                const SizedBox(width: 38),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Avance de la sesión
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: LayoutBuilder(
+            builder: (context, c) => Stack(
+              children: [
+                Container(height: 5, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(3))),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 900),
+                  curve: Curves.linear,
+                  width: c.maxWidth * _session.progressAt(_elapsed),
+                  height: 5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [Color.lerp(_color, Colors.white, 0.5)!, _color]),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Spacer(),
+        BreathOrb(
+          breath: _breath,
+          color: _color,
+          position: pos,
+          paused: _paused,
+          size: 280,
+          caption: 'breathing.cycleOf'.tr(namedArgs: {'cycle': '${pos.cycle}', 'total': '${_session.plannedCycles}'}),
+        ),
+        const SizedBox(height: 16),
+        // Lumi respira contigo
+        AnimatedBuilder(
+          animation: _breath,
+          builder: (_, child) => Transform.scale(scale: 0.92 + _breath.value * 0.16, child: child),
+          child: const LumiAvatar(mood: LumiMood.calm, size: 60),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'breathing.lumiBreathes'.tr(),
+          style: JournalStyle.hand(TextStyle(fontSize: 17, color: Colors.white.withValues(alpha: 0.65))),
+        ),
+        const Spacer(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(36, 0, 36, 28),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _RoundControl(
+                icon: Icons.stop_rounded,
+                label: 'breathing.stop'.tr(),
+                onTap: _stopSession,
+              ),
+              Semantics(
+                button: true,
+                label: _paused ? 'breathing.resume'.tr() : 'breathing.pause'.tr(),
+                onTap: _togglePause,
+                excludeSemantics: true,
+                child: GestureDetector(
+                  onTap: _togglePause,
+                  child: Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [Color.lerp(_color, Colors.white, 0.2)!, _color]),
+                      shape: BoxShape.circle,
+                      boxShadow: [BoxShadow(color: _color.withValues(alpha: 0.45), blurRadius: 22, spreadRadius: 2)],
+                    ),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                      child: Icon(
+                        _paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                        key: ValueKey(_paused),
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              _RoundControl(
+                icon: Icons.check_rounded,
+                label: 'breathing.finishNow'.tr(),
+                onTap: _finishSession,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Fin de la sesión ──────────────────────────────────────────────────────
+
+  Widget _buildCompletion() {
+    final phraseKey = kMotivationalKeys[DateTime.now().second % kMotivationalKeys.length];
+    final cycles = _session.cyclesDoneAt(_elapsed);
+    final minutesDone = (_elapsed / 60).ceil().clamp(1, _minutes);
+
+    return SingleChildScrollView(
+      key: const ValueKey('completion'),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 150,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 128,
+                  height: 128,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(colors: [_color.withValues(alpha: 0.4), _color.withValues(alpha: 0.03)]),
+                    border: Border.all(color: _color.withValues(alpha: 0.35), width: 2),
+                  ),
+                  child: const Center(child: Text('🫁', style: TextStyle(fontSize: 54))),
+                )
+                    .animate(onPlay: MotionService.loop(context, reverse: true))
+                    .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.07, 1.07), duration: 2600.ms, curve: Curves.easeInOut),
+                Positioned(
+                  right: 6,
+                  bottom: 6,
+                  child: const LumiAvatar(mood: LumiMood.proud, size: 54)
+                      .animate()
+                      .fadeIn(delay: 300.ms, duration: 350.ms)
+                      .slideX(begin: 0.3, end: 0, curve: Curves.easeOutCubic),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Semantics(
+            header: true,
+            child: Text(
+              'breathing.sessionComplete'.tr(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 27, fontWeight: FontWeight.w900, color: Colors.white),
+            ),
+          ).animate().fadeIn(delay: 150.ms, duration: 350.ms).slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _ResultTile(emoji: '⏱', value: '$minutesDone', label: 'breathing.minShort'.tr(), color: _color),
+              const SizedBox(width: 10),
+              _ResultTile(emoji: '🔄', value: '$cycles', label: 'breathing.cyclesLabel'.tr(), color: _color),
+              const SizedBox(width: 10),
+              _ResultTile(emoji: _technique.emoji, value: '', label: _technique.nameKey.tr(), color: _color),
+            ],
+          ).animate().fadeIn(delay: 300.ms, duration: 350.ms),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [_color.withValues(alpha: 0.25), const Color(0xFFFBBF24).withValues(alpha: 0.12)]),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: _color.withValues(alpha: 0.35)),
+            ),
+            child: Column(
+              children: [
+                Text(_rewardedToday ? '⚡' : '✅', style: const TextStyle(fontSize: 30)),
+                const SizedBox(height: 4),
                 Text(
-                  _rewardedToday
-                      ? '+$_xpReward XP'
-                      : 'breathing.rewardClaimed'.tr(),
+                  _rewardedToday ? '+$_xpReward XP' : 'breathing.rewardClaimed'.tr(),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: _rewardedToday ? 34 : 20,
-                      fontWeight: FontWeight.w900,
-                      color: _selectedTechnique.color)),
-                Text(
-                  _rewardedToday
-                      ? 'breathing.xpLabel'.tr()
-                      : 'breathing.rewardClaimedHint'.tr(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.5))),
-              ]),
-            )
-                .animate(delay: 400.ms)
-                .fadeIn(duration: 500.ms)
-                .scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1),
-                    curve: Curves.easeOutBack),
-
-            const SizedBox(height: 20),
-
-            // Motivational phrase
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.06),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-              ),
-              child: Text('"${_t(phraseKey)}"',
-                style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic,
-                    color: Colors.white.withValues(alpha: 0.8), height: 1.5),
-                textAlign: TextAlign.center),
-            ).animate(delay: 600.ms).fadeIn(duration: 500.ms),
-
-            const SizedBox(height: 32),
-
-            SizedBox(
-              width: double.infinity, height: 58,
-              child: FilledButton(
-                onPressed: () => Navigator.pop(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _selectedTechnique.color,
-                  elevation: 8,
-                  shadowColor: _selectedTechnique.color.withValues(alpha: 0.5),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18)),
+                    fontSize: _rewardedToday ? 32 : 19,
+                    fontWeight: FontWeight.w900,
+                    color: Color.lerp(_color, Colors.white, 0.4),
+                  ),
                 ),
-                child: Text('breathing.backHome'.tr(), style: const TextStyle(
-                    fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
+                Text(
+                  _rewardedToday ? 'breathing.xpLabel'.tr() : 'breathing.rewardClaimedHint'.tr(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12.5, color: Colors.white.withValues(alpha: 0.55)),
+                ),
+              ],
+            ),
+          ).animate().fadeIn(delay: 400.ms, duration: 400.ms).scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1), curve: Curves.easeOutCubic),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Text(
+              phraseKey.tr(),
+              textAlign: TextAlign.center,
+              style: JournalStyle.hand(TextStyle(fontSize: 21, height: 1.3, color: Colors.white.withValues(alpha: 0.9))),
+            ),
+          ).animate().fadeIn(delay: 550.ms, duration: 400.ms),
+          const SizedBox(height: 24),
+          _PrimaryButton(color: _color, label: 'breathing.backHome'.tr(), onTap: () => Navigator.pop(context))
+              .animate()
+              .fadeIn(delay: 650.ms, duration: 350.ms),
+          const SizedBox(height: 6),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _step = _Step.setup;
+                _elapsed = 0;
+                _phaseIndex = -1;
+                _finishing = false;
+              });
+              _breath.value = 0;
+            },
+            style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+            child: Text(
+              'breathing.anotherSession'.tr(),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ).animate().fadeIn(delay: 750.ms, duration: 350.ms),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  final Color color;
+  final String label;
+  final IconData? icon;
+  final VoidCallback onTap;
+
+  const _PrimaryButton({required this.color, required this.label, required this.onTap, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 58,
+      child: FilledButton(
+        onPressed: onTap,
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          elevation: 8,
+          shadowColor: color.withValues(alpha: 0.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[Icon(icon, color: Colors.white, size: 22), const SizedBox(width: 8)],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white),
               ),
-            ).animate(delay: 700.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
-
-            const SizedBox(height: 12),
-
-            TextButton(
-              onPressed: () => setState(() {
-                _step = _BreathingStep.setup;
-                _sessionRunning = false;
-              }),
-              child: Text('breathing.anotherSession'.tr(),
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 14)),
-            ).animate(delay: 800.ms).fadeIn(duration: 400.ms),
+            ),
           ],
         ),
       ),
@@ -1197,60 +795,74 @@ class _BreathingScreenState extends State<BreathingScreen>
   }
 }
 
-// ─── Star widgets ─────────────────────────────────────────────────────────────
-class _StarData {
-  final double x, y, size, opacity;
-  final int delayMs, durationMs;
-  const _StarData({
-    required this.x, required this.y, required this.size,
-    required this.opacity, required this.delayMs, required this.durationMs,
-  });
-}
+class _RoundControl extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
-class _TwinklingStar extends StatefulWidget {
-  final _StarData star;
-  const _TwinklingStar({required this.star});
-  @override
-  State<_TwinklingStar> createState() => _TwinklingStarState();
-}
-
-class _TwinklingStarState extends State<_TwinklingStar>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
+  const _RoundControl({required this.icon, required this.label, required this.onTap});
 
   @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: Duration(milliseconds: widget.star.durationMs));
-    Future.delayed(Duration(milliseconds: widget.star.delayMs), () {
-      if (mounted) _ctrl.repeatUnlessReduced(reverse: true, rest: 1);
-    });
-    _anim = Tween<double>(begin: 0.05, end: widget.star.opacity)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _anim,
-    builder: (_, _) => Opacity(
-      opacity: _anim.value.clamp(0.0, 1.0),
-      child: Container(
-        width: widget.star.size, height: widget.star.size,
-        decoration: BoxDecoration(
-          color: Colors.white, shape: BoxShape.circle,
-          boxShadow: widget.star.size > 1.6 ? [
-            BoxShadow(color: Colors.white.withValues(alpha: _anim.value * 0.8),
-                blurRadius: widget.star.size * 2),
-            BoxShadow(color: const Color(0xFF818CF8).withValues(alpha: _anim.value * 0.5),
-                blurRadius: widget.star.size * 4),
-          ] : null,
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 58,
+          height: 58,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          ),
+          child: Icon(icon, color: Colors.white70, size: 26),
         ),
       ),
-    ),
-  );
+    );
+  }
+}
+
+class _ResultTile extends StatelessWidget {
+  final String emoji;
+  final String value;
+  final String label;
+  final Color color;
+
+  const _ResultTile({required this.emoji, required this.value, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Semantics(
+        label: '$label: $value',
+        excludeSemantics: true,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          child: Column(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 20)),
+              if (value.isNotEmpty)
+                Text(value, style: const TextStyle(fontSize: 20, height: 1.2, fontWeight: FontWeight.w900, color: Colors.white)),
+              Text(
+                label,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, height: 1.2, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.6)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

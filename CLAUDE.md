@@ -93,6 +93,7 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Reset password funcional.
 - Cambiar contraseña desde Editar perfil (solo cuentas de email).
 - Eliminar cuenta desde Editar perfil: reautentica, borra todas las subcolecciones, `users/{uid}`, `_server_time` y el usuario de Auth.
+- **Editar perfil** (`edit_profile_screen.dart` + `widgets/edit_profile_widgets.dart`, rediseño 2026-09-17): tarjeta "Así te verás" que se actualiza mientras escribes, nombre, **nombre de usuario editable** (antes el campo estaba deshabilitado aunque `updateUserProfile` ya sabía reservarlo) con revisión de disponibilidad al escribir (`isUsernameTaken`, 600 ms), correo con sello de verificado, arquetipo de solo lectura (se definió al crear la cuenta), contraseña en tarjeta desplegable y zona de eliminar cuenta. El botón "Guardar cambios" es una barra que solo aparece si hay cambios, y al salir con cambios sin guardar Lumi pregunta antes. `ArchetypeStyle` (en `widgets/profile_widgets.dart`) comparte colores, emoji y nombre del arquetipo con el perfil.
 
 ### Home (menú principal)
 - Check-in de ánimo diario con 12 emojis.
@@ -263,10 +264,17 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - **Hitos de la app**: subir de nivel y logros (`CelebrationDialog`), semillas (`RewardDialog`), check-in de ánimo, hábito cumplido, entrada de diario guardada, jardín (plantar, cosechar, booster, tocar planta, colocar decoración, cosecha lista, brillo por rareza), compra en la tienda y medallas (tintineo por metal).
 
 ### Respiración guiada
-- 3 técnicas (Box, 4-7-8, Flow).
+- 3 técnicas (Box, 4-7-8, Flow) y 1, 3, 5 o 10 minutos.
+- **Rediseño 2026-09-17** (`lib/ui/screens/breathing/`): `breathing_data.dart` tiene las técnicas, los ambientes y `BreathingSession` (**lógica pura con pruebas** en `test/ui/breathing_session_test.dart`): dice qué fase toca en cada segundo, cuántos ciclos van y cuánto falta. Todo se deriva del tiempo transcurrido, así que pausar y reanudar nunca descuadra el conteo.
+- `widgets/breathing_sky.dart`: cielo nocturno en **un solo `CustomPainter`** (antes eran 60 widgets, cada uno con su `AnimationController`) con estrellas que titilan, dos auroras que ondulan y el tinte de la técnica; respira un poco con el orbe.
+- `widgets/breath_orb.dart`: el orbe con resplandor de círculos concéntricos, motas de luz que entran y salen, anillo de avance de la fase y el contador dentro. Debajo, **Lumi respira contigo** (escala con el orbe).
+- `widgets/breathing_setup.dart`: tarjetas de técnica con su **ritmo dibujado en barras** (inhala/sostén/exhala a escala), minutos, ambientes con **escucha previa** (el bucle sigue sonando al empezar la sesión) e interruptor de señales. Arriba, Lumi con una frase.
+- La pantalla de ciencia ("¿Por qué respirar?") se muestra **solo la primera vez** (`breathing_science_seen`) y queda a mano en el botón ⓘ del setup.
+- Al terminar: minutos, ciclos y técnica, la tarjeta de XP, una frase a mano y Lumi orgullosa.
 - Sonidos ambientales locales (música calma, lluvia, bosque, océano, arroyo, noche, olas lentas, canción de cuna, campanas de viento, ruido suave). Antes se reproducían desde URLs de mixkit.co, frágiles y con licencia dudosa.
 - Señal sonora al inicio de cada fase (inhalar, sostener, exhalar) y cuenco tibetano al terminar; se pueden apagar.
 - Recompensa XP + semillas (`RewardSource.breathing`) solo en la primera sesión del día (`progress/breathing`, hora del servidor).
+- **Bugs corregidos**: el temporizador se encadenaba con `Future.delayed` y al pausar y reanudar rápido corrían dos cadenas a la vez (el tiempo bajaba al doble); al reanudar, el orbe repetía la fase completa en vez de lo que faltaba; terminar a mano mientras se acababa el tiempo podía cerrar la sesión dos veces (ahora hay guarda `_finishing`).
 
 ### Discovery moments
 - Popup ilustrado la primera vez que se entra al jardín, respiración, diario, rutas o recordatorios, con +5 semillas (`DiscoveryDialog`).
@@ -373,6 +381,7 @@ flutter clean; flutter pub get
 - ~~Menú de rutas~~ (2026-09-17) y ~~diario, hábitos y recordatorios estilo cuaderno~~ (2026-09-17): hechos.
 - ~~**Jardín y tienda: polish completo**~~: hecho (2026-09-17), ver "Jardín".
 - ~~**Perfil y medallas: polish completo**~~: hecho (2026-09-17), ver "Perfil y medallas".
+- ~~**Respiración guiada y editar perfil**~~: hechos (2026-09-17), ver "Respiración guiada" y "Autenticación".
 - ~~**Menú principal (Home): polish completo**~~: hecho (2026-09-17), ver "Home". Pedido original (2026-09-17): Mismo checklist: jerarquía clara de las tarjetas (hoy hay muchas; `home_screen.dart` tiene ~1 800 líneas), animaciones de entrada y microinteracciones, Lumi como protagonista del saludo, check-in de ánimo más expresivo, sonidos, modo claro/oscuro, reducir animaciones y accesibilidad. Coherente con el estilo de rutas, diario y misiones.
 
 **Antes de publicar**:

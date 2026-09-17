@@ -1338,7 +1338,7 @@
     "wrongCurrentPassword": "Current password is incorrect",
     "changePasswordError": "Error changing password",
     "emotionalArchetype": "Your emotional archetype",
-    "archetypeLockedDesc": "Set during your initial setup. It cannot be changed.",
+    "archetypeLockedDesc": "It came from your answers when you created your account, so it does not change.",
     "yourArchetype": "Your archetype",
     "deleteAccount": "Delete account",
     "deleteAccountDesc": "Permanently delete your account and all your data",
@@ -1365,7 +1365,23 @@
       "libre": {
         "shortDesc": "Creative, spontaneous, lives the moment"
       }
-    }
+    },
+    "previewLabel": "How you will look",
+    "infoKicker": "Your details",
+    "archetypeKicker": "Who you are in Lumen",
+    "securityKicker": "Keep your account safe",
+    "security": "Password",
+    "changePasswordHint": "Change it whenever you want",
+    "saveChanges": "Save changes",
+    "verified": "Verified",
+    "usernameHint": "Lowercase letters, numbers, dots and underscores only",
+    "usernameChecking": "Checking if it is free…",
+    "usernameAvailable": "It is free! Yours once you save",
+    "togglePasswordVisibility": "Show or hide the password",
+    "discardTitle": "Leave without saving?",
+    "discardBody": "You made changes that are not saved yet. You can go back and save them.",
+    "discardLeave": "Leave without saving",
+    "discardStay": "Keep editing"
   },
   "profileScreen": {
     "currentStreakStat": "Current\nstreak",
@@ -1373,7 +1389,7 @@
     "totalXpStat": "Total\nXP",
     "diaryEntriesStat": "Diary\nentries",
     "medalsUnlocked": "{unlocked} of {total} unlocked",
-    "editProfileSubtitle": "Name, username, archetype",
+    "editProfileSubtitle": "Name, username and password",
     "moodHistorySubtitle": "Your emotional summary",
     "themeTitle": "Theme",
     "darkModeOn": "Dark mode enabled",
@@ -1710,11 +1726,30 @@
     "motivational": {
       "0": "Your nervous system thanks you 🙏",
       "1": "Every conscious breath is an act of self-care ✨",
-      "2": "You just reduced your cortisol. That is how powerful you are 💪",
+      "2": "You just lowered your cortisol. That is real self-care 💪",
       "3": "Calm is not the absence of chaos — it is mastery of the breath 🌊"
     },
     "cuesLabel": "Sound cues",
-    "cuesSubtitle": "A soft tone when you inhale, hold and exhale"
+    "cuesSubtitle": "A soft tone when you inhale, hold and exhale",
+    "getReady": "Get ready",
+    "minShort": "min",
+    "minutes": {
+      "one": "{} minute",
+      "other": "{} minutes"
+    },
+    "techniqueKicker": "Pick your rhythm",
+    "durationKicker": "How long?",
+    "soundKicker": "Listen and choose",
+    "lumiSetup": "A few minutes of breathing already change how you feel. I am with you.",
+    "lumiBreathes": "Lumi breathes with you",
+    "cycleOf": "Cycle {cycle} of {total}",
+    "cyclesHint": "About {count} full cycles",
+    "cyclesLabel": "Cycles",
+    "timeLeft": "{time} left",
+    "stop": "Finish and leave",
+    "pause": "Pause",
+    "resume": "Resume",
+    "finishNow": "Finish now"
   },
   "garden": {
     "title": "My Zen Garden",

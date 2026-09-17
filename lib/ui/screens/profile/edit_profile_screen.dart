@@ -1,14 +1,27 @@
+import 'dart:async';
+
 import 'package:easy_localization/easy_localization.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
+import '../../../core/utils/validators.dart';
+import '../../../data/models/lumi.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
-import '../../widgets/animated_particles_background.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../widgets/lumi/lumi_avatar.dart';
+import '../../widgets/min_tap_target.dart';
+import '../garden/widgets/garden_common.dart' show GardenSheet;
+import 'widgets/edit_profile_widgets.dart';
+import 'widgets/profile_widgets.dart' show ArchetypeStyle;
 
+/// Editar perfil: vista previa de cómo te verás, nombre, nombre de usuario
+/// (con aviso de disponibilidad), tu arquetipo, contraseña y eliminar cuenta.
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -17,77 +30,50 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  late TextEditingController _nameController;
-  late TextEditingController _usernameController;
+  static const _danger = Color(0xFFDC5F4A);
+
+  late final TextEditingController _nameController;
+  late final TextEditingController _usernameController;
   final _currentPassController = TextEditingController();
   final _newPassController = TextEditingController();
   final _confirmPassController = TextEditingController();
+
+  late final String _initialName;
+  late final String _initialUsername;
+
   bool _isSaving = false;
   bool _isChangingPass = false;
   bool _showPassForm = false;
   bool _obscureCurrent = true;
   bool _obscureNew = true;
 
-  List<Map<String, dynamic>> get _archetypes => [
-        {
-          'id': 'explorador',
-          'nameKey': 'archetype.explorerName',
-          'nameFallback': 'Explorador Introspectivo',
-          'emoji': '🔮',
-          'color': const Color(0xFF6366F1),
-          'descKey': 'editProfile.archetypes.explorador.shortDesc',
-          'descFallback': 'Curioso, reflexivo, busca entenderse',
-        },
-        {
-          'id': 'guerrero',
-          'nameKey': 'archetype.warriorName',
-          'nameFallback': 'Guerrero Resiliente',
-          'emoji': '⚔️',
-          'color': const Color(0xFFEF4444),
-          'descKey': 'editProfile.archetypes.guerrero.shortDesc',
-          'descFallback': 'Fuerte, persistente, no se rinde',
-        },
-        {
-          'id': 'social',
-          'nameKey': 'archetype.socialName',
-          'nameFallback': 'Alma Social',
-          'emoji': '💗',
-          'color': const Color(0xFFEC4899),
-          'descKey': 'editProfile.archetypes.social.shortDesc',
-          'descFallback': 'Empático, conectado, inspira a otros',
-        },
-        {
-          'id': 'sabio',
-          'nameKey': 'archetype.sageName',
-          'nameFallback': 'Sabio Tranquilo',
-          'emoji': '🍃',
-          'color': const Color(0xFF10B981),
-          'descKey': 'editProfile.archetypes.sabio.shortDesc',
-          'descFallback': 'Sereno, equilibrado, busca paz',
-        },
-        {
-          'id': 'libre',
-          'nameKey': 'archetype.freeSpiritName',
-          'nameFallback': 'Espíritu Libre',
-          'emoji': '🌅',
-          'color': const Color(0xFFF59E0B),
-          'descKey': 'editProfile.archetypes.libre.shortDesc',
-          'descFallback': 'Creativo, espontáneo, vive el momento',
-        },
-      ];
+  // Estado del nombre de usuario
+  Timer? _debounce;
+  bool _checking = false;
+  bool _available = false;
+  String? _usernameError;
+
+  static const _archetypes = [
+    ('explorador', 'archetype.explorerName', 'editProfile.archetypes.explorador.shortDesc', '🧭', Color(0xFF6366F1)),
+    ('guerrero', 'archetype.warriorName', 'editProfile.archetypes.guerrero.shortDesc', '🛡️', Color(0xFFEF4444)),
+    ('social', 'archetype.socialName', 'editProfile.archetypes.social.shortDesc', '🤝', Color(0xFFEC4899)),
+    ('sabio', 'archetype.sageName', 'editProfile.archetypes.sabio.shortDesc', '🦉', Color(0xFF10B981)),
+    ('libre', 'archetype.freeSpiritName', 'editProfile.archetypes.libre.shortDesc', '🕊️', Color(0xFFF59E0B)),
+  ];
 
   @override
   void initState() {
     super.initState();
     final auth = context.read<AuthProvider>();
-    _nameController = TextEditingController(text: auth.userName);
-    _usernameController = TextEditingController(
-      text: auth.userModel?.username ?? '',
-    );
+    _initialName = auth.userName;
+    _initialUsername = auth.userModel?.username ?? '';
+    _nameController = TextEditingController(text: _initialName);
+    _usernameController = TextEditingController(text: _initialUsername);
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _nameController.dispose();
     _usernameController.dispose();
     _currentPassController.dispose();
@@ -96,217 +82,188 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  String _tr(
-    String key, {
-    String? fallback,
-    Map<String, String>? namedArgs,
-  }) {
-    final value = key.tr(namedArgs: namedArgs ?? const <String, String>{});
-    return value == key ? (fallback ?? key) : value;
+  String get _name => _nameController.text.trim();
+  String get _username => _usernameController.text.trim().toLowerCase();
+  bool get _usernameChanged => _username != _initialUsername;
+  bool get _dirty => _name != _initialName || _usernameChanged;
+
+  bool get _canSave =>
+      !_isSaving &&
+      _dirty &&
+      _name.length >= 2 &&
+      (!_usernameChanged || (_usernameError == null && !_checking && (_available || _username.isEmpty)));
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Nombre de usuario
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  void _onUsernameChanged(String value) {
+    _debounce?.cancel();
+    final clean = value.trim().toLowerCase();
+    setState(() {
+      _available = false;
+      _checking = false;
+      _usernameError = clean == _initialUsername ? null : Validators.username(clean);
+    });
+    if (clean == _initialUsername || _usernameError != null) return;
+
+    setState(() => _checking = true);
+    _debounce = Timer(const Duration(milliseconds: 600), () async {
+      final auth = context.read<AuthProvider>();
+      final taken = await auth.isUsernameTaken(clean);
+      if (!mounted || _username != clean) return;
+      setState(() {
+        _checking = false;
+        _available = !taken;
+        _usernameError = taken ? 'profileSetup.usernameTaken'.tr() : null;
+      });
+    });
   }
 
-  bool get _canSave => _nameController.text.trim().isNotEmpty;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Guardar
+  // ═══════════════════════════════════════════════════════════════════════════
 
   Future<void> _save() async {
-    if (!_canSave || _isSaving) return;
+    if (!_canSave) return;
     setState(() => _isSaving = true);
     HapticFeedback.mediumImpact();
-
-    try {
-      final auth = context.read<AuthProvider>();
-      final (success, error) = await auth.updateUserProfile(
-        name: _nameController.text.trim(),
-      );
-
-      if (mounted) {
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    _tr(
-                      'editProfile.updated',
-                      fallback: 'Perfil actualizado',
-                    ),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: const Color(0xFF10B981),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              margin: const EdgeInsets.all(16),
-            ),
-          );
-          Navigator.pop(context, true);
-        } else {
-          setState(() => _isSaving = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(error ?? _tr('errors.generic', fallback: 'Error')),
-              backgroundColor: const Color(0xFFEF4444),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              margin: const EdgeInsets.all(16),
-            ),
-          );
-        }
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isSaving = false);
+    final auth = context.read<AuthProvider>();
+    final (success, error) = await auth.updateUserProfile(
+      name: _name,
+      username: _usernameChanged && _username.isNotEmpty ? _username : null,
+    );
+    if (!mounted) return;
+    if (success) {
+      SoundService.instance.play(Sfx.save, volume: 0.5);
+      _toast('editProfile.updated'.tr(), icon: Icons.check_circle_rounded);
+      Navigator.pop(context, true);
+      return;
     }
+    setState(() => _isSaving = false);
+    SoundService.instance.play(Sfx.wrong, volume: 0.45);
+    _toast(error ?? 'errors.generic'.tr(), color: _danger, icon: Icons.error_outline_rounded);
   }
+
+  void _toast(String text, {Color color = const Color(0xFF10B981), IconData icon = Icons.check_circle_rounded}) {
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        padding: EdgeInsets.zero,
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(colors: [color, Color.lerp(color, Colors.black, 0.2)!]),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 14, offset: const Offset(0, 5))],
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5))),
+            ],
+          ),
+        ),
+      ));
+  }
+
+  Future<bool> _confirmDiscard() async {
+    if (!_dirty) return true;
+    final leave = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => GardenSheet(
+        title: 'editProfile.discardTitle'.tr(),
+        leading: const LumiAvatar(mood: LumiMood.curious, size: 54),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('editProfile.discardBody'.tr(), style: const TextStyle(fontSize: 14, height: 1.4, color: AppColors.textSecondary)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                    child: Text('editProfile.discardLeave'.tr()),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text('editProfile.discardStay'.tr()),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+    return leave ?? false;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Contraseña y cuenta
+  // ═══════════════════════════════════════════════════════════════════════════
 
   Future<void> _changePassword() async {
     if (_newPassController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _tr(
-              'validation.passwordTooShort',
-              fallback: 'La contraseña debe tener al menos 6 caracteres',
-            ),
-          ),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      SoundService.instance.play(Sfx.wrong, volume: 0.4);
+      _toast('validation.passwordTooShort'.tr(), color: _danger, icon: Icons.error_outline_rounded);
       return;
     }
-
     if (_newPassController.text != _confirmPassController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _tr(
-              'validation.passwordsDoNotMatch',
-              fallback: 'Las contraseñas no coinciden',
-            ),
-          ),
-          backgroundColor: const Color(0xFFEF4444),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      SoundService.instance.play(Sfx.wrong, volume: 0.4);
+      _toast('validation.passwordsDoNotMatch'.tr(), color: _danger, icon: Icons.error_outline_rounded);
       return;
     }
-
     setState(() => _isChangingPass = true);
-
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null || user.email == null) {
         setState(() => _isChangingPass = false);
         return;
       }
-
-      final credential = EmailAuthProvider.credential(
-        email: user.email!,
-        password: _currentPassController.text,
+      await user.reauthenticateWithCredential(
+        EmailAuthProvider.credential(email: user.email!, password: _currentPassController.text),
       );
-
-      await user.reauthenticateWithCredential(credential);
       await user.updatePassword(_newPassController.text);
-
-      if (mounted) {
-        _currentPassController.clear();
-        _newPassController.clear();
-        _confirmPassController.clear();
-        setState(() {
-          _isChangingPass = false;
-          _showPassForm = false;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.lock_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  _tr(
-                    'profile.passwordChanged',
-                    fallback: 'Contraseña actualizada',
-                  ),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: const Color(0xFF10B981),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-      }
+      if (!mounted) return;
+      _currentPassController.clear();
+      _newPassController.clear();
+      _confirmPassController.clear();
+      setState(() {
+        _isChangingPass = false;
+        _showPassForm = false;
+      });
+      SoundService.instance.play(Sfx.save, volume: 0.5);
+      _toast('profile.passwordChanged'.tr(), icon: Icons.lock_rounded);
     } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        setState(() => _isChangingPass = false);
-
-        String message = _tr(
-          'editProfile.changePasswordError',
-          fallback: 'Error al cambiar contraseña',
-        );
-
-        if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-          message = _tr(
-            'editProfile.wrongCurrentPassword',
-            fallback: 'Contraseña actual incorrecta',
-          );
-        } else if (e.code == 'weak-password') {
-          message = _tr(
-            'errors.weakPassword',
-            fallback: 'La contraseña es muy débil',
-          );
-        } else if (e.code == 'too-many-requests') {
-          message = _tr(
-            'errors.tooManyRequests',
-            fallback: 'Demasiados intentos. Espera un momento.',
-          );
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            backgroundColor: const Color(0xFFEF4444),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-      }
+      if (!mounted) return;
+      setState(() => _isChangingPass = false);
+      final message = switch (e.code) {
+        'wrong-password' || 'invalid-credential' => 'editProfile.wrongCurrentPassword'.tr(),
+        'weak-password' => 'errors.weakPassword'.tr(),
+        'too-many-requests' => 'errors.tooManyRequests'.tr(),
+        _ => 'editProfile.changePasswordError'.tr(),
+      };
+      SoundService.instance.play(Sfx.wrong, volume: 0.45);
+      _toast(message, color: _danger, icon: Icons.error_outline_rounded);
     } catch (_) {
       if (mounted) setState(() => _isChangingPass = false);
     }
@@ -315,715 +272,224 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _confirmDeleteAccount() async {
     HapticFeedback.mediumImpact();
     final garden = context.read<GardenProvider>();
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-
-    final deleted = await showDialog<bool>(
-      context: context,
-      builder: (_) => const _DeleteAccountDialog(),
-    );
+    final deleted = await showDialog<bool>(context: context, builder: (_) => const _DeleteAccountDialog());
     if (deleted != true) return;
-
     garden.resetOnLogout();
     navigator.pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          _tr('editProfile.accountDeleted', fallback: 'Cuenta eliminada'),
-        ),
-        backgroundColor: const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // BUILD
+  // ═══════════════════════════════════════════════════════════════════════════
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = context.watch<AuthProvider>();
-    final userArchetype = auth.userModel?.archetype;
-    final isGoogleOnly = auth.isGoogleOnly;
+    final archetype = auth.userModel?.archetype;
+    final colors = ArchetypeStyle.colors(archetype);
+    final ink = isDark ? Colors.white : AppColors.textPrimary;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          AnimatedParticlesBackground(
-            particleCount: 12,
-            maxShootingStars: isDark ? 1 : 0,
-            particleColor: isDark
-                ? Colors.white.withValues(alpha: 0.2)
-                : const Color(0xFF6366F1).withValues(alpha: 0.1),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded),
-                        onPressed: () => Navigator.pop(context),
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final navigator = Navigator.of(context);
+        if (await _confirmDiscard()) navigator.pop();
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? const Color(0xFF0F0F23) : const Color(0xFFF6F3FF),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 6, 16, 4),
+                child: Row(
+                  children: [
+                    Semantics(
+                      button: true,
+                      label: 'common.back'.tr(),
+                      onTap: () => Navigator.maybePop(context),
+                      excludeSemantics: true,
+                      child: MinTapTarget(
+                        onTap: () => Navigator.maybePop(context),
+                        child: Icon(Icons.arrow_back_rounded, color: ink),
                       ),
-                      Expanded(
+                    ),
+                    Expanded(
+                      child: Semantics(
+                        header: true,
                         child: Text(
-                          _tr(
-                            'profile.editProfile',
-                            fallback: 'Editar perfil',
-                          ),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          'profile.editProfile'.tr(),
+                          style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: ink),
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: FilledButton(
-                          onPressed: _canSave ? _save : null,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            disabledBackgroundColor: AppColors.primary
-                                .withValues(alpha: 0.3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+                  children: [
+                    EditPreviewCard(
+                      name: _name.isEmpty ? _initialName : _name,
+                      username: _username,
+                      archetypeName: ArchetypeStyle.name(archetype),
+                      archetypeEmoji: ArchetypeStyle.emoji(archetype),
+                      colors: colors,
+                    ),
+                    const SizedBox(height: 22),
+                    EditSectionTitle(kicker: 'editProfile.infoKicker'.tr(), title: 'editProfile.personalInfo'.tr(), isDark: isDark),
+                    const SizedBox(height: 10),
+                    EditCard(
+                      isDark: isDark,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          EditField(
+                            controller: _nameController,
+                            label: 'editProfile.nameLabel'.tr(),
+                            icon: Icons.person_rounded,
+                            isDark: isDark,
+                            maxLength: 30,
+                            onChanged: (_) => setState(() {}),
+                            helper: _name.isNotEmpty && _name.length < 2 ? 'validation.nameTooShort'.tr() : null,
+                            helperIsError: true,
                           ),
-                          child: _isSaving
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Text(
-                                  _tr('common.save', fallback: 'Guardar'),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                        ),
+                          const SizedBox(height: 14),
+                          EditField(
+                            controller: _usernameController,
+                            label: 'editProfile.usernameLabel'.tr(),
+                            icon: Icons.alternate_email_rounded,
+                            isDark: isDark,
+                            maxLength: 20,
+                            prefixText: '@',
+                            onChanged: _onUsernameChanged,
+                            helper: _usernameError ??
+                                (_checking
+                                    ? 'editProfile.usernameChecking'.tr()
+                                    : _available && _usernameChanged
+                                        ? 'editProfile.usernameAvailable'.tr()
+                                        : 'editProfile.usernameHint'.tr()),
+                            helperIsError: _usernameError != null,
+                            helperIsGood: _available && _usernameChanged && _usernameError == null,
+                            suffix: _checking
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                                  )
+                                : _usernameError != null
+                                    ? const Icon(Icons.error_outline_rounded, color: _danger, size: 20)
+                                    : _available && _usernameChanged
+                                        ? const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20)
+                                        : null,
+                          ),
+                          const SizedBox(height: 14),
+                          LockedInfoRow(
+                            icon: Icons.email_rounded,
+                            text: auth.userEmail,
+                            trailing: auth.firebaseUser?.emailVerified == true ? 'editProfile.verified'.tr() : null,
+                            isDark: isDark,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    EditSectionTitle(kicker: 'editProfile.archetypeKicker'.tr(), title: 'profile.archetype'.tr(), isDark: isDark),
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, bottom: 10),
+                      child: Text(
+                        'editProfile.archetypeLockedDesc'.tr(),
+                        style: TextStyle(fontSize: 12.5, height: 1.35, color: isDark ? Colors.white54 : AppColors.textSecondary),
+                      ),
+                    ),
+                    for (final (i, (id, nameKey, descKey, emoji, color)) in _archetypes.indexed)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: ArchetypeRow(
+                          isMine: archetype == id,
+                          name: nameKey.tr(),
+                          description: descKey.tr(),
+                          emoji: emoji,
+                          color: color,
+                          isDark: isDark,
+                        ).animate().fadeIn(delay: (60 * i).ms, duration: 300.ms).slideX(begin: 0.06, end: 0, curve: Curves.easeOutCubic),
+                      ),
+                    if (!auth.isGoogleOnly) ...[
+                      const SizedBox(height: 14),
+                      EditSectionTitle(kicker: 'editProfile.securityKicker'.tr(), title: 'editProfile.security'.tr(), isDark: isDark),
+                      const SizedBox(height: 10),
+                      PasswordCard(
+                        isDark: isDark,
+                        expanded: _showPassForm,
+                        busy: _isChangingPass,
+                        currentController: _currentPassController,
+                        newController: _newPassController,
+                        confirmController: _confirmPassController,
+                        obscureCurrent: _obscureCurrent,
+                        obscureNew: _obscureNew,
+                        onToggleExpanded: () {
+                          SoundService.instance.play(_showPassForm ? Sfx.toggleOff : Sfx.toggleOn, volume: 0.35);
+                          setState(() => _showPassForm = !_showPassForm);
+                        },
+                        onToggleObscureCurrent: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                        onToggleObscureNew: () => setState(() => _obscureNew = !_obscureNew),
+                        onSubmit: _changePassword,
                       ),
                     ],
-                  ),
+                    const SizedBox(height: 22),
+                    DangerZoneCard(isDark: isDark, onDelete: _confirmDeleteAccount),
+                  ],
                 ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.05)
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.08)
-                                  : Colors.grey.shade200,
+              ),
+              // Barra de guardar: aparece solo si hay cambios
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                child: _dirty
+                    ? Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF17182A) : Colors.white,
+                          border: Border(top: BorderSide(color: ink.withValues(alpha: 0.08))),
+                        ),
+                        child: SizedBox(
+                          height: 52,
+                          child: FilledButton(
+                            onPressed: _canSave ? _save : null,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: colors.first,
+                              disabledBackgroundColor: colors.first.withValues(alpha: 0.3),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.badge_rounded,
-                                    size: 18,
-                                    color: AppColors.primary,
+                            child: _isSaving
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                : Text(
+                                    'editProfile.saveChanges'.tr(),
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _tr(
-                                      'editProfile.personalInfo',
-                                      fallback: 'Información personal',
-                                    ),
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? Colors.white
-                                          : AppColors.textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              TextField(
-                                controller: _nameController,
-                                onChanged: (_) => setState(() {}),
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                ),
-                                decoration: _inputDeco(
-                                  _tr(
-                                    'editProfile.nameLabel',
-                                    fallback: 'Nombre',
-                                  ),
-                                  isDark,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: _usernameController,
-                                enabled: false,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textPrimary,
-                                ),
-                                decoration: _inputDeco(
-                                  _tr(
-                                    'editProfile.usernameLabel',
-                                    fallback: 'Nombre de usuario',
-                                  ),
-                                  isDark,
-                                ).copyWith(
-                                  prefixText: '@',
-                                  prefixStyle: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.03)
-                                      : Colors.grey.shade50,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.email_rounded,
-                                      size: 18,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        auth.userEmail,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.lock_outline_rounded,
-                                      size: 14,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        if (!isGoogleOnly) ...[
-                          Container(
-                            padding: const EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.05)
-                                  : AppColors.surface,
-                              borderRadius: BorderRadius.circular(22),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : Colors.grey.shade200,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                GestureDetector(
-                                  onTap: () => setState(
-                                    () => _showPassForm = !_showPassForm,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF59E0B)
-                                              .withValues(
-                                            alpha: isDark ? 0.15 : 0.1,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: const Icon(
-                                          Icons.lock_rounded,
-                                          color: Color(0xFFF59E0B),
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              _tr(
-                                                'profile.changePassword',
-                                                fallback:
-                                                    'Cambiar contraseña',
-                                              ),
-                                              style: TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w700,
-                                                color: isDark
-                                                    ? Colors.white
-                                                    : AppColors.textPrimary,
-                                              ),
-                                            ),
-                                            Text(
-                                              _tr(
-                                                'editProfile.passwordAccessDesc',
-                                                fallback:
-                                                    'Actualiza tu contraseña de acceso',
-                                              ),
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                color: AppColors.textSecondary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(
-                                        _showPassForm
-                                            ? Icons.expand_less_rounded
-                                            : Icons.expand_more_rounded,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (_showPassForm) ...[
-                                  const SizedBox(height: 16),
-                                  TextField(
-                                    controller: _currentPassController,
-                                    obscureText: _obscureCurrent,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: isDark
-                                          ? Colors.white
-                                          : AppColors.textPrimary,
-                                    ),
-                                    decoration: _inputDeco(
-                                      _tr(
-                                        'profile.currentPassword',
-                                        fallback:
-                                            'Contraseña actual',
-                                      ),
-                                      isDark,
-                                    ).copyWith(
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscureCurrent
-                                              ? Icons.visibility_off_rounded
-                                              : Icons.visibility_rounded,
-                                          size: 20,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                        onPressed: () => setState(
-                                          () => _obscureCurrent =
-                                              !_obscureCurrent,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  TextField(
-                                    controller: _newPassController,
-                                    obscureText: _obscureNew,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: isDark
-                                          ? Colors.white
-                                          : AppColors.textPrimary,
-                                    ),
-                                    decoration: _inputDeco(
-                                      _tr(
-                                        'profile.newPassword',
-                                        fallback:
-                                            'Nueva contraseña',
-                                      ),
-                                      isDark,
-                                    ).copyWith(
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscureNew
-                                              ? Icons.visibility_off_rounded
-                                              : Icons.visibility_rounded,
-                                          size: 20,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                        onPressed: () => setState(
-                                          () => _obscureNew = !_obscureNew,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  TextField(
-                                    controller: _confirmPassController,
-                                    obscureText: _obscureNew,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: isDark
-                                          ? Colors.white
-                                          : AppColors.textPrimary,
-                                    ),
-                                    decoration: _inputDeco(
-                                      _tr(
-                                        'profile.confirmNewPassword',
-                                        fallback:
-                                            'Confirmar contraseña',
-                                      ),
-                                      isDark,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 46,
-                                    child: FilledButton(
-                                      onPressed: _isChangingPass
-                                          ? null
-                                          : _changePassword,
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFFF59E0B),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(14),
-                                        ),
-                                      ),
-                                      child: _isChangingPass
-                                          ? const SizedBox(
-                                              width: 18,
-                                              height: 18,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                          : Text(
-                                              _tr(
-                                                'profile.changePassword',
-                                                fallback:
-                                                    'Cambiar contraseña',
-                                              ),
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                        Text(
-                          _tr(
-                            'editProfile.emotionalArchetype',
-                            fallback: 'Tu arquetipo emocional',
-                          ),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color:
-                                isDark ? Colors.white : AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          _tr(
-                            'editProfile.archetypeLockedDesc',
-                            fallback:
-                                'Determinado en tu registro inicial. No se puede cambiar.',
-                          ),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ...List.generate(_archetypes.length, (i) {
-                          final archetype = _archetypes[i];
-                          final isUser = userArchetype == archetype['id'];
-                          final color = archetype['color'] as Color;
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: AnimatedOpacity(
-                              duration: const Duration(milliseconds: 300),
-                              opacity: isUser ? 1.0 : 0.5,
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  gradient: isUser
-                                      ? LinearGradient(
-                                          colors: [
-                                            color.withValues(
-                                              alpha: isDark ? 0.2 : 0.1,
-                                            ),
-                                            color.withValues(
-                                              alpha: isDark ? 0.08 : 0.04,
-                                            ),
-                                          ],
-                                        )
-                                      : null,
-                                  color: isUser
-                                      ? null
-                                      : isDark
-                                          ? Colors.white.withValues(alpha: 0.03)
-                                          : Colors.grey.shade50,
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(
-                                    color: isUser
-                                        ? color.withValues(alpha: 0.4)
-                                        : isDark
-                                            ? Colors.white.withValues(
-                                                alpha: 0.06,
-                                              )
-                                            : Colors.grey.shade200,
-                                    width: isUser ? 2 : 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 46,
-                                      height: 46,
-                                      decoration: BoxDecoration(
-                                        color: color.withValues(
-                                          alpha: isUser ? 0.2 : 0.08,
-                                        ),
-                                        borderRadius:
-                                            BorderRadius.circular(14),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          archetype['emoji'] as String,
-                                          style:
-                                              const TextStyle(fontSize: 22),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _tr(
-                                              archetype['nameKey'] as String,
-                                              fallback: archetype['nameFallback']
-                                                  as String,
-                                            ),
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                              color: isUser
-                                                  ? color
-                                                  : AppColors.textSecondary,
-                                            ),
-                                          ),
-                                          Text(
-                                            _tr(
-                                              archetype['descKey'] as String,
-                                              fallback: archetype[
-                                                      'descFallback']
-                                                  as String,
-                                            ),
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    if (isUser)
-                                      Container(
-                                        padding:
-                                            const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: color.withValues(
-                                            alpha: 0.15,
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          _tr(
-                                            'editProfile.yourArchetype',
-                                            fallback: 'Tu arquetipo',
-                                          ),
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: color,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                        const SizedBox(height: 14),
-                        Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _confirmDeleteAccount,
-                            borderRadius: BorderRadius.circular(18),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEF4444).withValues(
-                                  alpha: isDark ? 0.08 : 0.05,
-                                ),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: const Color(0xFFEF4444).withValues(
-                                    alpha: isDark ? 0.15 : 0.1,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEF4444)
-                                          .withValues(
-                                        alpha: isDark ? 0.15 : 0.1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.delete_forever_rounded,
-                                      color: Color(0xFFEF4444),
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _tr(
-                                            'editProfile.deleteAccount',
-                                            fallback: 'Eliminar cuenta',
-                                          ),
-                                          style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFFEF4444),
-                                          ),
-                                        ),
-                                        Text(
-                                          _tr(
-                                            'editProfile.deleteAccountDesc',
-                                            fallback:
-                                                'Borra tu cuenta y todos tus datos para siempre',
-                                          ),
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                      ).animate().slideY(begin: 0.4, end: 0, duration: 250.ms, curve: Curves.easeOutCubic)
+                    : const SizedBox(width: double.infinity),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _inputDeco(String label, bool isDark) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: AppColors.textSecondary),
-      filled: true,
-      fillColor: isDark
-          ? Colors.white.withValues(alpha: 0.06)
-          : Colors.grey.shade50,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: AppColors.primary,
-          width: 1.5,
         ),
       ),
-      contentPadding: const EdgeInsets.all(16),
     );
   }
 }
 
-/// Confirma y ejecuta la eliminación de la cuenta. Retorna true al terminar.
+// ═════════════════════════════════════════════════════════════════════════════
+// Eliminar cuenta
+// ═════════════════════════════════════════════════════════════════════════════
+
 class _DeleteAccountDialog extends StatefulWidget {
   const _DeleteAccountDialog();
 
@@ -1045,14 +511,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     super.dispose();
   }
 
-  String _tr(String key, {String? fallback}) {
-    final value = key.tr();
-    return value == key ? (fallback ?? key) : value;
-  }
-
-  bool _canDelete(bool isGoogleOnly) =>
-      !_isDeleting &&
-      (isGoogleOnly || _passwordController.text.isNotEmpty);
+  bool _canDelete(bool isGoogleOnly) => !_isDeleting && (isGoogleOnly || _passwordController.text.isNotEmpty);
 
   Future<void> _delete() async {
     setState(() {
@@ -1082,31 +541,23 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     return PopScope(
       canPop: !_isDeleting,
       child: AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        icon: const Text('🕊️', style: TextStyle(fontSize: 30)),
         title: Text(
-          _tr('editProfile.deleteAccountTitle',
-              fallback: '¿Eliminar tu cuenta?'),
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          'editProfile.deleteAccountTitle'.tr(),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 19),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _tr('editProfile.deleteAccountWarning',
-                  fallback:
-                      'Se borrarán tu progreso, racha, diario, hábitos, recordatorios y jardín. Esto no se puede deshacer.'),
-            ),
+            Text('editProfile.deleteAccountWarning'.tr(), style: const TextStyle(fontSize: 13.5, height: 1.4)),
             const SizedBox(height: 16),
             if (isGoogleOnly)
               Text(
-                _tr('editProfile.deleteAccountGoogleHint',
-                    fallback:
-                        'Para confirmar, elige tu cuenta de Google en el siguiente paso.'),
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
-                ),
+                'editProfile.deleteAccountGoogleHint'.tr(),
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
               )
             else
               TextField(
@@ -1119,73 +570,42 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
                   if (_canDelete(isGoogleOnly)) _delete();
                 },
                 decoration: InputDecoration(
-                  labelText: _tr('editProfile.deleteAccountPasswordHint',
-                      fallback: 'Escribe tu contraseña para confirmar'),
-                  labelStyle: const TextStyle(color: AppColors.textSecondary),
+                  labelText: 'editProfile.deleteAccountPasswordHint'.tr(),
+                  labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   filled: true,
-                  fillColor: isDark
-                      ? Colors.white.withValues(alpha: 0.06)
-                      : Colors.grey.shade50,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade50,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: const BorderSide(color: _danger, width: 1.5),
                   ),
                   suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscure
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                      size: 20,
-                      color: AppColors.textSecondary,
-                    ),
+                    icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20, color: AppColors.textSecondary),
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
               ),
             if (_error != null) ...[
               const SizedBox(height: 10),
-              Text(
-                _error!,
-                style: const TextStyle(fontSize: 13, color: _danger),
-              ),
+              Text(_error!, style: const TextStyle(fontSize: 13, color: _danger)),
             ],
           ],
         ),
         actions: [
           TextButton(
-            onPressed:
-                _isDeleting ? null : () => Navigator.of(context).pop(false),
-            child: Text(
-              _tr('common.cancel', fallback: 'Cancelar'),
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
+            onPressed: _isDeleting ? null : () => Navigator.of(context).pop(false),
+            child: Text('common.cancel'.tr(), style: const TextStyle(color: AppColors.textSecondary)),
           ),
           FilledButton(
             onPressed: _canDelete(isGoogleOnly) ? _delete : null,
             style: FilledButton.styleFrom(
               backgroundColor: _danger,
               disabledBackgroundColor: _danger.withValues(alpha: 0.3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: _isDeleting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    _tr('editProfile.deleteAccount',
-                        fallback: 'Eliminar cuenta'),
-                  ),
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Text('editProfile.deleteAccount'.tr()),
           ),
         ],
       ),
