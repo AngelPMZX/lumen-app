@@ -732,6 +732,47 @@ def music_box():
     return normalize_rms(circular_reverb(box, 2.6, 0.4, 7000), -21)
 
 
+# ── Repaso diario ───────────────────────────────────────────────────────────
+def sfx_card_deal():
+    """Tarjeta que se desliza sobre la mesa + un toque suave al asentarse."""
+    n = int(0.18 * SR)
+    tt = np.arange(n) / n
+    slide = fft_filter(rng.normal(size=n), 2000, 9000) * (tt ** 0.5) * np.exp(-tt * 3) * 0.35
+    x = silence(0.45)
+    place(x, slide, 0)
+    place(x, note(midi(88), 0.3, [(1, 1, 1), (2.76, 0.2, 0.3)], attack=0.001, decay=0.05), 0.15, 0.25)
+    return normalize(x, -12)
+
+
+def sfx_review_start():
+    x = silence(1.4)
+    for i, m in enumerate([72, 76, 79, 84, 88]):
+        place(x, note(midi(m), 0.7, GLASS, attack=0.004, decay=0.25), i * 0.05, 0.5 + i * 0.05)
+    sparkles(x, 0.25, 0.6, 5, 0.1)
+    return normalize(oneshot_reverb(x, 1.0, 0.3), -6)
+
+
+def sfx_star(i):
+    """Una estrella del resultado: cada una más aguda (Mi, Sol, Do)."""
+    m = [88, 91, 96][i]
+    x = silence(1.2)
+    place(x, note(midi(m), 1.0, BELL, attack=0.001, decay=0.45), 0, 0.8)
+    place(x, note(midi(m + 12), 0.6, GLASS, decay=0.2), 0.03, 0.25)
+    return normalize(oneshot_reverb(x, 0.9, 0.3), -6)
+
+
+def sfx_review_perfect():
+    x = silence(3.2)
+    melody = [(72, 0.0), (76, 0.12), (79, 0.24), (84, 0.36), (79, 0.52), (84, 0.64), (88, 0.76)]
+    for m, t in melody:
+        place(x, note(midi(m), 0.9, KALIMBA, attack=0.002, decay=0.35), t, 0.6)
+        place(x, note(midi(m + 12), 0.6, GLASS, decay=0.2), t + 0.01, 0.15)
+    for m in (72, 76, 79, 84, 91):
+        place(x, note(midi(m), 2.2, BELL, decay=1.0), 0.95, 0.25)
+    sparkles(x, 1.0, 2.0, 14, 0.13)
+    return normalize(oneshot_reverb(x, 2.0, 0.35), -3)
+
+
 def main():
     print('Ambientes (bucles de %.0f s):' % LOOP)
     export(rain(), 'ambient/rain.mp3', '80k')
@@ -786,6 +827,14 @@ def main():
     export(sunrise(), 'ambient/sunrise.mp3', '64k')
     export(kalimba_loop(), 'ambient/kalimba.mp3', '64k')
     export(music_box(), 'ambient/music_box.mp3', '64k')
+
+    # Tercera tanda: repaso diario
+    print('Repaso diario:')
+    export(sfx_card_deal(), 'sfx/card_deal.mp3')
+    export(sfx_review_start(), 'sfx/review_start.mp3')
+    for i in range(3):
+        export(sfx_star(i), f'sfx/star_{i}.mp3')
+    export(sfx_review_perfect(), 'sfx/review_perfect.mp3')
 
 
 if __name__ == '__main__':

@@ -117,6 +117,15 @@ class AnalyticsService {
 
   Future<void> habitCheckIn() => _log('habit_checkin');
 
+  // ── Repaso diario ────────────────────────────────────────────────────────
+  Future<void> reviewStarted(int cards) => _log('review_started', {'cards': cards});
+
+  Future<void> reviewComplete(int correct, int total) => _log('review_complete', {
+        'correct': correct,
+        'total': total,
+        'perfect': correct == total ? 1 : 0,
+      });
+
   // ── Resumen semanal ──────────────────────────────────────────────────────
   /// Solo que se abrió y desde dónde: el contenido del resumen no se envía.
   Future<void> weeklySummaryOpened(String source) =>

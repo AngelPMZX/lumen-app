@@ -11,6 +11,7 @@ enum RewardSource {
   breathing,
   diaryEntry,
   commitment,
+  review,
 }
 
 /// El resultado de una recompensa
@@ -102,6 +103,12 @@ class RewardService {
       minSeeds: 4,
       maxSeeds: 8,
       itemChancePercent: 20,
+    ),
+    // Repaso diario: una vez al día (progress/review, hora del servidor).
+    RewardSource.review: _SourceConfig(
+      minSeeds: 2,
+      maxSeeds: 5,
+      itemChancePercent: 15,
     ),
   };
 

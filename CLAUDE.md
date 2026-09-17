@@ -123,6 +123,15 @@ Clean architecture simplificada:
 - `dayKey` es la fecha local `yyyy-MM-dd`, y `daysAgo` compara en UTC para que un día con cambio de horario no cuente como 0.
 - Al completar una lección, "Siguiente lección" (si hay) devuelve `LessonScreen.nextResult` y `RoutesScreen` abre la siguiente.
 
+### Repaso diario
+- `DailyReviewScreen` (`lib/ui/screens/review/`): 5 tarjetas de lecciones ya completadas, **sin cronómetro** (a propósito: no presionar en una app de bienestar). Tres fases: intro con mazo en abanico, tarjetas repartidas con animación y resultados con anillo de puntuación, 0-3 estrellas y confeti si es perfecto.
+- `ReviewDeck` (`lib/data/models/review_deck.dart`, lógica pura con pruebas): convierte pasos `mythfact` (una tarjeta por afirmación), `sort` (una por item, elegir categoría) y `quiz` en tarjetas con id `lessonId:paso:item`. Mazo determinista por día; primero hasta 2 tarjetas falladas antes y luego al azar entre lecciones distintas. Hacen falta al menos 3 tarjetas posibles.
+- **Repetición espaciada ligera**: `progress/review` guarda `missed` (tope 40); las que se aciertan salen. XP (10) y semillas (`RewardSource.review`) solo en el primer repaso del día (`lastRewardDate` con hora del servidor); `lastLocalDay` marca "listo hoy" en el Home.
+- Sonidos propios: `cardDeal`, `reviewStart`, `star(0-2)` (una nota más aguda por estrella), `reviewPerfect`; la racha usa `combo`.
+- Tarjeta en el Home debajo de la lección del día: bloqueada sin lecciones completadas, con check si ya se hizo hoy (se puede repetir sin recompensa).
+- Analytics: `review_started`, `review_complete` (aciertos y total, sin contenido).
+- `preview: true` (`@visibleForTesting`) evita Firestore para renderizar la pantalla en pruebas.
+
 ### Resumen semanal
 - `WeeklySummaryScreen` (`lib/ui/screens/summary/`): ánimo dominante y tendencia frente a la semana anterior, ánimo día por día con el mejor día, 6 contadores (check-ins, lecciones, respiraciones, diario, hábitos, retos cumplidos), patrones personales y una lección recomendada.
 - **Todo se calcula en el teléfono** (`WeeklySummary.compute`, lógica pura con pruebas en `test/data/models/weekly_summary_test.dart`). `WeeklySummaryService` hace una consulta de 28 días por colección. Analytics solo registra que se abrió.
@@ -133,7 +142,7 @@ Clean architecture simplificada:
 - `previewSummary` (`@visibleForTesting`) permite renderizar la pantalla sin Firebase.
 
 ### Analytics y Crashlytics
-- `AnalyticsService` (`lib/domain/services/analytics_service.dart`) con eventos tipados: `lesson_start`, `lesson_complete`, `lesson_abandoned` (con el paso donde se fue), `route_complete`, `next_lesson_tapped`, `commitment_created/answered/retried`, `breathing_complete`, `weekly_summary_opened`, `weekly_recommendation_tapped`, `mood_checkin`, `diary_entry_saved`, `habit_checkin`, `garden_action`, `exercise_saved_to_diary`.
+- `AnalyticsService` (`lib/domain/services/analytics_service.dart`) con eventos tipados: `lesson_start`, `lesson_complete`, `lesson_abandoned` (con el paso donde se fue), `route_complete`, `next_lesson_tapped`, `commitment_created/answered/retried`, `review_started`, `review_complete`, `breathing_complete`, `weekly_summary_opened`, `weekly_recommendation_tapped`, `mood_checkin`, `diary_entry_saved`, `habit_checkin`, `garden_action`, `exercise_saved_to_diary`.
 - **Privacidad (regla)**: nunca enviar qué ánimo registró el usuario, textos del diario, ejercicios o retos, ni visitas a la ayuda en crisis (excluida del `navigatorObservers`). Solo acciones e ids de contenido.
 - En debug no se envía nada; para probar: `flutter run --dart-define=ANALYTICS_DEBUG=true` y DebugView (`adb shell setprop debug.firebase.analytics.app com.thedarkingstudios.lumen`). En web solo funciona si `firebase_options.dart` trae `measurementId` (hoy no lo trae: correr `flutterfire configure` con Analytics activo).
 - Crashlytics en `main.dart` (no en web, desactivado en debug). Plugin Gradle `com.google.firebase.crashlytics` 2.8.1 en `settings.gradle.kts` y `app/build.gradle.kts`.
@@ -244,7 +253,7 @@ flutter clean; flutter pub get
 1. ~~Seguimiento de retos (`commit`)~~: hecho, ver "Retos" en Features.
 2. ~~Botón "Siguiente lección" en la pantalla de lección completada~~: hecho.
 3. ~~Resumen semanal con conclusiones personales~~: hecho, ver "Resumen semanal" en Features.
-4. **Repaso diario**: mini-juego de 1 minuto con tarjetas `mythfact`/`sort` de lecciones ya completadas. Reutiliza contenido.
+4. ~~Repaso diario~~: hecho, ver "Repaso diario" en Features.
 5. **Compañero con personalidad**: nombre y frases en Home usando los Lottie del personaje (estilo búho de Duolingo).
 6. Misiones semanales con recompensas del jardín.
 7. Tarjeta para compartir al completar una ruta (sin datos sensibles).

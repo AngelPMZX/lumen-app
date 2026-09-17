@@ -37,6 +37,8 @@ import '../../../domain/services/analytics_service.dart';
 import '../../../data/models/weekly_summary.dart';
 import '../summary/weekly_summary_screen.dart';
 import '../../widgets/weekly_summary_card.dart';
+import '../../../data/models/review_deck.dart';
+import '../review/daily_review_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -64,6 +66,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Aviso del resumen semanal (domingo y lunes, hasta abrirlo).
   bool _showWeeklySummaryCard = false;
+
+  /// Repaso diario: tarjetas falladas pendientes y si ya se hizo hoy.
+  Set<String> _reviewMissed = {};
+  bool _reviewDoneToday = false;
 
   static const Map<String, String> _quoteTextKeys = {
     'La paz viene de adentro. No la busques afuera.': 'quoteService.localQuotes.0.text',
@@ -221,6 +227,17 @@ Future<void> _loadChallengeState() async {
 
     if (!mounted) return;
     try {
+      final review = await context.read<AuthProvider>().loadReviewState();
+      if (mounted) {
+        setState(() {
+          _reviewMissed = review.missed;
+          _reviewDoneToday = review.doneToday;
+        });
+      }
+    } catch (e) { debugPrint('Error loading review state: $e'); }
+
+    if (!mounted) return;
+    try {
       final uid = context.read<AuthProvider>().firebaseUser?.uid;
       if (uid != null) {
         final pending = await CommitmentService.instance.pendingToAsk(uid);
@@ -309,6 +326,32 @@ Future<void> _scheduleDailyReminders() async {
     } catch (e) {
       debugPrint('Error dismissing crisis card: $e');
     }
+  }
+
+  // ── Repaso diario ──────────────────────────────────────────────────────────
+
+  List<ReviewCard> get _reviewDeck => ReviewDeck.build(
+        pool: ReviewDeck.pool(_dynamicRoutes, _completedLessons),
+        missedIds: _reviewMissed,
+        dayKey: WeeklySummary.dayKey(DateTime.now()),
+      );
+
+  Future<void> _openReview() async {
+    final deck = _reviewDeck;
+    if (deck.isEmpty) {
+      HapticFeedback.heavyImpact();
+      SoundService.instance.play(Sfx.toggleOff, volume: 0.4);
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text('review.lockedSubtitle'.tr())));
+      return;
+    }
+    HapticFeedback.mediumImpact();
+    final done = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => DailyReviewScreen(deck: deck)),
+    );
+    if (done == true && mounted) _loadData();
   }
 
   // ── Resumen semanal ────────────────────────────────────────────────────────
@@ -1352,6 +1395,23 @@ Future<void> _scheduleDailyReminders() async {
   onTap: _hasLessonToday ? null : _openNextLesson,
   isDone: _hasLessonToday,
 ),
+                  const SizedBox(height: 12),
+                  Builder(builder: (context) {
+                    final hasDeck = _reviewDeck.isNotEmpty;
+                    return _buildActionCard(
+                      icon: hasDeck ? Icons.style_rounded : Icons.lock_rounded,
+                      title: _reviewDoneToday ? 'review.doneTitle'.tr() : 'review.title'.tr(),
+                      subtitle: !hasDeck
+                          ? 'review.lockedSubtitle'.tr()
+                          : _reviewDoneToday
+                              ? 'review.doneSubtitle'.tr()
+                              : 'review.homeSubtitle'.tr(),
+                      color: hasDeck ? const Color(0xFFF59E0B) : AppColors.textSecondary,
+                      isDark: isDark, delay: 725,
+                      onTap: _openReview,
+                      isDone: _reviewDoneToday,
+                    );
+                  }),
                   const SizedBox(height: 12),
                   _buildActionCard(
                     icon: Icons.air_rounded,

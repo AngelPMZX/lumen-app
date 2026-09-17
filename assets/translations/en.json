@@ -1928,5 +1928,32 @@
       "great": "What a week! You are taking care of your wellbeing consistently."
     },
     "privacy": "🔒 This summary is calculated on your phone with your data. Nobody else sees it."
+  },
+  "review": {
+    "title": "Daily review",
+    "homeSubtitle": "5 cards from what you learned · 1 min",
+    "doneTitle": "Today’s review is done!",
+    "doneSubtitle": "You can practice again whenever you like",
+    "lockedSubtitle": "Complete a lesson to unlock your review",
+    "introSubtitle": "{n} cards from lessons you already completed. The ones you miss will come back another day.",
+    "noTimer": "No timer: take your time",
+    "start": "Start review",
+    "seeResults": "See results",
+    "kind": {
+      "mythFact": "Myth or fact?",
+      "category": "Where does it belong?",
+      "quiz": "Question"
+    },
+    "willReturn": "This card will come back in another review.",
+    "correct": "correct",
+    "result": {
+      "perfect": "Flawless memory!",
+      "great": "Great job!",
+      "good": "Good review",
+      "keepGoing": "Every review counts"
+    },
+    "rewarded": "+{xp} XP for today’s review",
+    "practiceMessage": "You already got today’s reward, but reviewing always helps.",
+    "toReview": "Coming back in future reviews"
   }
 }

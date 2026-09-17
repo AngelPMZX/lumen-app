@@ -1928,5 +1928,32 @@
       "great": "¡Qué semana! Estás cuidando tu bienestar de forma constante."
     },
     "privacy": "🔒 Este resumen se calcula en tu teléfono con tus datos. Nadie más lo ve."
+  },
+  "review": {
+    "title": "Repaso diario",
+    "homeSubtitle": "5 tarjetas de lo que aprendiste · 1 min",
+    "doneTitle": "¡Repaso de hoy listo!",
+    "doneSubtitle": "Puedes volver a practicar cuando quieras",
+    "lockedSubtitle": "Completa una lección para desbloquear tu repaso",
+    "introSubtitle": "{n} tarjetas de lecciones que ya completaste. Las que falles volverán otro día.",
+    "noTimer": "Sin cronómetro: tómate tu tiempo",
+    "start": "Empezar repaso",
+    "seeResults": "Ver resultados",
+    "kind": {
+      "mythFact": "¿Mito o realidad?",
+      "category": "¿A qué pertenece?",
+      "quiz": "Pregunta"
+    },
+    "willReturn": "Esta tarjeta volverá en otro repaso.",
+    "correct": "correctas",
+    "result": {
+      "perfect": "¡Memoria impecable!",
+      "great": "¡Muy bien!",
+      "good": "Buen repaso",
+      "keepGoing": "Cada repaso cuenta"
+    },
+    "rewarded": "+{xp} XP por tu repaso de hoy",
+    "practiceMessage": "Ya recibiste la recompensa de hoy, pero repasar siempre suma.",
+    "toReview": "Volverán en próximos repasos"
   }
 }

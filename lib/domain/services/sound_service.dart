@@ -32,6 +32,10 @@ enum Sfx {
   harvest,
   booster,
   buy,
+  // Repaso diario
+  cardDeal,
+  reviewStart,
+  reviewPerfect,
 }
 
 /// Señales de la respiración guiada.
@@ -97,6 +101,9 @@ class SoundService {
       Sfx.tapNode: 'tap_node',
       Sfx.routeComplete: 'route_complete',
       Sfx.levelUp: 'level_up',
+      Sfx.cardDeal: 'card_deal',
+      Sfx.reviewStart: 'review_start',
+      Sfx.reviewPerfect: 'review_perfect',
     };
     return 'sounds/sfx/${names[s] ?? s.name}.mp3';
   }
@@ -193,6 +200,12 @@ class SoundService {
   Future<void> note(int index, {double volume = 0.55}) async {
     if (!_effectsEnabled) return;
     await _playOneShot('sounds/sfx/note_${index.clamp(0, 7)}.mp3', volume);
+  }
+
+  /// Estrella del resultado (0-2): cada una suena más aguda.
+  Future<void> star(int index, {double volume = 0.6}) async {
+    if (!_effectsEnabled) return;
+    await _playOneShot('sounds/sfx/star_${index.clamp(0, 2)}.mp3', volume);
   }
 
   /// Señal de respiración. La pantalla decide si suena (tiene su propio switch).

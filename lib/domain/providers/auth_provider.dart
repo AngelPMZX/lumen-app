@@ -1346,6 +1346,79 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   /// servidor) da [xpReward] y retorna true para que la UI dé las semillas.
   /// Se guarda en progress/breathing y no en completed_lessons, para que no
   /// cuente como la lección del día.
+  // ═══════════════════════════════════════════════════════════════════════════
+  // REPASO DIARIO — progress/review
+  // ═══════════════════════════════════════════════════════════════════════════
+  /// Estado del repaso: ids de tarjetas falladas pendientes y si ya se hizo hoy
+  /// (día local, solo para la interfaz; la recompensa usa la hora del servidor).
+  Future<({Set<String> missed, bool doneToday})> loadReviewState() async {
+    if (firebaseUser == null) return (missed: <String>{}, doneToday: false);
+    try {
+      final data = (await _firestore
+              .collection('users').doc(firebaseUser!.uid)
+              .collection('progress').doc('review')
+              .get())
+          .data();
+      final now = DateTime.now();
+      final today =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      return (
+        missed: Set<String>.from(data?['missed'] ?? const <String>[]),
+        doneToday: data?['lastLocalDay'] == today,
+      );
+    } catch (e) {
+      debugPrint('Error loading review state: $e');
+      return (missed: <String>{}, doneToday: false);
+    }
+  }
+
+  /// Guarda el resultado: las falladas vuelven en próximos repasos y las que
+  /// se acertaron salen de la lista. Da XP solo en el primer repaso del día.
+  Future<bool> completeDailyReview({
+    required Set<String> missed,
+    required Set<String> corrected,
+    required int xpReward,
+    GardenProvider? garden,
+  }) async {
+    if (firebaseUser == null || _userProgress == null) return false;
+    try {
+      final serverNow = await _getServerTimestamp();
+      final serverDay = '${serverNow.year}-${serverNow.month}-${serverNow.day}';
+      final now = DateTime.now();
+      final localDay =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final ref = _firestore
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('progress').doc('review');
+      final data = (await ref.get()).data();
+      final alreadyRewarded = data?['lastRewardDate'] == serverDay;
+
+      final pending = Set<String>.from(data?['missed'] ?? const <String>[])
+        ..removeAll(corrected)
+        ..addAll(missed);
+      // Tope para que el documento no crezca sin fin: se quedan las recientes
+      final pendingList = pending.toList();
+      final trimmed = pendingList.length > 40
+          ? pendingList.sublist(pendingList.length - 40)
+          : pendingList;
+
+      await ref.set({
+        'missed': trimmed,
+        'lastLocalDay': localDay,
+        'totalReviews': FieldValue.increment(1),
+        if (!alreadyRewarded) 'lastRewardDate': serverDay,
+      }, SetOptions(merge: true));
+      if (alreadyRewarded) return false;
+
+      await _awardXp(xpReward, garden: garden);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error completing review: $e');
+      return false;
+    }
+  }
+
   Future<bool> completeBreathingSession(int xpReward,
       {GardenProvider? garden}) async {
     if (firebaseUser == null || _userProgress == null) return false;
