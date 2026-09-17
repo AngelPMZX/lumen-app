@@ -12,6 +12,8 @@ import 'lesson_screen.dart';
 import 'widgets/lesson_path_map.dart';
 import '../../../domain/services/sound_service.dart';
 import '../../../domain/services/analytics_service.dart';
+import '../../../domain/services/app_review_service.dart';
+import '../../widgets/route_complete_dialog.dart';
 
 class RoutesScreen extends StatefulWidget {
   const RoutesScreen({super.key});
@@ -61,10 +63,14 @@ class _RoutesScreenState extends State<RoutesScreen> {
     if (!mounted) return;
     final after = route.lessons.where((l) => _completedLessons.contains(l.id)).length;
     if (after <= completedBefore) return;
+    final auth = context.read<AuthProvider>();
     await Future.delayed(const Duration(milliseconds: 450));
+    if (!mounted) return;
     if (after == route.lessons.length) {
       SoundService.instance.play(Sfx.routeComplete, volume: 0.75);
       AnalyticsService.instance.routeComplete(route.id);
+      await RouteCompleteDialog.show(context, route);
+      AppReviewService.instance.onHappyMoment('route_complete', auth);
     } else {
       SoundService.instance.play(Sfx.unlock, volume: 0.6);
     }
@@ -360,6 +366,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
                     isDark: isDark,
                     width: constraints.maxWidth,
                     onOpenLesson: (lesson) => _openLesson(lesson, route),
+                    onTrophyTap: () => RouteCompleteDialog.show(context, route),
                   ),
                 ),
               ),

@@ -123,6 +123,12 @@ Clean architecture simplificada:
 - `dayKey` es la fecha local `yyyy-MM-dd`, y `daysAgo` compara en UTC para que un día con cambio de horario no cuente como 0.
 - Al completar una lección, "Siguiente lección" (si hay) devuelve `LessonScreen.nextResult` y `RoutesScreen` abre la siguiente.
 
+### Compartir ruta y reseñas
+- Al completar una ruta, `RoutesScreen` muestra `RouteCompleteDialog` (confeti y la tarjeta flotando). `RouteShareCard` mide 360×450 lógicos y se exporta con `RepaintBoundary.toImage(pixelRatio: 3)` a PNG de 1080×1350 (formato vertical de historias); se comparte con `share_plus` junto con un texto. Si falla la imagen (algunos navegadores), comparte solo el texto. Se puede volver a abrir tocando el trofeo de una ruta completada en el mapa.
+- **La tarjeta nunca incluye datos personales ni de ánimo**, solo la ruta, la fecha y la marca (lo dice en el diálogo).
+- `AppReviewService.onHappyMoment` (con `in_app_review`) pide reseña solo tras logros (ruta completada, cofre semanal, repaso perfecto), **nunca si hoy el ánimo registrado es difícil**, con XP ≥150, al menos 2 momentos felices y como máximo cada 120 días; nunca en web. La decisión (`shouldAsk`) es pura y está probada. Google Play decide además si muestra el diálogo, así que puede no aparecer: es normal.
+- Analytics: `route_card_shared`, `review_prompt_requested`.
+
 ### Misiones semanales
 - 3 misiones por semana (lunes a domingo, `WeeklyMissions.weekKey` = lunes). El check-in de ánimo siempre está; las otras dos se eligen del catálogo (lecciones, respiración, diario, retos, repasos si hay lecciones completadas, hábitos si el usuario tiene). Elección determinista por usuario y semana, guardada al primer acceso en `progress/missions` (`weekKey`, `types`, `claimed`, `chestClaimed`).
 - **El avance se cuenta solo** con datos reales desde el lunes (`MissionService._activitySince`). Para eso cada repaso se registra en `users/{uid}/review_sessions` (en `_userSubcollections`), igual que `breathing_sessions`.
@@ -274,8 +280,8 @@ flutter clean; flutter pub get
 4. ~~Repaso diario~~: hecho, ver "Repaso diario" en Features.
 5. ~~Compañero con personalidad~~: hecho, ver "Lumi" en Features.
 6. ~~Misiones semanales~~: hecho, ver "Misiones semanales" en Features.
-7. Tarjeta para compartir al completar una ruta (sin datos sensibles).
-8. Pedir reseña en Play Store (`in_app_review`) después de un logro, nunca tras un día difícil.
+7. ~~Tarjeta para compartir al completar una ruta~~: hecho, ver "Compartir ruta y reseñas".
+8. ~~Pedir reseña en Play Store~~: hecho.
 10. **Personalización de Lumi como apoyo al proyecto** (idea de Ángel, 2026-09-16): colores, accesorios (gorrito, bufanda, lentes…) y quizá animaciones especiales, a precio bajo vía RevenueCat. Solo cosmético: nunca bloquear contenido de bienestar ni ayuda. El `LumiPainter` ya dibuja todo por código, así que los accesorios se pueden pintar como capas encima.
 9. Rutas nuevas **Ansiedad y Estrés** y **Sueño**, candidatas a contenido premium (la ayuda en crisis siempre gratis).
 

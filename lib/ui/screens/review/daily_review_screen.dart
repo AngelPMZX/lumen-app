@@ -12,6 +12,7 @@ import '../../../domain/providers/garden_provider.dart';
 import '../../../domain/services/analytics_service.dart';
 import '../../../domain/services/sound_service.dart';
 import '../../widgets/reward_dialog.dart';
+import '../../../domain/services/app_review_service.dart';
 
 enum _Phase { intro, playing, results }
 
@@ -157,6 +158,7 @@ class _DailyReviewScreenState extends State<DailyReviewScreen> {
       await Future.delayed(const Duration(milliseconds: 1200));
       if (mounted) await RewardDialog.show(context, reward);
     }
+    if (score == total) AppReviewService.instance.onHappyMoment('perfect_review', auth);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────

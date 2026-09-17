@@ -2017,5 +2017,15 @@
       "chestReady": "Chest ready to open!",
       "allDone": "Week complete!"
     }
+  },
+  "routeShare": {
+    "dialogTitle": "Route completed! 🎉",
+    "badge": "Route completed",
+    "completed": "I completed the route",
+    "lessons": "{n} wellbeing lessons",
+    "tagline": "Your emotional gym",
+    "share": "Share",
+    "privacy": "Your card includes no personal or mood data.",
+    "shareText": "{emoji} I completed the \"{route}\" route on Lumen! Taking care of my wellbeing, one step at a time ✨"
   }
 }

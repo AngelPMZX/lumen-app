@@ -126,6 +126,13 @@ class AnalyticsService {
         'perfect': correct == total ? 1 : 0,
       });
 
+  // ── Compartir y reseñas ──────────────────────────────────────────────────
+  Future<void> routeCardShared(String routeId) => _log('route_card_shared', {'route_id': routeId});
+
+  /// Se pidió la reseña a la tienda (la tienda decide si la muestra).
+  Future<void> reviewPromptRequested(String moment) =>
+      _log('review_prompt_requested', {'moment': moment});
+
   // ── Misiones semanales ───────────────────────────────────────────────────
   Future<void> missionClaimed(String type) => _log('mission_claimed', {'type': type});
 

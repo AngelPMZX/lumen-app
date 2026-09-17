@@ -23,6 +23,9 @@ class LessonPathMap extends StatefulWidget {
   final double width;
   final void Function(Lesson lesson) onOpenLesson;
 
+  /// Al tocar el trofeo de una ruta completada (volver a compartirla).
+  final VoidCallback? onTrophyTap;
+
   const LessonPathMap({
     super.key,
     required this.route,
@@ -30,6 +33,7 @@ class LessonPathMap extends StatefulWidget {
     required this.isDark,
     required this.width,
     required this.onOpenLesson,
+    this.onTrophyTap,
   });
 
   @override
@@ -158,7 +162,16 @@ class _LessonPathMapState extends State<LessonPathMap>
             left: trophy.dx - 60,
             top: trophy.dy - 45,
             width: 120,
-            child: _buildTrophy(routeDone),
+            child: GestureDetector(
+              onTap: routeDone && widget.onTrophyTap != null
+                  ? () {
+                      HapticFeedback.mediumImpact();
+                      SoundService.instance.play(Sfx.tapNode, volume: 0.7);
+                      widget.onTrophyTap!();
+                    }
+                  : null,
+              child: _buildTrophy(routeDone),
+            ),
           ),
         ],
       ),

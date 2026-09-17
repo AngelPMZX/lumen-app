@@ -16,6 +16,7 @@ import '../../../domain/services/sound_service.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/reward_dialog.dart';
 import '../../widgets/treasure_chest.dart';
+import '../../../domain/services/app_review_service.dart';
 
 /// Apariencia de cada tipo de misión.
 class MissionStyle {
@@ -195,7 +196,9 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
       setState(() => _busy = false);
+      final auth = context.read<AuthProvider>();
       await RewardDialog.show(context, reward);
+      AppReviewService.instance.onHappyMoment('mission_chest', auth);
     }
   }
 
