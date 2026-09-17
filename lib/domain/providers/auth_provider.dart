@@ -777,6 +777,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     'garden_transactions',
     'commitments',
     'breathing_sessions',
+    'review_sessions',
   ];
 
   /// Elimina la cuenta y todos sus datos. Usuarios de email deben pasar
@@ -1401,6 +1402,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final trimmed = pendingList.length > 40
           ? pendingList.sublist(pendingList.length - 40)
           : pendingList;
+
+      // Historial por sesión (misiones semanales cuentan repasos)
+      await _firestore
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('review_sessions')
+          .add({'at': FieldValue.serverTimestamp()});
 
       await ref.set({
         'missed': trimmed,

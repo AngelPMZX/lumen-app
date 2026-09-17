@@ -41,6 +41,9 @@ import '../../../data/models/review_deck.dart';
 import '../review/daily_review_screen.dart';
 import '../../../data/models/lumi.dart';
 import '../../widgets/lumi/lumi_companion_card.dart';
+import '../../../domain/services/mission_service.dart';
+import '../missions/missions_screen.dart';
+import '../../widgets/missions_home_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -73,6 +76,10 @@ class _HomeScreenState extends State<HomeScreen>
   /// frase a media animación).
   bool _lumiReady = false;
   bool _lumiIntroSeen = true;
+
+  /// Misiones de la semana (null hasta que cargan).
+  MissionsState? _missions;
+  bool _hasHabits = false;
 
   /// Repaso diario: tarjetas falladas pendientes y si ya se hizo hoy.
   Set<String> _reviewMissed = {};
@@ -257,6 +264,22 @@ Future<void> _loadChallengeState() async {
 
     if (!mounted) return;
     try {
+      final auth = context.read<AuthProvider>();
+      final uid = auth.firebaseUser?.uid;
+      if (uid != null) {
+        final habits = await auth.getHabits();
+        if (!mounted) return;
+        final missions = await MissionService.instance.load(
+          uid: uid,
+          hasHabits: habits.isNotEmpty,
+          reviewAvailable: _reviewDeck.isNotEmpty,
+        );
+        if (mounted) setState(() { _missions = missions; _hasHabits = habits.isNotEmpty; });
+      }
+    } catch (e) { debugPrint('Error loading missions: $e'); }
+
+    if (!mounted) return;
+    try {
       final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
       final prefs = await SharedPreferences.getInstance();
       final seen = prefs.getBool('lumi_intro_seen_$uid') ?? false;
@@ -370,6 +393,19 @@ Future<void> _scheduleDailyReminders() async {
     } catch (_) {}
     // No se cambia _lumiIntroSeen en esta sesión: la presentación sigue
     // visible hasta la próxima vez que se abra el Home.
+  }
+
+  // ── Misiones ───────────────────────────────────────────────────────────────
+
+  Future<void> _openMissions() async {
+    HapticFeedback.mediumImpact();
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MissionsScreen(hasHabits: _hasHabits, reviewAvailable: _reviewDeck.isNotEmpty),
+      ),
+    );
+    if (mounted) _loadData();
   }
 
   // ── Repaso diario ──────────────────────────────────────────────────────────
@@ -1515,6 +1551,16 @@ Future<void> _scheduleDailyReminders() async {
                         MaterialPageRoute(builder: (_) => const RemindersScreen())),
                   ),
                   const SizedBox(height: 24),
+
+                  // ── MISIONES DE LA SEMANA ──────────────────────────────────
+                  if (_missions != null) ...[
+                    MissionsHomeCard(
+                      state: _missions!,
+                      isDark: isDark,
+                      onTap: _openMissions,
+                    ).animate().fadeIn(delay: 880.ms, duration: 450.ms).slideY(begin: 0.1, end: 0),
+                    const SizedBox(height: 24),
+                  ],
 
                   // ── STATS ──────────────────────────────────────────────────
                   Text('home.yourSummary'.tr(), style: TextStyle(

@@ -126,6 +126,11 @@ class AnalyticsService {
         'perfect': correct == total ? 1 : 0,
       });
 
+  // ── Misiones semanales ───────────────────────────────────────────────────
+  Future<void> missionClaimed(String type) => _log('mission_claimed', {'type': type});
+
+  Future<void> missionChestOpened() => _log('mission_chest_opened');
+
   // ── Resumen semanal ──────────────────────────────────────────────────────
   /// Solo que se abrió y desde dónde: el contenido del resumen no se envía.
   Future<void> weeklySummaryOpened(String source) =>

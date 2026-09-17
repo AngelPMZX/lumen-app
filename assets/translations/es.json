@@ -1985,5 +1985,37 @@
       "10": "Recuerda: pedir ayuda también es de valientes.",
       "11": "Soy una luz pequeña, pero junto a ti me siento enorme."
     }
+  },
+  "missions": {
+    "title": "Misiones de la semana",
+    "daysLeft": "Quedan {n} días",
+    "lastDay": "¡Último día!",
+    "claim": "Reclamar",
+    "type": {
+      "checkIns": "Haz tu check-in de ánimo {n} días",
+      "lessons": "Completa {n} lecciones",
+      "breathing": "Haz {n} respiraciones guiadas",
+      "diary": "Escribe {n} veces en tu diario",
+      "review": "Haz {n} repasos diarios",
+      "habits": "Cumple {n} hábitos",
+      "commitment": "Cumple {n} reto de una lección"
+    },
+    "chestTitle": "Cofre semanal",
+    "chestLocked": "Reclama las {total} misiones para abrirlo ({n}/{total})",
+    "chestReady": "¡Completaste todas las misiones!",
+    "chestOpened": "¡Cofre abierto! El lunes llegan misiones nuevas.",
+    "tapToOpen": "¡Tócalo para abrirlo!",
+    "lumi": {
+      "cheer": "¡Tú puedes! Cada misión es un paso pequeño para cuidarte.",
+      "claim": "¡Mira! Tienes una misión lista. ¡Reclámala!",
+      "chest": "¡El cofre está temblando! ¿Qué habrá adentro?",
+      "done": "¡Semana cumplida! Qué orgullo acompañarte."
+    },
+    "home": {
+      "progress": "{done}/{total} completadas",
+      "claimable": "¡{n} por reclamar!",
+      "chestReady": "¡Cofre listo para abrir!",
+      "allDone": "¡Semana completada!"
+    }
   }
 }

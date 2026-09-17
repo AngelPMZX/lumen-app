@@ -123,6 +123,15 @@ Clean architecture simplificada:
 - `dayKey` es la fecha local `yyyy-MM-dd`, y `daysAgo` compara en UTC para que un día con cambio de horario no cuente como 0.
 - Al completar una lección, "Siguiente lección" (si hay) devuelve `LessonScreen.nextResult` y `RoutesScreen` abre la siguiente.
 
+### Misiones semanales
+- 3 misiones por semana (lunes a domingo, `WeeklyMissions.weekKey` = lunes). El check-in de ánimo siempre está; las otras dos se eligen del catálogo (lecciones, respiración, diario, retos, repasos si hay lecciones completadas, hábitos si el usuario tiene). Elección determinista por usuario y semana, guardada al primer acceso en `progress/missions` (`weekKey`, `types`, `claimed`, `chestClaimed`).
+- **El avance se cuenta solo** con datos reales desde el lunes (`MissionService._activitySince`). Para eso cada repaso se registra en `users/{uid}/review_sessions` (en `_userSubcollections`), igual que `breathing_sessions`.
+- Reclamar una misión da semillas (`addSeeds`, fuente `mission`) y el cofre semanal da un booster seguro (`RewardSource.missionChest`, 100% item). **Ambos reclamos usan transacción** para no cobrarse dos veces.
+- `MissionsScreen`: fondo nocturno con destellos, Lumi animando según el estado, tarjetas con barra de progreso y botón "Reclamar" que late a todo lo ancho (las semillas salen volando). Debajo, `TreasureChest` (`CustomPainter`: madera, bandas doradas, un candado por misión que se ilumina al reclamarla, rayos de luz). Listo para abrir, tiembla cada pocos segundos; al tocarlo la tapa se abre, hay confeti y aparece `RewardDialog`.
+- Home: `MissionsHomeCard` con 3 anillos de progreso y aviso de "por reclamar" o "cofre listo".
+- Sonidos propios: `missionClaim`, `chestShake`, `chestOpen`. Analytics: `mission_claimed`, `mission_chest_opened`.
+- Lógica pura con pruebas en `test/data/models/weekly_missions_test.dart`; `previewState` (`@visibleForTesting`) para renderizar sin Firestore.
+
 ### Lumi (compañera)
 - **Lumi** es la personaje de la app: una gota de luz dibujada con código (`lib/ui/widgets/lumi/lumi_avatar.dart`, `CustomPainter`), sin assets. Flota, respira, parpadea (a veces dos veces), mece su llama y rebota al tocarla. Resplandor con círculos concéntricos (sin `MaskFilter.blur`).
 - 7 expresiones (`LumiMood`): `happy`, `excited` (destellos que orbitan), `calm` (ojos cerrados con sonrisa), `sleepy` (boca "o" y z que flotan), `proud` (ojos ^^), `caring` (cejas tiernas y un corazón), `curious` (ceja arriba y "?").
@@ -264,7 +273,7 @@ flutter clean; flutter pub get
 3. ~~Resumen semanal con conclusiones personales~~: hecho, ver "Resumen semanal" en Features.
 4. ~~Repaso diario~~: hecho, ver "Repaso diario" en Features.
 5. ~~Compañero con personalidad~~: hecho, ver "Lumi" en Features.
-6. Misiones semanales con recompensas del jardín.
+6. ~~Misiones semanales~~: hecho, ver "Misiones semanales" en Features.
 7. Tarjeta para compartir al completar una ruta (sin datos sensibles).
 8. Pedir reseña en Play Store (`in_app_review`) después de un logro, nunca tras un día difícil.
 10. **Personalización de Lumi como apoyo al proyecto** (idea de Ángel, 2026-09-16): colores, accesorios (gorrito, bufanda, lentes…) y quizá animaciones especiales, a precio bajo vía RevenueCat. Solo cosmético: nunca bloquear contenido de bienestar ni ayuda. El `LumiPainter` ya dibuja todo por código, así que los accesorios se pueden pintar como capas encima.

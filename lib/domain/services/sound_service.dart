@@ -38,6 +38,10 @@ enum Sfx {
   reviewPerfect,
   // Lumi
   lumiHello,
+  // Misiones
+  missionClaim,
+  chestShake,
+  chestOpen,
 }
 
 /// Señales de la respiración guiada.
@@ -107,6 +111,9 @@ class SoundService {
       Sfx.reviewStart: 'review_start',
       Sfx.reviewPerfect: 'review_perfect',
       Sfx.lumiHello: 'lumi_hello',
+      Sfx.missionClaim: 'mission_claim',
+      Sfx.chestShake: 'chest_shake',
+      Sfx.chestOpen: 'chest_open',
     };
     return 'sounds/sfx/${names[s] ?? s.name}.mp3';
   }

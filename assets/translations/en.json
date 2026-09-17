@@ -1985,5 +1985,37 @@
       "10": "Remember: asking for help takes courage too.",
       "11": "I’m a small light, but next to you I feel huge."
     }
+  },
+  "missions": {
+    "title": "Weekly missions",
+    "daysLeft": "{n} days left",
+    "lastDay": "Last day!",
+    "claim": "Claim",
+    "type": {
+      "checkIns": "Do your mood check-in {n} days",
+      "lessons": "Complete {n} lessons",
+      "breathing": "Do {n} guided breathing sessions",
+      "diary": "Write in your diary {n} times",
+      "review": "Do {n} daily reviews",
+      "habits": "Complete {n} habits",
+      "commitment": "Complete {n} lesson challenge"
+    },
+    "chestTitle": "Weekly chest",
+    "chestLocked": "Claim all {total} missions to open it ({n}/{total})",
+    "chestReady": "You completed every mission!",
+    "chestOpened": "Chest opened! New missions arrive on Monday.",
+    "tapToOpen": "Tap it to open!",
+    "lumi": {
+      "cheer": "You’ve got this! Every mission is a small step to take care of yourself.",
+      "claim": "Look! You have a mission ready. Claim it!",
+      "chest": "The chest is shaking! What could be inside?",
+      "done": "Week complete! I’m so proud to be with you."
+    },
+    "home": {
+      "progress": "{done}/{total} completed",
+      "claimable": "{n} ready to claim!",
+      "chestReady": "Chest ready to open!",
+      "allDone": "Week complete!"
+    }
   }
 }

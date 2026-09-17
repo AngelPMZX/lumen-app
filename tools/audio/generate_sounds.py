@@ -809,6 +809,46 @@ def sfx_lumi_hello():
     return normalize(oneshot_reverb(x, 0.8, 0.25), -10)
 
 
+# ── Misiones semanales ──────────────────────────────────────────────────────
+def sfx_mission_claim():
+    """Reclamar una misión: semillas que caen (pings rápidos) y un acorde."""
+    x = silence(1.6)
+    seed_ping = [(1, 1, 1), (2.4, 0.35, 0.4), (4.1, 0.1, 0.2)]
+    for i in range(9):
+        m = penta(84, i % 7)
+        place(x, note(midi(m), 0.35, seed_ping, decay=0.09), 0.03 + i * 0.045, 0.35 + i * 0.03)
+    for m in (72, 79, 84):
+        place(x, note(midi(m), 1.1, BELL, decay=0.5), 0.45, 0.3)
+    return normalize(oneshot_reverb(x, 1.0, 0.25), -5)
+
+
+def sfx_chest_shake():
+    """El cofre se sacude: golpecitos de madera y un tintineo adentro."""
+    x = silence(0.9)
+    for i in range(5):
+        t = t_axis(0.06)
+        knock = np.sin(2 * np.pi * (220 - i * 10) * t) * np.exp(-t / 0.015)
+        knock += fft_filter(rng.normal(size=len(t)), 300, 2500) * np.exp(-t / 0.01) * 0.4
+        place(x, knock, i * 0.11, 0.8)
+        place(x, note(midi(penta(91, i)), 0.2, GLASS, decay=0.06), i * 0.11 + 0.02, 0.12)
+    return normalize(x, -8)
+
+
+def sfx_chest_open():
+    """El cofre se abre: bisagra suave, soplo mágico y fanfarria luminosa."""
+    x = silence(3.5)
+    n = int(0.5 * SR)
+    tt = np.arange(n) / n
+    whoosh = fft_filter(rng.normal(size=n), 400, 6000) * np.sin(np.pi * tt) ** 2 * tt
+    place(x, whoosh, 0, 0.35)
+    for i, m in enumerate([67, 72, 76, 79, 84, 88, 91]):
+        place(x, note(midi(m), 1.0, GLASS, decay=0.35), 0.25 + i * 0.05, 0.45)
+    for m in (60, 67, 72, 76, 84):
+        place(x, note(midi(m), 2.6, BELL, decay=1.1), 0.62, 0.28)
+    sparkles(x, 0.7, 2.2, 22, 0.14)
+    return normalize(oneshot_reverb(x, 2.4, 0.35), -3)
+
+
 def main():
     print('Ambientes (bucles de %.0f s):' % LOOP)
     export(rain(), 'ambient/rain.mp3', '80k')
@@ -877,6 +917,12 @@ def main():
     for v in range(3):
         export(sfx_lumi_chirp(v), f'sfx/lumi_chirp_{v}.mp3')
     export(sfx_lumi_hello(), 'sfx/lumi_hello.mp3')
+
+    # Quinta tanda: misiones semanales
+    print('Misiones:')
+    export(sfx_mission_claim(), 'sfx/mission_claim.mp3')
+    export(sfx_chest_shake(), 'sfx/chest_shake.mp3')
+    export(sfx_chest_open(), 'sfx/chest_open.mp3')
 
 
 if __name__ == '__main__':

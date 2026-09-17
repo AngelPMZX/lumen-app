@@ -12,6 +12,7 @@ enum RewardSource {
   diaryEntry,
   commitment,
   review,
+  missionChest,
 }
 
 /// El resultado de una recompensa
@@ -109,6 +110,12 @@ class RewardService {
       minSeeds: 2,
       maxSeeds: 5,
       itemChancePercent: 15,
+    ),
+    // Cofre de misiones semanales: siempre un booster (una vez por semana).
+    RewardSource.missionChest: _SourceConfig(
+      minSeeds: 20,
+      maxSeeds: 30,
+      itemChancePercent: 100,
     ),
   };
 
