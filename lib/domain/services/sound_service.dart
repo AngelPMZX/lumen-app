@@ -252,6 +252,12 @@ class SoundService {
     await _playOneShot('sounds/sfx/shine_${level.clamp(0, 2)}.mp3', volume);
   }
 
+  /// Tintineo de una medalla: 0 bronce, 1 plata, 2 oro.
+  Future<void> medal(int tier, {double volume = 0.5}) async {
+    if (!_effectsEnabled) return;
+    await _playOneShot('sounds/sfx/medal_${tier.clamp(0, 2)}.mp3', volume);
+  }
+
   /// La voz de Lumi al tocarla: rota entre tres variantes.
   Future<void> lumiChirp(int count, {double volume = 0.55}) async {
     if (!_effectsEnabled) return;

@@ -694,7 +694,31 @@
     "earlyBird": "Early Bird",
     "earlyBirdDesc": "Do a check-in before 7 AM",
     "moodRainbow": "Emotional Rainbow",
-    "moodRainbowDesc": "Register all 12 different moods"
+    "moodRainbowDesc": "Register all 12 different moods",
+    "all": "All",
+    "kicker": "Each one tells your story",
+    "progress": "Your progress",
+    "category": {
+      "streak": "Streaks",
+      "growth": "Growth",
+      "diary": "Journal",
+      "mood": "Mood",
+      "habits": "Habits",
+      "garden": "Garden"
+    },
+    "tier": {
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold"
+    },
+    "lumi": {
+      "new": "There are new medals in your showcase! Tap them for a closer look.",
+      "all": "You completed the collection! So proud to be with you.",
+      "none": "Your collection starts today. The first one is closer than you think.",
+      "some": "Look how your collection shines. On to the next one.",
+      "unlocked": "This one is yours! You earned it step by step.",
+      "locked": "You are on your way: only {count} to go. I am with you."
+    }
   },
   "challenges": {
     "breathe": "Take 3 deep breaths",
@@ -1364,7 +1388,35 @@
     "soundEffects": "Sound effects",
     "soundEffectsSubtitle": "Correct answers, lessons and celebrations",
     "reduceMotion": "Reduce motion",
-    "reduceMotionSubtitle": "Less movement, flashes and confetti"
+    "reduceMotionSubtitle": "Less movement, flashes and confetti",
+    "xpToNext": "{xp} XP to level {level}",
+    "journeyKicker": "Everything so far",
+    "journeyTitle": "Your journey",
+    "statStreak": "Current streak",
+    "statBestStreak": "Best streak",
+    "statXp": "Total XP",
+    "statLessons": "Lessons",
+    "statDiary": "Journal pages",
+    "statMoods": "Mood check-ins",
+    "medalsKicker": "Your showcase",
+    "noMedalsYet": "Your first medal is very close. Every small step counts!",
+    "nextMedal": "Your next medal",
+    "newMedal": "New!",
+    "groupYou": "Your space",
+    "groupPreferences": "Preferences",
+    "groupHelp": "Help & more",
+    "aboutBody": "Lumen is your emotional gym: small lessons, your journal, habits and a garden that grows with you, with Lumi by your side.",
+    "aboutPrivacy": "Your journal and moods are private. We never share them.",
+    "aboutStudio": "Made with care by TheDarking Studios",
+    "lumi": {
+      "newMedal": "You earned a new medal! Tap it in your showcase ✨",
+      "newMedals": "You earned {count} new medals! So proud to be with you ✨",
+      "allMedals": "You have every medal! Pure inspiration.",
+      "almost": "Your next medal is so close: just {count} more.",
+      "streak": "{days} days in a row taking care of yourself. That says a lot.",
+      "start": "Everything you achieve will be kept here. Let us begin together!",
+      "journey": "Look how far you have come. Every step counts."
+    }
   },
   "moodHistory": {
     "title": "Mood history",

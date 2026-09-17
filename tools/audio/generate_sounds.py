@@ -973,6 +973,24 @@ def sfx_harvest_ready():
     return normalize(oneshot_reverb(x, 1.1, 0.3), -10)
 
 
+# ── Perfil y medallas ──────────────────────────────────────────────────────
+METAL = [(1, 1.0, 1.0), (2.76, 0.45, 0.6), (5.4, 0.25, 0.35), (8.93, 0.12, 0.2), (13.3, 0.05, 0.12)]
+
+
+def sfx_medal(tier):
+    """Tocar una medalla: un tintineo metálico, más brillante según el metal
+    (0 bronce, 1 plata, 2 oro)."""
+    base = [76, 79, 84][tier]
+    x = silence(1.8)
+    place(x, note(midi(base), 1.4, METAL, attack=0.001, decay=0.55), 0, 0.55)
+    place(x, note(midi(base + 7), 1.2, GLASS, attack=0.002, decay=0.4), 0.05, 0.25)
+    if tier > 0:
+        place(x, note(midi(base + 12), 1.0, GLASS, attack=0.002, decay=0.35), 0.11, 0.2)
+    if tier > 1:
+        sparkles(x, 0.15, 0.7, 5, 0.07)
+    return normalize(oneshot_reverb(x, 1.2, 0.3), -9)
+
+
 def main():
     print('Ambientes (bucles de %.0f s):' % LOOP)
     export(rain(), 'ambient/rain.mp3', '80k')
@@ -1065,6 +1083,11 @@ def main():
     for i in range(3):
         export(sfx_shine(i), f'sfx/shine_{i}.mp3')
     export(sfx_harvest_ready(), 'sfx/harvest_ready.mp3')
+
+    # Novena tanda: perfil y medallas
+    print('Medallas:')
+    for i in range(3):
+        export(sfx_medal(i), f'sfx/medal_{i}.mp3')
 
 
 if __name__ == '__main__':

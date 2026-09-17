@@ -72,8 +72,25 @@ void clearVerificationState() {
   int _habitsCompletedCount = 0;
   int _moodCheckInCount = 0;
 
+  /// Contadores totales (se cargan con `count()` al iniciar sesión).
+  int get diaryEntryCount => _diaryEntryCount;
+  int get habitsCompletedCount => _habitsCompletedCount;
+  int get moodCheckInCount => _moodCheckInCount;
+
   // ── Set de achievements ya celebrados (fuente de verdad = Firestore) ───────
   Set<String> _celebratedAchievementIds = {};
+
+  /// Medallas ya celebradas o vistas en el perfil.
+  Set<String> get celebratedAchievementIds => Set.unmodifiable(_celebratedAchievementIds);
+
+  /// Marca medallas como vistas (las del jardín no pasan por la celebración):
+  /// así quedan ganadas aunque el dato baje y el "¡Nueva!" sale una sola vez.
+  Future<void> markAchievementsSeen(Iterable<String> ids) async {
+    final before = _celebratedAchievementIds.length;
+    _celebratedAchievementIds.addAll(ids);
+    if (_celebratedAchievementIds.length == before) return;
+    await _saveCelebratedAchievements();
+  }
 
   // ── Diary refresh signal ───────────────────────────────────────────────────
   int _diaryVersion = 0;

@@ -168,6 +168,16 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 
 **Sonidos del jardín** (octava tanda del generador): `leafTap` (tocar planta), `decoPlace` (colocar decoración), `shine(0-2)` (mirar/comprar un item, más notas cuanto más raro) y `harvestReady`.
 
+### Perfil y medallas
+- **Perfil** (`profile_screen.dart` + `widgets/profile_widgets.dart`, rediseño 2026-09-17): `ProfileHero` con los colores del arquetipo (avatar con anillo de nivel, insignia "Nv", arquetipo con emoji, título de nivel a mano, barra de XP que se llena, "miembro desde" y Lumi con una frase), `ProfileStatsGrid` (6 contadores que suben: racha, mejor racha, XP, lecciones, páginas del diario, check-ins), `MedalShowcaseCard` (anillo de avance, hasta 4 medallas con "¡Nueva!" y "Tu próxima medalla") y ajustes en 3 grupos (`SettingsGroup`: tu espacio, preferencias con interruptores que suenan, ayuda y más). "Acerca de", idioma y cerrar sesión son hojas con Lumi.
+- **Medallas dibujadas con código** (`lib/ui/widgets/medal_badge.dart`): listón del color del logro, borde dentado de bronce, plata u oro, disco con el emoji y un destello que la cruza; bloqueada en gris con candado y anillo de avance.
+- **Lógica pura con pruebas** (`lib/data/models/medals.dart`, `test/data/models/medals_test.dart`): `AchievementStats`, `Medals.evaluate` (metal por dificultad dentro del tipo: bronce, plata, oro; con dos, la segunda es oro), `nextUp`, `showcase`, `tierCounts` y `ProfileLumi.lineFor`.
+- **Datos reales**: antes el perfil pasaba hábitos = 0, check-ins = solo la semana y el jardín en 0, así que esas medallas nunca se ganaban, y leía hasta 999 entradas del diario. Ahora usa los contadores `count()` de `AuthProvider` (`diaryEntryCount`, `habitsCompletedCount`, `moodCheckInCount`), las plantas del `GardenProvider` y las decoraciones guardadas.
+- **Medallas vistas**: `AuthProvider.celebratedAchievementIds` + `markAchievementsSeen` (mismo doc `progress/celebrated_achievements`). Una medalla vista sigue ganada aunque el dato baje (p. ej. guardar plantas) y "¡Nueva!" sale una sola vez (al abrir la vitrina o tocarla).
+- `AchievementsScreen(stats:, onSeen:)`: encabezado dorado con anillo total, rayos y conteo por metal, Lumi, próxima medalla, filtros por categoría y cuadrícula; `showMedalDetail` abre la medalla girando con rayos y destellos, avance y una frase de Lumi.
+- Sonido propio `medal(0-2)` (tintineo más brillante según el metal); al abrir la vitrina con medallas nuevas suena `achievement`.
+- Títulos de medallas en lenguaje neutro (antes "Escritor Frecuente", "Disciplinado", "Veterano"…).
+
 ### Retos de lecciones (seguimiento)
 - Al comprometerse en un paso `commit`, `CommitmentService` guarda el reto en `users/{uid}/commitments` (está en `_userSubcollections`). Máximo uno pendiente por día: elegir otro el mismo día lo reemplaza, así la recompensa no se repite.
 - Notificación única al día siguiente a las 10:00 (`scheduleCommitmentReminder`, id 4000; no en web).
@@ -250,7 +260,7 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - **Ambiente por ruta** en lecciones (`SoundService.ambientForRoute`): emociones → música calma, autoconocimiento → noche con grillos, mindfulness → arroyo, resiliencia → viento con campanas, autoestima → amanecer, relaciones → kalimba, amor → caja musical, ansiedad → olas lentas (`tide`: cada ola sube ~4 s y baja ~6 s, invita a respirar 4-6), sueño → canción de cuna (`lullaby`, grave y lenta). `LessonScreen` necesita `routeId` para elegirlo. `setBaseAmbient`/`clearBaseAmbient`; la práctica guiada pone música calma y al terminar llama a `returnToBaseAmbient`.
 - **En lecciones**: acierto y error; desde el 2.º acierto seguido cada uno suena más agudo (`combo`); `order` toca la escala nota por nota, así que al ordenar se arma una melodía (pasa `sound: false` a `onAnswer`); tic en slider; on/off en pick; burbuja en historias; swipe en mito/realidad; tono ascendente mientras se mantiene presionado el compromiso; campanitas al completar.
 - **En el mapa**: toque de nodo; al volver de una lección suena `unlock` si se desbloqueó otra o `routeComplete` si terminó la ruta.
-- **Hitos de la app**: subir de nivel y logros (`CelebrationDialog`), semillas (`RewardDialog`), check-in de ánimo, hábito cumplido, entrada de diario guardada, jardín (plantar, cosechar, booster, tocar planta, colocar decoración, cosecha lista, brillo por rareza) y compra en la tienda.
+- **Hitos de la app**: subir de nivel y logros (`CelebrationDialog`), semillas (`RewardDialog`), check-in de ánimo, hábito cumplido, entrada de diario guardada, jardín (plantar, cosechar, booster, tocar planta, colocar decoración, cosecha lista, brillo por rareza), compra en la tienda y medallas (tintineo por metal).
 
 ### Respiración guiada
 - 3 técnicas (Box, 4-7-8, Flow).
@@ -362,6 +372,7 @@ flutter clean; flutter pub get
 - ~~Accesibilidad de pasos y menú~~: hecha (2026-09-17), ver "Accesibilidad".
 - ~~Menú de rutas~~ (2026-09-17) y ~~diario, hábitos y recordatorios estilo cuaderno~~ (2026-09-17): hechos.
 - ~~**Jardín y tienda: polish completo**~~: hecho (2026-09-17), ver "Jardín".
+- ~~**Perfil y medallas: polish completo**~~: hecho (2026-09-17), ver "Perfil y medallas".
 - ~~**Menú principal (Home): polish completo**~~: hecho (2026-09-17), ver "Home". Pedido original (2026-09-17): Mismo checklist: jerarquía clara de las tarjetas (hoy hay muchas; `home_screen.dart` tiene ~1 800 líneas), animaciones de entrada y microinteracciones, Lumi como protagonista del saludo, check-in de ánimo más expresivo, sonidos, modo claro/oscuro, reducir animaciones y accesibilidad. Coherente con el estilo de rutas, diario y misiones.
 
 **Antes de publicar**:

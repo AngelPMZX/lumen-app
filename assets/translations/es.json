@@ -694,7 +694,31 @@
     "earlyBird": "Madrugador",
     "earlyBirdDesc": "Haz un check-in antes de las 7 AM",
     "moodRainbow": "Arcoíris Emocional",
-    "moodRainbowDesc": "Registra los 12 estados de ánimo diferentes"
+    "moodRainbowDesc": "Registra los 12 estados de ánimo diferentes",
+    "all": "Todas",
+    "kicker": "Cada una cuenta tu historia",
+    "progress": "Tu avance",
+    "category": {
+      "streak": "Rachas",
+      "growth": "Crecimiento",
+      "diary": "Diario",
+      "mood": "Ánimo",
+      "habits": "Hábitos",
+      "garden": "Jardín"
+    },
+    "tier": {
+      "bronze": "Bronce",
+      "silver": "Plata",
+      "gold": "Oro"
+    },
+    "lumi": {
+      "new": "¡Hay medallas nuevas en tu vitrina! Tócalas para verlas de cerca.",
+      "all": "¡Completaste la colección! Qué orgullo acompañarte.",
+      "none": "Tu colección empieza hoy. La primera llega antes de lo que crees.",
+      "some": "Mira cómo brilla tu colección. Vamos por la siguiente.",
+      "unlocked": "¡Esta ya es tuya! Te la ganaste paso a paso.",
+      "locked": "Vas en camino: solo faltan {count}. Yo te acompaño."
+    }
   },
   "challenges": {
     "breathe": "Haz 3 respiraciones profundas",
@@ -880,7 +904,7 @@
       "description": "14 días de racha"
     },
     "streak30": {
-      "title": "Maestro del Hábito",
+      "title": "Maestría del Hábito",
       "description": "30 días de racha"
     },
     "xp100": {
@@ -900,11 +924,11 @@
       "description": "Alcanza nivel 2"
     },
     "level5": {
-      "title": "Escalador",
+      "title": "En Escalada",
       "description": "Alcanza nivel 5"
     },
     "level10": {
-      "title": "Veterano",
+      "title": "Gran Trayectoria",
       "description": "Alcanza nivel 10"
     },
     "diary1": {
@@ -912,7 +936,7 @@
       "description": "Escribe tu primera entrada"
     },
     "diary10": {
-      "title": "Escritor Frecuente",
+      "title": "Pluma Frecuente",
       "description": "10 entradas en el diario"
     },
     "diary50": {
@@ -920,11 +944,11 @@
       "description": "50 entradas en el diario"
     },
     "mood1": {
-      "title": "Auto-Consciente",
+      "title": "Autoconciencia",
       "description": "Tu primer check-in de ánimo"
     },
     "mood30": {
-      "title": "Observador Emocional",
+      "title": "Mirada Emocional",
       "description": "30 check-ins de ánimo"
     },
     "habits5": {
@@ -932,7 +956,7 @@
       "description": "Completa 5 hábitos"
     },
     "habits50": {
-      "title": "Disciplinado",
+      "title": "Constancia Total",
       "description": "Completa 50 hábitos"
     },
     "gardenFirstPlant": {
@@ -948,7 +972,7 @@
       "description": "Ten 3 plantas adultas al mismo tiempo"
     },
     "gardenFirstDeco": {
-      "title": "Decorador",
+      "title": "Toque Decorativo",
       "description": "Coloca tu primera decoración en el jardín"
     },
     "gardenFull": {
@@ -1223,7 +1247,7 @@
       "description": "14 días de racha"
     },
     "streak_30": {
-      "title": "Maestro del Hábito",
+      "title": "Maestría del Hábito",
       "description": "30 días de racha"
     },
     "xp_100": {
@@ -1243,11 +1267,11 @@
       "description": "Alcanza nivel 2"
     },
     "level_5": {
-      "title": "Escalador",
+      "title": "En Escalada",
       "description": "Alcanza nivel 5"
     },
     "level_10": {
-      "title": "Veterano",
+      "title": "Gran Trayectoria",
       "description": "Alcanza nivel 10"
     },
     "diary_1": {
@@ -1255,7 +1279,7 @@
       "description": "Escribe tu primera entrada"
     },
     "diary_10": {
-      "title": "Escritor Frecuente",
+      "title": "Pluma Frecuente",
       "description": "10 entradas en el diario"
     },
     "diary_50": {
@@ -1263,11 +1287,11 @@
       "description": "50 entradas en el diario"
     },
     "mood_1": {
-      "title": "Auto-Consciente",
+      "title": "Autoconciencia",
       "description": "Tu primer check-in de ánimo"
     },
     "mood_30": {
-      "title": "Observador Emocional",
+      "title": "Mirada Emocional",
       "description": "30 check-ins de ánimo"
     },
     "habits_5": {
@@ -1275,7 +1299,7 @@
       "description": "Completa 5 hábitos"
     },
     "habits_50": {
-      "title": "Disciplinado",
+      "title": "Constancia Total",
       "description": "Completa 50 hábitos"
     },
     "garden_first_plant": {
@@ -1291,7 +1315,7 @@
       "description": "Ten 3 plantas adultas al mismo tiempo"
     },
     "garden_first_deco": {
-      "title": "Decorador",
+      "title": "Toque Decorativo",
       "description": "Coloca tu primera decoración en el jardín"
     },
     "garden_full": {
@@ -1364,7 +1388,35 @@
     "soundEffects": "Efectos de sonido",
     "soundEffectsSubtitle": "Aciertos, lecciones y celebraciones",
     "reduceMotion": "Reducir animaciones",
-    "reduceMotionSubtitle": "Menos movimiento, destellos y confeti"
+    "reduceMotionSubtitle": "Menos movimiento, destellos y confeti",
+    "xpToNext": "Te faltan {xp} XP para el nivel {level}",
+    "journeyKicker": "Todo lo que llevas",
+    "journeyTitle": "Tu camino",
+    "statStreak": "Racha actual",
+    "statBestStreak": "Mejor racha",
+    "statXp": "XP total",
+    "statLessons": "Lecciones",
+    "statDiary": "Páginas del diario",
+    "statMoods": "Check-ins de ánimo",
+    "medalsKicker": "Tu vitrina",
+    "noMedalsYet": "Tu primera medalla está muy cerca. ¡Cada pequeño paso cuenta!",
+    "nextMedal": "Tu próxima medalla",
+    "newMedal": "¡Nueva!",
+    "groupYou": "Tu espacio",
+    "groupPreferences": "Preferencias",
+    "groupHelp": "Ayuda y más",
+    "aboutBody": "Lumen es tu gimnasio emocional: pequeñas lecciones, tu diario, hábitos y un jardín que crece contigo, con Lumi a tu lado.",
+    "aboutPrivacy": "Tu diario y tus ánimos son privados. Nunca los compartimos.",
+    "aboutStudio": "Hecho con cariño por TheDarking Studios",
+    "lumi": {
+      "newMedal": "¡Ganaste una medalla nueva! Tócala en tu vitrina para verla ✨",
+      "newMedals": "¡Ganaste {count} medallas nuevas! Qué orgullo acompañarte ✨",
+      "allMedals": "¡Tienes todas las medallas! Eres inspiración pura.",
+      "almost": "Te falta muy poquito para tu próxima medalla: solo {count} más.",
+      "streak": "{days} días seguidos cuidándote. Eso dice mucho de ti.",
+      "start": "Aquí se irá guardando todo lo que logres. ¡Empecemos este camino!",
+      "journey": "Mira todo lo que has avanzado. Cada paso cuenta."
+    }
   },
   "moodHistory": {
     "title": "Historial de ánimo",

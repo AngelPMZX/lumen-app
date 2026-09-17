@@ -3,20 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
-import '../../../data/models/achievement.dart';
-import '../../../domain/services/sound_service.dart';
+import '../../../data/models/garden_item.dart';
+import '../../../data/models/lumi.dart';
+import '../../../data/models/medals.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
 import '../../../domain/providers/theme_provider.dart';
-import '../../widgets/animated_particles_background.dart';
-import 'edit_profile_screen.dart';
-import 'achievements_screen.dart';
-import 'mood_history_screen.dart';
-import '../summary/weekly_summary_screen.dart';
 import '../../../domain/services/motion_service.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../widgets/journal/journal_style.dart';
+import '../../widgets/lumi/lumi_avatar.dart';
+import '../garden/widgets/garden_common.dart' show GardenSheet;
+import '../summary/weekly_summary_screen.dart';
+import 'achievements_screen.dart';
+import 'edit_profile_screen.dart';
+import 'mood_history_screen.dart';
+import 'widgets/profile_widgets.dart';
 
+/// Perfil: quién eres en Lumen (nivel, arquetipo, Lumi), tu camino en
+/// números, la vitrina de medallas y los ajustes agrupados.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -25,171 +33,225 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  int _diaryCount = 0;
-  int _moodCount = 0;
-  final int _habitsCount = 0;
-  bool _isLoading = true;
+  int _lessonsCompleted = 0;
+  int _decorationsPlaced = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadStats();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadExtras());
   }
 
-  String _tr(
-    String key, {
-    String? fallback,
-    Map<String, String>? namedArgs,
-  }) {
-    final value = key.tr(namedArgs: namedArgs ?? const <String, String>{});
-    return value == key ? (fallback ?? key) : value;
-  }
-
-  Future<void> _loadStats() async {
+  /// Lo que no traen los contadores de `AuthProvider`: lecciones y
+  /// decoraciones colocadas.
+  Future<void> _loadExtras() async {
+    final auth = context.read<AuthProvider>();
+    final garden = context.read<GardenProvider>();
     try {
-      final auth = context.read<AuthProvider>();
-      final diaries = await auth.getDiaryEntries(limit: 999);
-      final moods = await auth.getWeeklyMoods();
-
-      if (mounted) {
-        setState(() {
-          _diaryCount = diaries.length;
-          _moodCount = moods.length;
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
+      final lessons = await auth.getCompletedLessons();
+      final decos = await garden.loadPlacedDecorations();
+      if (!mounted) return;
+      setState(() {
+        _lessonsCompleted = lessons.where((id) => !id.startsWith('challenge_') && !id.startsWith('breathing_session')).length;
+        _decorationsPlaced = decos.length;
+      });
+    } catch (_) {}
   }
 
-  List<Color> _getArchetypeGradient(String? archetype) {
-    switch (archetype) {
-      case 'explorador':
-        return [const Color(0xFF6366F1), const Color(0xFF4338CA)];
-      case 'guerrero':
-        return [const Color(0xFFEF4444), const Color(0xFFDC2626)];
-      case 'social':
-        return [const Color(0xFFEC4899), const Color(0xFFDB2777)];
-      case 'sabio':
-        return [const Color(0xFF10B981), const Color(0xFF059669)];
-      case 'libre':
-        return [const Color(0xFFF59E0B), const Color(0xFFD97706)];
-      default:
-        return [AppColors.primary, AppColors.primaryDark];
-    }
+  static List<Color> archetypeColors(String? archetype) => switch (archetype) {
+        'explorador' => const [Color(0xFF6366F1), Color(0xFF4338CA)],
+        'guerrero' => const [Color(0xFFEF4444), Color(0xFFB91C1C)],
+        'social' => const [Color(0xFFEC4899), Color(0xFFBE185D)],
+        'sabio' => const [Color(0xFF10B981), Color(0xFF047857)],
+        'libre' => const [Color(0xFFF59E0B), Color(0xFFC2410C)],
+        _ => const [AppColors.primary, AppColors.primaryDark],
+      };
+
+  static String archetypeEmoji(String? archetype) => switch (archetype) {
+        'explorador' => '🧭',
+        'guerrero' => '🛡️',
+        'social' => '🤝',
+        'sabio' => '🦉',
+        'libre' => '🕊️',
+        _ => '✨',
+      };
+
+  static String archetypeName(String? archetype) => switch (archetype) {
+        'explorador' => 'archetype.explorerName'.tr(),
+        'guerrero' => 'archetype.warriorName'.tr(),
+        'social' => 'archetype.socialName'.tr(),
+        'sabio' => 'archetype.sageName'.tr(),
+        'libre' => 'archetype.freeSpiritName'.tr(),
+        _ => 'profile.noArchetype'.tr(),
+      };
+
+  static String levelTitle(int level) {
+    if (level <= 3) return 'userProgress.levelTitles.emotionalNovice'.tr();
+    if (level <= 7) return 'userProgress.levelTitles.consciousApprentice'.tr();
+    if (level <= 12) return 'userProgress.levelTitles.innerExplorer'.tr();
+    if (level <= 18) return 'userProgress.levelTitles.resilientWarrior'.tr();
+    return 'userProgress.levelTitles.zenMaster'.tr();
   }
 
-  String _getArchetypeName(String? archetype) {
-    switch (archetype) {
-      case 'explorador':
-        return _tr('archetype.explorerName', fallback: 'Explorador Introspectivo');
-      case 'guerrero':
-        return _tr('archetype.warriorName', fallback: 'Guerrero Resiliente');
-      case 'social':
-        return _tr('archetype.socialName', fallback: 'Alma Social');
-      case 'sabio':
-        return _tr('archetype.sageName', fallback: 'Sabio Tranquilo');
-      case 'libre':
-        return _tr('archetype.freeSpiritName', fallback: 'Espíritu Libre');
-      default:
-        return _tr('profile.noArchetype', fallback: 'Sin arquetipo');
-    }
+  AchievementStats _stats(AuthProvider auth, GardenProvider garden) {
+    final progress = auth.userProgress;
+    final plants = garden.garden;
+    return AchievementStats(
+      currentStreak: auth.currentStreak,
+      longestStreak: progress?.longestStreak ?? 0,
+      totalXp: progress?.totalXp ?? 0,
+      level: progress?.level ?? 1,
+      diaryEntries: auth.diaryEntryCount,
+      habitsCompleted: auth.habitsCompletedCount,
+      moodCheckIns: auth.moodCheckInCount,
+      lessonsCompleted: _lessonsCompleted,
+      plantsInGarden: plants.length,
+      adultPlants: plants.where((p) {
+        final item = GardenCatalog.findById(p.itemId);
+        return item != null && p.isAdult(item);
+      }).length,
+      decorationsPlaced: _decorationsPlaced,
+      seenIds: auth.celebratedAchievementIds,
+    );
   }
 
-  String _getLevelTitle(int level) {
-    if (level <= 3) return _tr('userProgress.levelTitles.emotionalNovice', fallback: 'Novato Emocional');
-    if (level <= 7) return _tr('userProgress.levelTitles.consciousApprentice', fallback: 'Aprendiz Consciente');
-    if (level <= 12) return _tr('userProgress.levelTitles.innerExplorer', fallback: 'Explorador Interior');
-    if (level <= 18) return _tr('userProgress.levelTitles.resilientWarrior', fallback: 'Guerrero Resiliente');
-    return _tr('userProgress.levelTitles.zenMaster', fallback: 'Maestro Zen');
+  Future<void> _openAchievements(AchievementStats stats) async {
+    SoundService.instance.play(Sfx.tapNode, volume: 0.4);
+    final auth = context.read<AuthProvider>();
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AchievementsScreen(stats: stats, onSeen: auth.markAchievementsSeen)),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _openMedal(MedalStatus medal) async {
+    final auth = context.read<AuthProvider>();
+    await showMedalDetail(context, medal);
+    if (medal.isNew) {
+      await auth.markAchievementsSeen({medal.id});
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _logout() async {
-  final auth = context.read<AuthProvider>();
-  final garden = context.read<GardenProvider>();
-
-  await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        _tr('auth.logoutConfirmTitle', fallback: 'Cerrar sesión'),
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
-      content: Text(
-        _tr('profileScreen.logoutConfirm',
-            fallback: '¿Seguro que quieres cerrar sesión? Tu progreso está guardado en la nube.'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(_tr('common.cancel', fallback: 'Cancelar'),
-              style: const TextStyle(color: AppColors.textSecondary)),
-        ),
-        FilledButton(
-          onPressed: () async {
-            Navigator.of(ctx).pop(); // Cerrar dialog primero
-            await auth.logout();
-            garden.resetOnLogout();
-            if (mounted) {
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                AppRoutes.splash,
-                (route) => false,
-              );
-            }
-          },
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFEF4444),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    final auth = context.read<AuthProvider>();
+    final garden = context.read<GardenProvider>();
+    final confirm = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return GardenSheet(
+          title: 'auth.logoutConfirmTitle'.tr(),
+          leading: const LumiAvatar(mood: LumiMood.caring, size: 56),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'profileScreen.logoutConfirm'.tr(),
+                style: TextStyle(fontSize: 14, height: 1.4, color: isDark ? Colors.white70 : AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text('common.cancel'.tr()),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFEF4444),
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text('auth.logout'.tr()),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          child: Text(_tr('auth.logout', fallback: 'Cerrar sesión')),
-        ),
-      ],
-    ),
-  );
-}
+        );
+      },
+    );
+    if (confirm != true) return;
+    await auth.logout();
+    garden.resetOnLogout();
+    if (mounted) {
+      Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.splash, (route) => false);
+    }
+  }
 
   void _changeLanguage() {
-    final currentLocale = context.locale;
-    final isSpanish = currentLocale.languageCode == 'es';
-
-    HapticFeedback.lightImpact();
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            _tr('profileScreen.language', fallback: 'Idioma'),
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+        final isSpanish = context.locale.languageCode == 'es';
+        return GardenSheet(
+          title: 'profileScreen.language'.tr(),
+          child: Column(
             children: [
-              _buildLanguageOption(
-                ctx,
-                flag: '🇲🇽',
-                name: 'Español',
-                isSelected: isSpanish,
-                onTap: () {
-                  context.setLocale(const Locale('es'));
-                  Navigator.pop(ctx);
-                  setState(() {});
-                },
+              for (final (code, flag, name) in const [('es', '🇲🇽', 'Español'), ('en', '🇺🇸', 'English')])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _LanguageOption(
+                    flag: flag,
+                    name: name,
+                    selected: (code == 'es') == isSpanish,
+                    onTap: () {
+                      SoundService.instance.play(Sfx.pop, volume: 0.4);
+                      context.setLocale(Locale(code));
+                      Navigator.pop(ctx);
+                      setState(() {});
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAbout() {
+    SoundService.instance.lumiChirp(0);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final soft = isDark ? Colors.white70 : AppColors.textSecondary;
+        return GardenSheet(
+          kicker: 'profile.version'.tr(namedArgs: {'version': '1.0.0'}),
+          title: 'Lumen',
+          leading: const LumiAvatar(mood: LumiMood.happy, size: 64),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('profileScreen.aboutBody'.tr(), style: TextStyle(fontSize: 14, height: 1.45, color: soft)),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Text('🔒', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('profileScreen.aboutPrivacy'.tr(), style: TextStyle(fontSize: 13, height: 1.35, color: soft))),
+                ],
               ),
-              const SizedBox(height: 10),
-              _buildLanguageOption(
-                ctx,
-                flag: '🇺🇸',
-                name: 'English',
-                isSelected: !isSpanish,
-                onTap: () {
-                  context.setLocale(const Locale('en'));
-                  Navigator.pop(ctx);
-                  setState(() {});
-                },
+              const SizedBox(height: 14),
+              Text(
+                'profileScreen.aboutStudio'.tr(),
+                style: JournalStyle.hand(TextStyle(fontSize: 19, color: isDark ? AppColors.primaryLight : AppColors.primary)),
               ),
             ],
           ),
@@ -198,37 +260,239 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildLanguageOption(
-    BuildContext ctx, {
-    required String flag,
-    required String name,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final isDark = Theme.of(ctx).brightness == Brightness.dark;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final garden = context.watch<GardenProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final progress = auth.userProgress;
+    final stats = _stats(auth, garden);
+    final medals = Medals.evaluate(stats);
+    final archetype = auth.userModel?.archetype;
+    final level = progress?.level ?? 1;
+    final xpForNext = progress?.xpForNextLevel ?? 100;
+    final xpInLevel = xpForNext == 0 ? 0 : stats.totalXp % xpForNext;
+
+    final sections = <Widget>[
+      ProfileHero(
+        name: auth.userName,
+        username: auth.userModel?.username,
+        archetypeName: archetypeName(archetype),
+        archetypeEmoji: archetypeEmoji(archetype),
+        colors: archetypeColors(archetype),
+        level: level,
+        levelTitle: levelTitle(level),
+        xpInLevel: xpInLevel,
+        xpForNext: xpForNext,
+        memberSince: auth.userModel?.createdAt,
+        line: ProfileLumi.lineFor(stats, medals),
+        isDark: isDark,
+        onEdit: _editProfile,
+      ),
+      const SizedBox(height: 22),
+      _SectionTitle(kicker: 'profileScreen.journeyKicker'.tr(), title: 'profileScreen.journeyTitle'.tr(), isDark: isDark),
+      const SizedBox(height: 10),
+      ProfileStatsGrid(
+        isDark: isDark,
+        stats: [
+          ProfileStat('🔥', stats.currentStreak, 'profileScreen.statStreak'.tr(), const Color(0xFFF97316)),
+          ProfileStat('🏆', stats.longestStreak, 'profileScreen.statBestStreak'.tr(), const Color(0xFFF59E0B)),
+          ProfileStat('⚡', stats.totalXp, 'profileScreen.statXp'.tr(), const Color(0xFF8B5CF6)),
+          ProfileStat('📚', stats.lessonsCompleted, 'profileScreen.statLessons'.tr(), const Color(0xFF3B82F6)),
+          ProfileStat('📝', stats.diaryEntries, 'profileScreen.statDiary'.tr(), const Color(0xFF10B981)),
+          ProfileStat('😊', stats.moodCheckIns, 'profileScreen.statMoods'.tr(), const Color(0xFFEC4899)),
+        ],
+      ),
+      const SizedBox(height: 22),
+      MedalShowcaseCard(
+        medals: medals,
+        isDark: isDark,
+        onOpen: () => _openAchievements(stats),
+        onMedal: _openMedal,
+      ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
+      const SizedBox(height: 24),
+      SettingsGroup(
+        title: 'profileScreen.groupYou'.tr(),
+        isDark: isDark,
+        items: [
+          SettingsItem(
+            icon: Icons.person_rounded,
+            color: archetypeColors(archetype).first,
+            title: 'profile.editProfile'.tr(),
+            subtitle: 'profileScreen.editProfileSubtitle'.tr(),
+            onTap: _editProfile,
+          ),
+          SettingsItem(
+            icon: Icons.auto_graph_rounded,
+            color: const Color(0xFF8B5CF6),
+            title: 'summary.title'.tr(),
+            subtitle: 'summary.menuSubtitle'.tr(),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const WeeklySummaryScreen(source: 'profile'))),
+          ),
+          SettingsItem(
+            icon: Icons.bar_chart_rounded,
+            color: const Color(0xFFEC4899),
+            title: 'profile.moodHistory'.tr(),
+            subtitle: 'profileScreen.moodHistorySubtitle'.tr(),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MoodHistoryScreen())),
+          ),
+        ],
+      ),
+      const SizedBox(height: 20),
+      SettingsGroup(
+        title: 'profileScreen.groupPreferences'.tr(),
+        isDark: isDark,
+        items: [
+          SettingsItem(
+            icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+            color: const Color(0xFF6366F1),
+            title: 'profileScreen.themeTitle'.tr(),
+            subtitle: isDark ? 'profileScreen.darkModeOn'.tr() : 'profileScreen.lightModeOn'.tr(),
+            toggle: isDark,
+            onToggle: (_) => context.read<ThemeProvider>().toggleTheme(),
+          ),
+          SettingsItem(
+            icon: SoundService.instance.effectsEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+            color: const Color(0xFFF59E0B),
+            title: 'profileScreen.soundEffects'.tr(),
+            subtitle: 'profileScreen.soundEffectsSubtitle'.tr(),
+            toggle: SoundService.instance.effectsEnabled,
+            onToggle: (v) async {
+              await SoundService.instance.setEffectsEnabled(v);
+              if (v) SoundService.instance.play(Sfx.toggleOn, volume: 0.4);
+              if (mounted) setState(() {});
+            },
+          ),
+          SettingsItem(
+            icon: Icons.motion_photos_paused_rounded,
+            color: const Color(0xFF14B8A6),
+            title: 'profileScreen.reduceMotion'.tr(),
+            subtitle: 'profileScreen.reduceMotionSubtitle'.tr(),
+            toggle: MotionService.instance.userReduce,
+            onToggle: (v) async {
+              await MotionService.instance.setReduceMotion(v);
+              if (mounted) setState(() {});
+            },
+          ),
+          SettingsItem(
+            icon: Icons.language_rounded,
+            color: const Color(0xFF3B82F6),
+            title: 'profileScreen.language'.tr(),
+            subtitle: context.locale.languageCode == 'es' ? '🇲🇽 Español' : '🇺🇸 English',
+            onTap: _changeLanguage,
+          ),
+        ],
+      ),
+      const SizedBox(height: 20),
+      SettingsGroup(
+        title: 'profileScreen.groupHelp'.tr(),
+        isDark: isDark,
+        items: [
+          SettingsItem(
+            icon: Icons.volunteer_activism_rounded,
+            color: const Color(0xFF6C8FE8),
+            title: 'crisis.card.title'.tr(),
+            subtitle: 'crisis.menuSubtitle'.tr(),
+            onTap: () => Navigator.pushNamed(context, AppRoutes.crisisSupport),
+          ),
+          SettingsItem(
+            icon: Icons.tour_rounded,
+            color: const Color(0xFF10B981),
+            title: 'profileScreen.watchTour'.tr(),
+            subtitle: 'profileScreen.watchTourSubtitle'.tr(),
+            onTap: () => Navigator.pushNamed(context, AppRoutes.onboardingIntro),
+          ),
+          SettingsItem(
+            icon: Icons.info_outline_rounded,
+            color: const Color(0xFF64748B),
+            title: 'profile.about'.tr(),
+            subtitle: 'profile.version'.tr(namedArgs: {'version': '1.0.0'}),
+            onTap: _showAbout,
+          ),
+        ],
+      ),
+      const SizedBox(height: 24),
+      _LogoutButton(isDark: isDark, onTap: _logout),
+    ];
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F0F23) : const Color(0xFFF6F3FF),
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _loadExtras,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 40),
+            children: [
+              for (final (i, w) in sections.indexed)
+                i < 2
+                    ? w
+                    : w.animate().fadeIn(delay: (180 + i * 30).ms, duration: 350.ms),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editProfile() async {
+    final result = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
+    if (result == true && mounted) setState(() {});
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String kicker;
+  final String title;
+  final bool isDark;
+  const _SectionTitle({required this.kicker, required this.title, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(kicker, style: JournalStyle.hand(TextStyle(fontSize: 18, height: 1.0, color: isDark ? AppColors.primaryLight : AppColors.primary))),
+          Semantics(
+            header: true,
+            child: Text(title, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: isDark ? Colors.white : AppColors.textPrimary)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LanguageOption extends StatelessWidget {
+  final String flag;
+  final String name;
+  final bool selected;
+  final VoidCallback onTap;
+  const _LanguageOption({required this.flag, required this.name, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const accent = Color(0xFF6366F1);
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      label: name,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: double.infinity,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFF6366F1).withValues(alpha: isDark ? 0.15 : 0.08)
-                : isDark
-                    ? Colors.white.withValues(alpha: 0.05)
-                    : Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF6366F1).withValues(alpha: 0.4)
-                  : isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.grey.shade200,
-              width: isSelected ? 2 : 1,
-            ),
+            color: selected ? accent.withValues(alpha: isDark ? 0.2 : 0.08) : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: selected ? accent : (isDark ? Colors.white12 : const Color(0xFFE5E7EB)), width: selected ? 2 : 1),
           ),
           child: Row(
             children: [
@@ -239,489 +503,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   name,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected
-                        ? const Color(0xFF6366F1)
-                        : isDark
-                            ? Colors.white
-                            : AppColors.textPrimary,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color: selected ? accent : (isDark ? Colors.white : AppColors.textPrimary),
                   ),
                 ),
               ),
-              if (isSelected)
-                const Icon(Icons.check_circle_rounded, color: Color(0xFF6366F1), size: 22),
+              if (selected) const Icon(Icons.check_circle_rounded, color: accent),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  String _achievementTitle(Achievement achievement) {
-    return _tr('achievementData.${achievement.id}.title', fallback: achievement.title);
-  }
+class _LogoutButton extends StatelessWidget {
+  final bool isDark;
+  final VoidCallback onTap;
+  const _LogoutButton({required this.isDark, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final progress = auth.userProgress;
-    final gradient = _getArchetypeGradient(auth.userModel?.archetype);
-    final streak = auth.currentStreak;
-    final bestStreak = progress?.longestStreak ?? 0;
-    final totalXp = progress?.totalXp ?? 0;
-    final level = progress?.level ?? 1;
-    final levelTitle = _getLevelTitle(level);
-    final xpForNext = (level * 100);
-
-    final unlockedCount = Achievement.all
-        .where((a) => a.isUnlocked(
-              currentStreak: streak,
-              longestStreak: bestStreak,
-              totalXp: totalXp,
-              level: level,
-              diaryEntries: _diaryCount,
-              habitsCompleted: _habitsCount,
-              moodCheckIns: _moodCount,
-            ))
-        .length;
-
-    return Scaffold(
-      body: Stack(
-        children: [
-          AnimatedParticlesBackground(
-            particleCount: 15,
-            maxShootingStars: isDark ? 2 : 0,
-            particleColor: isDark
-                ? Colors.white.withValues(alpha: 0.25)
-                : gradient.first.withValues(alpha: 0.1),
-          ),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
-              child: Column(
-                children: [
-                  // Profile card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          gradient.first.withValues(alpha: isDark ? 0.2 : 0.12),
-                          gradient.last.withValues(alpha: isDark ? 0.08 : 0.04),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: gradient.first.withValues(alpha: isDark ? 0.25 : 0.15),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 80, height: 80,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: gradient),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: gradient.first.withValues(alpha: 0.4),
-                                blurRadius: 16, offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              auth.userName.isNotEmpty ? auth.userName[0].toUpperCase() : 'U',
-                              style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w800),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(auth.userName,
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : AppColors.textPrimary)),
-                        if (auth.userModel?.username != null) ...[
-                          const SizedBox(height: 2),
-                          Text('@${auth.userModel!.username}',
-                              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-                        ],
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: gradient.first.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(_getArchetypeName(auth.userModel?.archetype),
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: gradient.first)),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Text('Nv $level', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: gradient.first)),
-                            const SizedBox(width: 8),
-                            Text(levelTitle, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                            const Spacer(),
-                            Text('${totalXp % xpForNext}/$xpForNext XP',
-                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: LinearProgressIndicator(
-                            value: (totalXp % xpForNext) / xpForNext,
-                            backgroundColor: isDark ? Colors.white.withValues(alpha: 0.1) : gradient.first.withValues(alpha: 0.15),
-                            valueColor: AlwaysStoppedAnimation<Color>(gradient.first),
-                            minHeight: 8,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.1, end: 0),
-                  const SizedBox(height: 20),
-
-                  if (_isLoading)
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: SizedBox(height: 4, child: LinearProgressIndicator()),
-                    ),
-
-                  // Stats row
-                  Row(
-                    children: [
-                      _buildStatTile('🔥', '$streak', _tr('profileScreen.currentStreakStat', fallback: 'Racha\nactual'), isDark),
-                      const SizedBox(width: 10),
-                      _buildStatTile('🏆', '$bestStreak', _tr('profileScreen.bestStreakStat', fallback: 'Mejor\nracha'), isDark),
-                      const SizedBox(width: 10),
-                      _buildStatTile('⚡', '$totalXp', _tr('profileScreen.totalXpStat', fallback: 'XP\ntotal'), isDark),
-                      const SizedBox(width: 10),
-                      _buildStatTile('📝', '$_diaryCount', _tr('profileScreen.diaryEntriesStat', fallback: 'Entradas\ndiario'), isDark),
-                    ],
-                  ).animate().fadeIn(delay: 200.ms, duration: 500.ms),
-                  const SizedBox(height: 20),
-
-                  // Achievements card
-                  GestureDetector(
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => AchievementsScreen(
-                              currentStreak: streak, longestStreak: bestStreak, totalXp: totalXp,
-                              level: level, diaryEntries: _diaryCount, habitsCompleted: _habitsCount, moodCheckIns: _moodCount))),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 40, height: 40,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(12)),
-                                child: const Icon(Icons.emoji_events_rounded, color: Color(0xFFF59E0B), size: 20),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(_tr('profile.medals', fallback: 'Medallas'),
-                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
-                                            color: isDark ? Colors.white : AppColors.textPrimary)),
-                                    Text(_tr('profileScreen.medalsUnlocked',
-                                            fallback: '$unlockedCount de ${Achievement.all.length} desbloqueadas',
-                                            namedArgs: {'unlocked': '$unlockedCount', 'total': '${Achievement.all.length}'}),
-                                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                                  ],
-                                ),
-                              ),
-                              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Wrap(
-                            spacing: 8,
-                            children: Achievement.all.take(8).map((a) {
-                              final unlocked = a.isUnlocked(
-                                currentStreak: streak, longestStreak: bestStreak, totalXp: totalXp,
-                                level: level, diaryEntries: _diaryCount, habitsCompleted: _habitsCount, moodCheckIns: _moodCount);
-                              return AnimatedOpacity(
-                                duration: const Duration(milliseconds: 300),
-                                opacity: unlocked ? 1.0 : 0.3,
-                                child: Tooltip(
-                                  message: _achievementTitle(a),
-                                  child: Container(
-                                    width: 36, height: 36,
-                                    decoration: BoxDecoration(
-                                      color: unlocked ? a.color.withValues(alpha: 0.15)
-                                          : isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: unlocked ? Border.all(color: a.color.withValues(alpha: 0.3)) : null),
-                                    child: Center(child: Text(unlocked ? a.emoji : '🔒',
-                                        style: TextStyle(fontSize: unlocked ? 18 : 14))),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).animate().fadeIn(delay: 300.ms, duration: 500.ms),
-                  const SizedBox(height: 16),
-
-                  // Edit profile
-                  _buildMenuCard(
-                    icon: Icons.person_rounded,
-                    title: _tr('profile.editProfile', fallback: 'Editar perfil'),
-                    subtitle: _tr('profileScreen.editProfileSubtitle', fallback: 'Nombre, usuario, arquetipo'),
-                    color: gradient.first, isDark: isDark,
-                    onTap: () async {
-                      final result = await Navigator.push<bool>(context,
-                          MaterialPageRoute(builder: (_) => const EditProfileScreen()));
-                      if (result == true) setState(() {});
-                    },
-                  ).animate().fadeIn(delay: 400.ms),
-                  const SizedBox(height: 10),
-
-                  // Ver tour de nuevo
-_buildMenuCard(
-  icon: Icons.tour_rounded,
-  title: _tr('profileScreen.watchTour', fallback: 'Ver tour de nuevo'),
-  subtitle: _tr('profileScreen.watchTourSubtitle',
-      fallback: 'Redescubre qué puedes hacer en Lumen'),
-  color: const Color(0xFF10B981),
-  isDark: isDark,
-  onTap: () {
-    HapticFeedback.lightImpact();
-    Navigator.pushNamed(context, AppRoutes.onboardingIntro);
-  },
-).animate().fadeIn(delay: 535.ms),
-const SizedBox(height: 10),
-
-                  // Ayuda en crisis
-                  _buildMenuCard(
-                    icon: Icons.volunteer_activism_rounded,
-                    title: _tr('crisis.card.title', fallback: '¿Necesitas ayuda ahora?'),
-                    subtitle: _tr('crisis.menuSubtitle',
-                        fallback: 'Líneas de ayuda gratuitas 24/7'),
-                    color: const Color(0xFF6C8FE8), isDark: isDark,
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.pushNamed(context, AppRoutes.crisisSupport);
-                    },
-                  ).animate().fadeIn(delay: 440.ms),
-                  const SizedBox(height: 10),
-
-                  // Resumen semanal
-                  _buildMenuCard(
-                    icon: Icons.auto_graph_rounded,
-                    title: 'summary.title'.tr(),
-                    subtitle: 'summary.menuSubtitle'.tr(),
-                    color: const Color(0xFF8B5CF6), isDark: isDark,
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const WeeklySummaryScreen(source: 'profile'))),
-                  ).animate().fadeIn(delay: 445.ms),
-                  const SizedBox(height: 10),
-
-                  // Mood history
-                  _buildMenuCard(
-                    icon: Icons.bar_chart_rounded,
-                    title: _tr('profile.moodHistory', fallback: 'Historial de ánimo'),
-                    subtitle: _tr('profileScreen.moodHistorySubtitle', fallback: 'Tu resumen emocional'),
-                    color: const Color(0xFFEC4899), isDark: isDark,
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const MoodHistoryScreen())),
-                  ).animate().fadeIn(delay: 450.ms),
-                  const SizedBox(height: 10),
-
-                  // Theme
-                  _buildMenuCard(
-                    icon: Icons.dark_mode_rounded,
-                    title: _tr('profileScreen.themeTitle', fallback: 'Tema'),
-                    subtitle: _tr(isDark ? 'profileScreen.darkModeOn' : 'profileScreen.lightModeOn',
-                        fallback: isDark ? 'Modo oscuro activado' : 'Modo claro activado'),
-                    color: const Color(0xFF6366F1), isDark: isDark,
-                    trailing: Switch.adaptive(
-                      value: isDark,
-                      onChanged: (_) => context.read<ThemeProvider>().toggleTheme(),
-                      activeThumbColor: const Color(0xFF6366F1),
-                    ),
-                  ).animate().fadeIn(delay: 500.ms),
-                  const SizedBox(height: 10),
-
-                  // Efectos de sonido
-                  _buildMenuCard(
-                    icon: Icons.volume_up_rounded,
-                    title: _tr('profileScreen.soundEffects', fallback: 'Efectos de sonido'),
-                    subtitle: _tr('profileScreen.soundEffectsSubtitle',
-                        fallback: 'Aciertos, lecciones y celebraciones'),
-                    color: const Color(0xFFF59E0B), isDark: isDark,
-                    trailing: Switch.adaptive(
-                      value: SoundService.instance.effectsEnabled,
-                      onChanged: (v) async {
-                        await SoundService.instance.setEffectsEnabled(v);
-                        if (v) SoundService.instance.play(Sfx.pop);
-                        if (mounted) setState(() {});
-                      },
-                      activeThumbColor: const Color(0xFFF59E0B),
-                    ),
-                  ).animate().fadeIn(delay: 510.ms),
-                  const SizedBox(height: 10),
-
-                  // Reducir animaciones (accesibilidad)
-                  _buildMenuCard(
-                    icon: Icons.motion_photos_paused_rounded,
-                    title: 'profileScreen.reduceMotion'.tr(),
-                    subtitle: 'profileScreen.reduceMotionSubtitle'.tr(),
-                    color: const Color(0xFF14B8A6), isDark: isDark,
-                    trailing: Switch.adaptive(
-                      value: MotionService.instance.userReduce,
-                      onChanged: (v) async {
-                        await MotionService.instance.setReduceMotion(v);
-                        if (mounted) setState(() {});
-                      },
-                      activeThumbColor: const Color(0xFF14B8A6),
-                    ),
-                  ).animate().fadeIn(delay: 515.ms),
-                  const SizedBox(height: 10),
-
-                  // Language selector
-                  _buildMenuCard(
-                    icon: Icons.language_rounded,
-                    title: _tr('profileScreen.language', fallback: 'Idioma'),
-                    subtitle: context.locale.languageCode == 'es'
-                        ? '🇲🇽 Español'
-                        : '🇺🇸 English',
-                    color: const Color(0xFF3B82F6),
-                    isDark: isDark,
-                    onTap: _changeLanguage,
-                  ).animate().fadeIn(delay: 520.ms),
-                  const SizedBox(height: 10),
-
-                  // About
-                  _buildMenuCard(
-                    icon: Icons.info_outline_rounded,
-                    title: _tr('profile.about', fallback: 'Acerca de Lumen'),
-                    subtitle: _tr('profile.version', fallback: 'Versión 1.0.0', namedArgs: {'version': '1.0.0'}),
-                    color: AppColors.textSecondary, isDark: isDark,
-                    onTap: () {},
-                  ).animate().fadeIn(delay: 550.ms),
-                  const SizedBox(height: 24),
-
-                  // Logout button — using Material+InkWell for reliable tap
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: _logout,
-                      borderRadius: BorderRadius.circular(18),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withValues(alpha: isDark ? 0.08 : 0.05),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: const Color(0xFFEF4444).withValues(alpha: isDark ? 0.15 : 0.1)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
-                            const SizedBox(width: 10),
-                            Text(_tr('auth.logout', fallback: 'Cerrar sesión'),
-                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFFEF4444))),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ).animate().fadeIn(delay: 600.ms),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatTile(String emoji, String value, String label, bool isDark) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-        ),
-        child: Column(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 20)),
-            const SizedBox(height: 6),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800,
-                color: isDark ? Colors.white : AppColors.textPrimary)),
-            const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, height: 1.3),
-                textAlign: TextAlign.center),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required bool isDark,
-    VoidCallback? onTap,
-    Widget? trailing,
-  }) {
-    return GestureDetector(
+    const red = Color(0xFFEF4444);
+    return Semantics(
+      button: true,
+      label: 'auth.logout'.tr(),
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.06) : AppColors.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: isDark ? 0.15 : 0.1),
-                borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppColors.textPrimary)),
-                  Text(subtitle, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                ],
-              ),
-            ),
-            trailing ?? const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 20),
-          ],
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          decoration: BoxDecoration(
+            color: red.withValues(alpha: isDark ? 0.1 : 0.06),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: red.withValues(alpha: isDark ? 0.25 : 0.15)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.logout_rounded, color: red, size: 20),
+              const SizedBox(width: 10),
+              Text('auth.logout'.tr(), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: red)),
+            ],
+          ),
         ),
       ),
     );
