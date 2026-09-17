@@ -581,7 +581,8 @@
     "trophyLocked": "Completa la ruta",
     "halfway": "Mitad del camino",
     "multiplierBanner": "×{mult} XP — ¡Multiplicador activo!",
-    "multiplierApplied": "⚡ ×{mult} multiplicador aplicado"
+    "multiplierApplied": "⚡ ×{mult} multiplicador aplicado",
+    "ambientToggle": "Sonido ambiente de la lección"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -1317,7 +1318,9 @@
     "watchTour": "Ver tour de nuevo",
     "watchTourSubtitle": "Redescubre qué puedes hacer en Lumen",
     "soundEffects": "Efectos de sonido",
-    "soundEffectsSubtitle": "Aciertos, lecciones y celebraciones"
+    "soundEffectsSubtitle": "Aciertos, lecciones y celebraciones",
+    "reduceMotion": "Reducir animaciones",
+    "reduceMotionSubtitle": "Menos movimiento, destellos y confeti"
   },
   "moodHistory": {
     "title": "Historial de ánimo",

@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import 'step_common.dart';
 import '../../../../domain/services/sound_service.dart';
+import '../lesson_palette.dart';
 
 /// MYTH / FACT — tarjetas rápidas: desliza (o toca) "Mito" o "Realidad".
 class MythFactStep extends StatefulWidget {
@@ -80,13 +81,7 @@ class _MythFactStepState extends State<MythFactStep> {
         const SizedBox(height: 16),
         StepHeading(text: widget.step.title, glow: widget.routeColor),
         const SizedBox(height: 8),
-        Text(
-          'routes.mythFactHint'.tr(),
-          style: TextStyle(
-            fontSize: 13.5,
-            color: Colors.white.withValues(alpha: 0.6),
-          ),
-        ),
+        StepBody('routes.mythFactHint'.tr(), alpha: 0.6, fontSize: 13.5),
         const SizedBox(height: 18),
         if (_finished)
           _buildSummary(total)
@@ -125,6 +120,7 @@ class _MythFactStepState extends State<MythFactStep> {
   }
 
   Widget _buildDots(int total) {
+    final p = LessonPalette.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(total, (i) {
@@ -137,7 +133,7 @@ class _MythFactStepState extends State<MythFactStep> {
           decoration: BoxDecoration(
             color: i < _index || active
                 ? widget.routeColor
-                : Colors.white.withValues(alpha: 0.15),
+                : p.line(0.15),
             borderRadius: BorderRadius.circular(8),
           ),
         );
@@ -146,10 +142,11 @@ class _MythFactStepState extends State<MythFactStep> {
   }
 
   Widget _buildCard() {
+    final p = LessonPalette.of(context);
     final answered = _answer != null;
     final tilt = (_dragX / 600).clamp(-0.18, 0.18);
     // Mientras arrastra, el borde anticipa qué opción está eligiendo.
-    Color border = Colors.white.withValues(alpha: 0.16);
+    Color border = p.line(0.16);
     if (!answered && _dragX > 30) border = _factColor;
     if (!answered && _dragX < -30) border = _mythColor;
     if (answered) border = _isTrue ? _factColor : _mythColor;
@@ -183,12 +180,15 @@ class _MythFactStepState extends State<MythFactStep> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white.withValues(alpha: 0.11),
-              widget.routeColor.withValues(alpha: 0.08),
+              p.card(0.11),
+              p.isDark
+                  ? widget.routeColor.withValues(alpha: 0.08)
+                  : Color.lerp(Colors.white, widget.routeColor, 0.08)!,
             ],
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: border, width: answered ? 2 : 1.4),
+          boxShadow: p.cardShadow,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -211,18 +211,18 @@ class _MythFactStepState extends State<MythFactStep> {
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.2,
-                    color: _isTrue ? _factColor : _mythColor,
+                    color: p.accent(_isTrue ? _factColor : _mythColor),
                   ),
                 ),
               ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack),
             Text(
               '"${_statements[_index]}"',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 19,
                 height: 1.45,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: p.ink,
               ),
             ),
           ],
@@ -236,6 +236,7 @@ class _MythFactStepState extends State<MythFactStep> {
   }
 
   Widget _buildButtons() {
+    final p = LessonPalette.of(context);
     Widget button(bool saysTrue) {
       final color = saysTrue ? _factColor : _mythColor;
       return Expanded(
@@ -254,7 +255,7 @@ class _MythFactStepState extends State<MythFactStep> {
                 Icon(
                   saysTrue ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
                   size: 16,
-                  color: color,
+                  color: p.accent(color),
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -262,7 +263,7 @@ class _MythFactStepState extends State<MythFactStep> {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
-                    color: color,
+                    color: p.accent(color),
                   ),
                 ),
               ],
@@ -277,6 +278,7 @@ class _MythFactStepState extends State<MythFactStep> {
   }
 
   Widget _buildSummary(int total) {
+    final p = LessonPalette.of(context);
     final perfect = _correctCount == total;
     return Container(
       width: double.infinity,
@@ -295,10 +297,10 @@ class _MythFactStepState extends State<MythFactStep> {
               'correct': '$_correctCount',
               'total': '$total',
             }),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: p.ink,
             ),
           ),
           const SizedBox(height: 6),
@@ -310,7 +312,7 @@ class _MythFactStepState extends State<MythFactStep> {
             style: TextStyle(
               fontSize: 14,
               height: 1.5,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: p.inkA(0.7),
             ),
           ),
         ],

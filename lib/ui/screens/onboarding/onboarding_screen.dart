@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/services/motion_service.dart';
 
 class _SlideData {
   final String asset;
@@ -92,7 +93,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _bgCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 15),
-    )..repeat();
+    )..repeatUnlessReduced();
     _pageCtrl.addListener(() {
       setState(() => _pageValue = _pageCtrl.page ?? 0.0);
     });

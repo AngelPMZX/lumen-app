@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'domain/services/analytics_service.dart';
+import 'domain/services/motion_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +43,7 @@ void main() async {
 
    await NotificationService.instance.initialize();
   await SoundService.instance.initialize();
+  await MotionService.instance.initialize();
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('es'), Locale('en')],

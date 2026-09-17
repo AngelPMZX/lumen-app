@@ -13,6 +13,7 @@ import '../../../domain/services/analytics_service.dart';
 import '../../../domain/services/sound_service.dart';
 import '../../widgets/reward_dialog.dart';
 import '../../../domain/services/app_review_service.dart';
+import '../../../domain/services/motion_service.dart';
 
 enum _Phase { intro, playing, results }
 
@@ -133,7 +134,7 @@ class _DailyReviewScreenState extends State<DailyReviewScreen> {
     await Future.delayed(const Duration(milliseconds: 350));
     if (!mounted) return;
     if (score == total) {
-      _confetti.play();
+      if (!MotionService.instance.reducedNow) _confetti.play();
       SoundService.instance.play(Sfx.reviewPerfect, volume: 0.7);
     } else {
       SoundService.instance.play(Sfx.complete, volume: 0.6);
@@ -232,7 +233,7 @@ class _DailyReviewScreenState extends State<DailyReviewScreen> {
                   ]),
                 ),
               )
-                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                  .animate(onPlay: MotionService.loop(context, reverse: true))
                   .moveY(begin: -12, end: 12, duration: ms.ms, curve: Curves.easeInOut),
             ),
           ),
@@ -271,7 +272,7 @@ class _DailyReviewScreenState extends State<DailyReviewScreen> {
                       .fadeIn(duration: 400.ms)
                       .slideY(begin: 0.4, end: 0, curve: Curves.easeOutBack)
                       .then()
-                      .animate(onPlay: (c) => c.repeat(reverse: true))
+                      .animate(onPlay: MotionService.loop(context, reverse: true))
                       .moveY(begin: 0, end: -6, duration: (1500 + i * 250).ms, curve: Curves.easeInOut),
               ],
             ),
@@ -324,7 +325,7 @@ class _DailyReviewScreenState extends State<DailyReviewScreen> {
               ),
             ),
           )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .animate(onPlay: MotionService.loop(context, reverse: true))
               .scale(begin: const Offset(1, 1), end: const Offset(1.03, 1.03), duration: 1100.ms),
         ],
       ),

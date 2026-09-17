@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../domain/services/mission_service.dart';
 import '../screens/missions/missions_screen.dart';
+import '../../domain/services/motion_service.dart';
 
 /// Resumen de las misiones en el Home: tres anillos de progreso y un aviso
 /// cuando hay algo para reclamar o el cofre está listo.
@@ -124,7 +125,7 @@ class MissionsHomeCard extends StatelessWidget {
         ),
       ),
     )
-        .animate(target: highlight ? 1 : 0, onPlay: (c) => highlight ? c.repeat(reverse: true) : null)
+        .animate(target: highlight ? 1 : 0, onPlay: (c) => highlight ? MotionService.loop(context, reverse: true)(c) : null)
         .scale(begin: const Offset(1, 1), end: const Offset(1.015, 1.015), duration: 900.ms);
   }
 }

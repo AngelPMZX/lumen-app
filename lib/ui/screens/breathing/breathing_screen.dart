@@ -11,6 +11,7 @@ import '../../../domain/services/sound_service.dart';
 import '../../widgets/discovery_dialog.dart';
 import '../../widgets/reward_dialog.dart';
 import '../../../domain/services/analytics_service.dart';
+import '../../../domain/services/motion_service.dart';
 
 // ─── Breathing technique model ────────────────────────────────────────────────
 class _BreathingTechnique {
@@ -185,7 +186,7 @@ class _BreathingScreenState extends State<BreathingScreen>
     _breathController = AnimationController(
       vsync: this, duration: const Duration(seconds: 4));
     _pulseController = AnimationController(
-      vsync: this, duration: const Duration(seconds: 3))..repeat(reverse: true);
+      vsync: this, duration: const Duration(seconds: 3))..repeatUnlessReduced(reverse: true);
 
     final rng = math.Random(42);
     _stars = List.generate(60, (_) => _StarData(
@@ -481,7 +482,7 @@ class _BreathingScreenState extends State<BreathingScreen>
               ),
               child: const Center(child: Text('🫁', style: TextStyle(fontSize: 48))),
             )
-                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .animate(onPlay: MotionService.loop(context, reverse: true))
                 .scale(begin: const Offset(0.95, 0.95), end: const Offset(1.05, 1.05),
                     duration: 2000.ms, curve: Curves.easeInOut)
                 .animate()
@@ -1074,7 +1075,7 @@ class _BreathingScreenState extends State<BreathingScreen>
   child: const Center(child: Text('🫁', style: TextStyle(fontSize: 56))),
 )
     // Pulse continuo tipo respiración
-    .animate(onPlay: (c) => c.repeat(reverse: true))
+    .animate(onPlay: MotionService.loop(context, reverse: true))
     .scale(
       begin: const Offset(0.95, 0.95),
       end: const Offset(1.08, 1.08),
@@ -1224,7 +1225,7 @@ class _TwinklingStarState extends State<_TwinklingStar>
     _ctrl = AnimationController(
         vsync: this, duration: Duration(milliseconds: widget.star.durationMs));
     Future.delayed(Duration(milliseconds: widget.star.delayMs), () {
-      if (mounted) _ctrl.repeat(reverse: true);
+      if (mounted) _ctrl.repeatUnlessReduced(reverse: true, rest: 1);
     });
     _anim = Tween<double>(begin: 0.05, end: widget.star.opacity)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));

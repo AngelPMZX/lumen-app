@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import '../../../../domain/services/sound_service.dart';
 import 'step_common.dart';
+import '../lesson_palette.dart';
+import '../../../../domain/services/motion_service.dart';
 
 /// PRACTICE — práctica guiada con temporizador: respiración, grounding,
 /// escaneo corporal. Cada indicación dura sus segundos y el orbe se mueve
@@ -184,6 +186,7 @@ class _PracticeStepState extends State<PracticeStep>
   }
 
   Widget _buildIntro() {
+    final p = LessonPalette.of(context);
     final minutes = _totalSeconds >= 60
         ? 'routes.practiceMinutes'.tr(namedArgs: {
             'n': (_totalSeconds / 60).toStringAsFixed(
@@ -199,16 +202,17 @@ class _PracticeStepState extends State<PracticeStep>
           width: double.infinity,
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.07),
+            color: p.card(0.07),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: widget.routeColor.withValues(alpha: 0.25)),
+            boxShadow: p.cardShadow,
           ),
           child: Text(
             widget.step.content ?? '',
             style: TextStyle(
               fontSize: 15.5,
               height: 1.7,
-              color: Colors.white.withValues(alpha: 0.88),
+              color: p.inkA(0.88),
             ),
           ),
         ),
@@ -250,7 +254,7 @@ class _PracticeStepState extends State<PracticeStep>
               ),
             ),
           )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .animate(onPlay: MotionService.loop(context, reverse: true))
               .scale(
                 begin: const Offset(1, 1),
                 end: const Offset(1.06, 1.06),
@@ -262,7 +266,7 @@ class _PracticeStepState extends State<PracticeStep>
         Center(
           child: Text(
             minutes,
-            style: const TextStyle(fontSize: 12.5, color: Colors.white38),
+            style: TextStyle(fontSize: 12.5, color: p.inkA(0.38)),
           ),
         ),
       ],
@@ -270,6 +274,7 @@ class _PracticeStepState extends State<PracticeStep>
   }
 
   Widget _buildRunning() {
+    final p = LessonPalette.of(context);
     return Column(
       key: const ValueKey('running'),
       children: [
@@ -292,15 +297,18 @@ class _PracticeStepState extends State<PracticeStep>
                     painter: _RingPainter(
                       progress: t,
                       color: widget.routeColor,
+                      track: p.line(0.1),
                     ),
                   ),
                   Transform.scale(scale: scale, child: _orb()),
+                  // Sobre el orbe: blanco en ambos temas
                   Text(
                     '$remaining',
                     style: const TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
+                      shadows: [Shadow(color: Colors.black26, blurRadius: 8)],
                     ),
                   ),
                 ],
@@ -315,25 +323,25 @@ class _PracticeStepState extends State<PracticeStep>
             _prompts[_index],
             key: ValueKey('prompt_$_index'),
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 19,
               height: 1.45,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: p.ink,
             ),
           ),
         ),
         const SizedBox(height: 14),
         Text(
           '${_index + 1} / ${_prompts.length}',
-          style: const TextStyle(fontSize: 12.5, color: Colors.white38),
+          style: TextStyle(fontSize: 12.5, color: p.inkA(0.38)),
         ),
         const SizedBox(height: 10),
         TextButton(
           onPressed: () => _finish(naturally: false),
           child: Text(
             'routes.practiceSkip'.tr(),
-            style: const TextStyle(fontSize: 13, color: Colors.white38),
+            style: TextStyle(fontSize: 13, color: p.inkA(0.38)),
           ),
         ),
       ],
@@ -383,10 +391,10 @@ class _PracticeStepState extends State<PracticeStep>
               ? 'routes.practiceDone'.tr()
               : 'routes.practiceSkipped'.tr(),
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: LessonPalette.of(context).ink,
           ),
         ),
         if (outro != null) ...[
@@ -401,8 +409,13 @@ class _PracticeStepState extends State<PracticeStep>
 class _RingPainter extends CustomPainter {
   final double progress;
   final Color color;
+  final Color track;
 
-  _RingPainter({required this.progress, required this.color});
+  _RingPainter({
+    required this.progress,
+    required this.color,
+    required this.track,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -411,7 +424,7 @@ class _RingPainter extends CustomPainter {
     final base = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5
-      ..color = Colors.white.withValues(alpha: 0.1);
+      ..color = track;
     canvas.drawCircle(center, radius, base);
 
     final arc = Paint()
@@ -430,5 +443,5 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress || old.color != color;
+      old.progress != progress || old.color != color || old.track != track;
 }

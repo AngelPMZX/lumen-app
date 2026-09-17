@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/services/motion_service.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
@@ -35,7 +36,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     _bgController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 15),
-    )..repeat();
+    )..repeatUnlessReduced();
 
     // Auto-check periódico
     _autoCheckTimer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -282,7 +283,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                           color: Colors.white,
                         ),
                       )
-                          .animate(onPlay: (c) => c.repeat(reverse: true))
+                          .animate(onPlay: MotionService.loop(context, reverse: true))
                           .scale(
                             begin: const Offset(0.95, 0.95),
                             end: const Offset(1.05, 1.05),

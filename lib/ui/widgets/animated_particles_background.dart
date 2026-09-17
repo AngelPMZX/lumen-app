@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../domain/services/motion_service.dart';
 
 /// Widget de fondo animado con partículas flotantes y estrellas fugaces.
 /// Funciona en AMBOS modos (dark y light).
@@ -37,7 +38,7 @@ class _AnimatedParticlesBackgroundState
     _particleController = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
-    )..repeat();
+    )..repeatUnlessReduced();
 
     _shootingStarController = AnimationController(
       duration: const Duration(milliseconds: 2500),

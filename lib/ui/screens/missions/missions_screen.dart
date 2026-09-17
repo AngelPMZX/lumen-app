@@ -17,6 +17,7 @@ import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/reward_dialog.dart';
 import '../../widgets/treasure_chest.dart';
 import '../../../domain/services/app_review_service.dart';
+import '../../../domain/services/motion_service.dart';
 
 /// Apariencia de cada tipo de misión.
 class MissionStyle {
@@ -72,7 +73,7 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
   void initState() {
     super.initState();
     _confetti = ConfettiController(duration: const Duration(seconds: 3));
-    _rays = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeat();
+    _rays = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeatUnlessReduced();
     _open = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
     _shake = AnimationController(vsync: this, duration: const Duration(milliseconds: 550));
 
@@ -123,7 +124,8 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
         if (mounted && _state?.chestReady == true) SoundService.instance.play(Sfx.chestShake, volume: 0.6);
       });
     }
-    if (_shaking) return; // un solo bucle aunque se reclamen varias seguidas
+    // Con movimiento reducido el cofre listo brilla, pero no tiembla.
+    if (_shaking || MotionService.instance.reducedNow) return; // un solo bucle aunque se reclamen varias seguidas
     _shaking = true;
     Future<void> loop() async {
       while (mounted && _state?.chestReady == true) {
@@ -191,7 +193,7 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
     AnalyticsService.instance.missionChestOpened();
     setState(() => _state = MissionsState(weekKey: state.weekKey, missions: state.missions, chestClaimed: true));
     await _open.forward(from: 0);
-    _confetti.play();
+    if (!MotionService.instance.reducedNow) _confetti.play();
     final reward = await garden.grantReward(RewardSource.missionChest);
     await Future.delayed(const Duration(milliseconds: 500));
     if (mounted) {
@@ -248,7 +250,7 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
           top: rng.nextDouble() * 820,
           child: IgnorePointer(
             child: Icon(Icons.auto_awesome, size: 6 + rng.nextDouble() * 8, color: Colors.white.withValues(alpha: 0.5))
-                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .animate(onPlay: MotionService.loop(context, reverse: true))
                 .fade(begin: 0.1, end: 0.9, duration: (1200 + rng.nextInt(1800)).ms),
           ),
         ),
@@ -467,7 +469,7 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
           style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w900, color: Color(0xFF3B2410)),
         ),
       )
-          .animate(onPlay: (c) => c.repeat(reverse: true))
+          .animate(onPlay: MotionService.loop(context, reverse: true))
           .scale(begin: const Offset(1, 1), end: const Offset(1.03, 1.03), duration: 700.ms),
     );
   }
@@ -526,7 +528,7 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
           if (ready)
             Text('missions.tapToOpen'.tr(),
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFFFBBF24)))
-                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .animate(onPlay: MotionService.loop(context, reverse: true))
                 .fade(begin: 0.5, end: 1, duration: 800.ms),
         ],
       ),

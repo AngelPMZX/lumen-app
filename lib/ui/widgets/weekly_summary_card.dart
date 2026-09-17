@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../domain/services/motion_service.dart';
 
 /// Aviso del Home: "Tu semana en Lumen está lista". Aparece domingo y lunes
 /// hasta que se abre el resumen.
@@ -40,7 +41,7 @@ class WeeklySummaryCard extends StatelessWidget {
         child: Row(
           children: [
             const Text('✨', style: TextStyle(fontSize: 30))
-                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .animate(onPlay: MotionService.loop(context, reverse: true))
                 .scale(begin: const Offset(0.9, 0.9), end: const Offset(1.1, 1.1), duration: 1200.ms),
             const SizedBox(width: 14),
             Expanded(

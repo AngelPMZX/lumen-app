@@ -17,6 +17,7 @@ import '../../widgets/discovery_dialog.dart';
 import '../../widgets/seed_icon.dart';
 import '../../../domain/services/sound_service.dart';
 import '../../../domain/services/analytics_service.dart';
+import '../../../domain/services/motion_service.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GARDEN CONFIG — slots hardcodeados por jardín
@@ -198,17 +199,17 @@ class _GardenScreenState extends State<GardenScreen>
     _idleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
 
     _glowCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
 
     _growthTickCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 60),
-    )..repeat();
+    )..repeatUnlessReduced();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final garden = context.read<GardenProvider>();
@@ -2645,19 +2646,19 @@ class _PlantAdultWidgetState extends State<_PlantAdultWidget>
     _breezeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2800),
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
 
     // Halo pulsante — más lento
     _haloCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
 
     // Partículas — loop continuo
     _particleCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3000),
-    )..repeat();
+    )..repeatUnlessReduced();
 
     // Generar sparkles con distribución espacial uniforme
     final rng = math.Random(widget.rarity.index * 42);

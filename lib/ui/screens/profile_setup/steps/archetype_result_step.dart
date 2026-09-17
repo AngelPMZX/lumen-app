@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../../../domain/services/motion_service.dart';
 
 class ArchetypeResultStep extends StatefulWidget {
   final String archetype;
@@ -34,7 +35,7 @@ class _ArchetypeResultStepState extends State<ArchetypeResultStep>
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 1500),
       vsync: this,
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -42,7 +43,7 @@ class _ArchetypeResultStepState extends State<ArchetypeResultStep>
     _rotateController = AnimationController(
       duration: const Duration(seconds: 20),
       vsync: this,
-    )..repeat();
+    )..repeatUnlessReduced();
 
     _startRevealSequence();
   }
@@ -186,7 +187,7 @@ class _ArchetypeResultStepState extends State<ArchetypeResultStep>
                         fontSize: 15,
                       ),
                     )
-                    .animate(onPlay: (c) => c.repeat())
+                    .animate(onPlay: MotionService.loop(context))
                     .fadeIn(duration: 800.ms)
                     .then()
                     .fadeOut(duration: 800.ms),

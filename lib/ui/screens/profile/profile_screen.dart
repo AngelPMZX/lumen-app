@@ -15,6 +15,7 @@ import 'edit_profile_screen.dart';
 import 'achievements_screen.dart';
 import 'mood_history_screen.dart';
 import '../summary/weekly_summary_screen.dart';
+import '../../../domain/services/motion_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -577,6 +578,23 @@ const SizedBox(height: 10),
                       activeThumbColor: const Color(0xFFF59E0B),
                     ),
                   ).animate().fadeIn(delay: 510.ms),
+                  const SizedBox(height: 10),
+
+                  // Reducir animaciones (accesibilidad)
+                  _buildMenuCard(
+                    icon: Icons.motion_photos_paused_rounded,
+                    title: 'profileScreen.reduceMotion'.tr(),
+                    subtitle: 'profileScreen.reduceMotionSubtitle'.tr(),
+                    color: const Color(0xFF14B8A6), isDark: isDark,
+                    trailing: Switch.adaptive(
+                      value: MotionService.instance.userReduce,
+                      onChanged: (v) async {
+                        await MotionService.instance.setReduceMotion(v);
+                        if (mounted) setState(() {});
+                      },
+                      activeThumbColor: const Color(0xFF14B8A6),
+                    ),
+                  ).animate().fadeIn(delay: 515.ms),
                   const SizedBox(height: 10),
 
                   // Language selector

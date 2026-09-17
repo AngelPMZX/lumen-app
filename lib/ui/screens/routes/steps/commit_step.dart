@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import 'step_common.dart';
 import '../../../../domain/services/sound_service.dart';
+import '../lesson_palette.dart';
 
 /// COMMIT — cierra la lección con un micro-reto para hoy.
 ///
@@ -82,6 +83,7 @@ class _CommitStepState extends State<CommitStep>
 
   @override
   Widget build(BuildContext context) {
+    final p = LessonPalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -93,14 +95,7 @@ class _CommitStepState extends State<CommitStep>
         const SizedBox(height: 16),
         StepHeading(text: widget.step.title, glow: widget.routeColor),
         const SizedBox(height: 10),
-        Text(
-          widget.step.content ?? '',
-          style: TextStyle(
-            fontSize: 15,
-            height: 1.65,
-            color: Colors.white.withValues(alpha: 0.8),
-          ),
-        ),
+        StepBody(widget.step.content ?? '', alpha: 0.8, fontSize: 15),
         const SizedBox(height: 18),
         ...List.generate(_options.length, (i) {
           final chosen = _choice == i;
@@ -122,15 +117,16 @@ class _CommitStepState extends State<CommitStep>
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
                   color: chosen
-                      ? _accent.withValues(alpha: 0.16)
-                      : Colors.white.withValues(alpha: locked ? 0.02 : 0.06),
+                      ? (p.isDark
+                          ? _accent.withValues(alpha: 0.16)
+                          : Color.lerp(Colors.white, _accent, 0.16))
+                      : p.card(locked ? 0.02 : 0.06),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: chosen
-                        ? _accent
-                        : Colors.white.withValues(alpha: locked ? 0.05 : 0.13),
+                    color: chosen ? _accent : p.line(locked ? 0.05 : 0.13),
                     width: chosen ? 1.8 : 1,
                   ),
+                  boxShadow: locked ? null : p.cardShadow,
                 ),
                 child: Row(
                   children: [
@@ -139,7 +135,7 @@ class _CommitStepState extends State<CommitStep>
                           ? Icons.radio_button_checked_rounded
                           : Icons.radio_button_off_rounded,
                       size: 20,
-                      color: chosen ? _accent : Colors.white38,
+                      color: chosen ? p.accent(_accent) : p.inkA(0.38),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -149,7 +145,7 @@ class _CommitStepState extends State<CommitStep>
                           fontSize: 14.5,
                           height: 1.4,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white.withValues(alpha: locked ? 0.35 : 1),
+                          color: p.inkA(locked ? 0.35 : 1),
                         ),
                       ),
                     ),
@@ -166,7 +162,10 @@ class _CommitStepState extends State<CommitStep>
   }
 
   Widget _buildHoldButton() {
+    final p = LessonPalette.of(context);
     final enabled = _choice != null;
+    // Sobre el relleno ámbar el texto oscuro se lee mejor en modo claro.
+    final fg = p.isDark ? Colors.white : const Color(0xFF5B3A00);
     return GestureDetector(
       onTapDown: (_) => _startHold(),
       onTapUp: (_) => _cancelHold(),
@@ -201,7 +200,7 @@ class _CommitStepState extends State<CommitStep>
                       Icon(
                         Icons.fingerprint_rounded,
                         size: 22,
-                        color: Colors.white.withValues(alpha: enabled ? 1 : 0.35),
+                        color: fg.withValues(alpha: enabled ? 1 : 0.35),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -211,7 +210,7 @@ class _CommitStepState extends State<CommitStep>
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white.withValues(alpha: enabled ? 1 : 0.4),
+                          color: fg.withValues(alpha: enabled ? 1 : 0.4),
                         ),
                       ),
                     ],
@@ -235,10 +234,10 @@ class _CommitStepState extends State<CommitStep>
         Text(
           'routes.commitDone'.tr(),
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: LessonPalette.of(context).ink,
           ),
         ),
       ],

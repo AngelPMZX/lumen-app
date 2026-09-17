@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import 'step_common.dart';
 import '../../../../domain/services/sound_service.dart';
+import '../lesson_palette.dart';
 
 /// PICK — "marca todas las que te pasen". No hay respuestas correctas.
 ///
@@ -64,6 +65,7 @@ class _PickStepState extends State<PickStep> {
 
   @override
   Widget build(BuildContext context) {
+    final p = LessonPalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -79,13 +81,7 @@ class _PickStepState extends State<PickStep> {
           fontSize: 23,
         ),
         const SizedBox(height: 8),
-        Text(
-          'routes.pickHint'.tr(),
-          style: TextStyle(
-            fontSize: 13.5,
-            color: Colors.white.withValues(alpha: 0.6),
-          ),
-        ),
+        StepBody('routes.pickHint'.tr(), alpha: 0.6, fontSize: 13.5),
         const SizedBox(height: 16),
         ...List.generate(_options.length, (i) {
           final on = _selected.contains(i);
@@ -100,16 +96,14 @@ class _PickStepState extends State<PickStep> {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
                 decoration: BoxDecoration(
                   color: on
-                      ? _accent.withValues(alpha: 0.2)
-                      : Colors.white.withValues(
-                          alpha: _confirmed ? 0.03 : 0.07),
+                      ? _accent.withValues(alpha: p.isDark ? 0.2 : 0.13)
+                      : p.card(_confirmed ? 0.03 : 0.07),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: on
-                        ? _accent
-                        : Colors.white.withValues(alpha: 0.13),
+                    color: on ? _accent : p.line(0.13),
                     width: on ? 1.8 : 1,
                   ),
+                  boxShadow: _confirmed ? null : p.cardShadow,
                 ),
                 child: Row(
                   children: [
@@ -121,9 +115,7 @@ class _PickStepState extends State<PickStep> {
                         color: on ? _accent : Colors.transparent,
                         borderRadius: BorderRadius.circular(7),
                         border: Border.all(
-                          color: on
-                              ? _accent
-                              : Colors.white.withValues(alpha: 0.35),
+                          color: on ? _accent : p.inkA(0.35),
                           width: 1.6,
                         ),
                       ),
@@ -140,8 +132,7 @@ class _PickStepState extends State<PickStep> {
                           fontSize: 14.5,
                           height: 1.4,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white.withValues(
-                              alpha: _confirmed && !on ? 0.45 : 1),
+                          color: p.inkA(_confirmed && !on ? 0.45 : 1),
                         ),
                       ),
                     ),

@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/validators.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/services/motion_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -34,7 +35,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     _bgController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 15),
-    )..repeat();
+    )..repeatUnlessReduced();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthProvider>().clearError();
     });

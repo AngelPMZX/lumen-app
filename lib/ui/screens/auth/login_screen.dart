@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/utils/validators.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/services/motion_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen>
     _bgController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 15),
-    )..repeat();
+    )..repeatUnlessReduced();
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/services/motion_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -30,12 +31,12 @@ class _SplashScreenState extends State<SplashScreen>
     _particleController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
-    )..repeat();
+    )..repeatUnlessReduced();
 
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
 
     _navigateAfterDelay();
   }
@@ -245,7 +246,7 @@ class _SplashScreenState extends State<SplashScreen>
                         shape: BoxShape.circle,
                       ),
                     )
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
+                        .animate(onPlay: MotionService.loop(context, reverse: true))
                         .fadeIn(delay: (1800 + index * 200).ms)
                         .then()
                         .scaleXY(

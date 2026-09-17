@@ -14,6 +14,7 @@ import 'ui/screens/auth/forgot_password_screen.dart';
 import 'ui/screens/auth/verify_email_screen.dart';
 import 'ui/screens/crisis/crisis_support_screen.dart';
 import 'domain/services/analytics_service.dart';
+import 'domain/services/motion_service.dart';
 
 class LumenApp extends StatelessWidget {
   const LumenApp({super.key});
@@ -38,6 +39,21 @@ class LumenApp extends StatelessWidget {
       locale: context.locale,
       initialRoute: AppRoutes.splash,
       navigatorObservers: [?analyticsObserver],
+      // "Reducir animaciones" del perfil se suma a la opción del sistema, y
+      // todo el árbol la lee desde MediaQuery.disableAnimations.
+      builder: (context, child) => ListenableBuilder(
+        listenable: MotionService.instance,
+        builder: (context, _) {
+          final media = MediaQuery.of(context);
+          return MediaQuery(
+            data: media.copyWith(
+              disableAnimations:
+                  media.disableAnimations || MotionService.instance.userReduce,
+            ),
+            child: child!,
+          );
+        },
+      ),
       routes: {
         AppRoutes.splash: (_) => const SplashScreen(),
         AppRoutes.login: (_) => const LoginScreen(),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../domain/services/motion_service.dart';
 
 /// Icono reutilizable de las "Semillas de Luz" (moneda del jardín).
 ///
@@ -35,7 +36,7 @@ class _SeedIconState extends State<SeedIcon>
       _controller = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 1600),
-      )..repeat(reverse: true);
+      )..repeatUnlessReduced(reverse: true);
     }
   }
 
@@ -46,7 +47,7 @@ class _SeedIconState extends State<SeedIcon>
       _controller = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 1600),
-      )..repeat(reverse: true);
+      )..repeatUnlessReduced(reverse: true);
     } else if (!widget.animated && _controller != null) {
       _controller?.dispose();
       _controller = null;

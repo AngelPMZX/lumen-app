@@ -5,6 +5,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import '../../../../domain/services/sound_service.dart';
 import 'step_common.dart';
+import '../lesson_palette.dart';
+import '../../../../domain/services/motion_service.dart';
 
 /// STORY — una mini historia en burbujas de chat que se revelan al tocar.
 ///
@@ -77,6 +79,7 @@ class _StoryStepState extends State<StoryStep> {
   @override
   Widget build(BuildContext context) {
     final speaker = widget.step.speaker ?? widget.fallbackSpeaker;
+    final p = LessonPalette.of(context);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -106,30 +109,31 @@ class _StoryStepState extends State<StoryStep> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 9),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
+                      color: p.card(0.08),
                       borderRadius: BorderRadius.circular(20),
+                      border: p.isDark ? null : Border.all(color: p.line(0.08)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.touch_app_rounded,
-                            size: 16, color: Colors.white60),
+                        Icon(Icons.touch_app_rounded,
+                            size: 16, color: p.inkA(0.6)),
                         const SizedBox(width: 6),
                         Text(
                           'routes.storyTap'.tr(namedArgs: {
                             'current': '$_shown',
                             'total': '${_lines.length}',
                           }),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white60,
+                            color: p.inkA(0.6),
                           ),
                         ),
                       ],
                     ),
                   )
-                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .animate(onPlay: MotionService.loop(context, reverse: true))
                     .fade(begin: 0.55, end: 1, duration: 900.ms),
           ),
         ],
@@ -138,6 +142,7 @@ class _StoryStepState extends State<StoryStep> {
   }
 
   Widget _buildLine(String raw, String speaker, int index) {
+    final p = LessonPalette.of(context);
     final Widget child;
 
     if (raw.startsWith('* ')) {
@@ -151,7 +156,7 @@ class _StoryStepState extends State<StoryStep> {
               fontSize: 14,
               height: 1.55,
               fontStyle: FontStyle.italic,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: p.inkA(0.6),
             ),
           ),
         ),
@@ -163,7 +168,7 @@ class _StoryStepState extends State<StoryStep> {
           margin: const EdgeInsets.only(left: 48, bottom: 10),
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
           decoration: BoxDecoration(
-            color: widget.routeColor.withValues(alpha: 0.32),
+            color: widget.routeColor.withValues(alpha: p.isDark ? 0.32 : 0.18),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(18),
               topRight: Radius.circular(18),
@@ -175,8 +180,7 @@ class _StoryStepState extends State<StoryStep> {
           ),
           child: Text(
             raw.substring(2),
-            style: const TextStyle(
-                fontSize: 15, height: 1.5, color: Colors.white),
+            style: TextStyle(fontSize: 15, height: 1.5, color: p.ink),
           ),
         ),
       );
@@ -190,8 +194,9 @@ class _StoryStepState extends State<StoryStep> {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: p.card(0.1),
                 shape: BoxShape.circle,
+                boxShadow: p.cardShadow,
               ),
               child: Center(
                 child: Text(speaker, style: const TextStyle(fontSize: 18)),
@@ -203,7 +208,8 @@ class _StoryStepState extends State<StoryStep> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.09),
+                  color: p.card(0.09),
+                  boxShadow: p.cardShadow,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(18),
                     topRight: Radius.circular(18),
@@ -211,14 +217,14 @@ class _StoryStepState extends State<StoryStep> {
                     bottomRight: Radius.circular(18),
                   ),
                   border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                      Border.all(color: p.line(0.12)),
                 ),
                 child: Text(
                   raw,
                   style: TextStyle(
                     fontSize: 15,
                     height: 1.5,
-                    color: Colors.white.withValues(alpha: 0.92),
+                    color: p.inkA(0.92),
                   ),
                 ),
               ),

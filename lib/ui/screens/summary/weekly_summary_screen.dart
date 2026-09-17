@@ -13,6 +13,7 @@ import '../../../domain/services/sound_service.dart';
 import '../../../domain/services/weekly_summary_service.dart';
 import '../../widgets/crisis_support_card.dart';
 import '../routes/lesson_screen.dart';
+import '../../../domain/services/motion_service.dart';
 
 /// "Tu semana en Lumen": ánimo, actividad, patrones personales y una lección
 /// recomendada. Se calcula en el teléfono con los datos del usuario.
@@ -273,7 +274,7 @@ class _WeeklySummaryScreenState extends State<WeeklySummaryScreen> {
               child: Text(mood?.emoji ?? emoji, style: const TextStyle(fontSize: 38)),
             ),
           )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .animate(onPlay: MotionService.loop(context, reverse: true))
               .scale(begin: const Offset(1, 1), end: const Offset(1.06, 1.06), duration: 1600.ms),
           const SizedBox(width: 16),
           Expanded(

@@ -581,7 +581,8 @@
     "trophyLocked": "Finish the route",
     "halfway": "Halfway there",
     "multiplierBanner": "×{mult} XP — Multiplier active!",
-    "multiplierApplied": "⚡ ×{mult} multiplier applied"
+    "multiplierApplied": "⚡ ×{mult} multiplier applied",
+    "ambientToggle": "Lesson ambient sound"
   },
   "profile": {
     "title": "My Profile",
@@ -1317,7 +1318,9 @@
     "watchTour": "Watch tour again",
     "watchTourSubtitle": "Rediscover what you can do in Lumen",
     "soundEffects": "Sound effects",
-    "soundEffectsSubtitle": "Correct answers, lessons and celebrations"
+    "soundEffectsSubtitle": "Correct answers, lessons and celebrations",
+    "reduceMotion": "Reduce motion",
+    "reduceMotionSubtitle": "Less movement, flashes and confetti"
   },
   "moodHistory": {
     "title": "Mood history",

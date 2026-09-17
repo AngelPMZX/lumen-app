@@ -44,6 +44,7 @@ import '../../widgets/lumi/lumi_companion_card.dart';
 import '../../../domain/services/mission_service.dart';
 import '../missions/missions_screen.dart';
 import '../../widgets/missions_home_card.dart';
+import '../../../domain/services/motion_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -125,7 +126,7 @@ void initState() {
   _streakGlow = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 2),
-  )..repeat(reverse: true);
+  )..repeatUnlessReduced(reverse: true);
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
   _checkProfileComplete();

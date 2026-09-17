@@ -7,6 +7,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/models/wellness_route.dart';
 import '../../../../domain/services/sound_service.dart';
+import '../../../../domain/services/motion_service.dart';
 
 /// Mapa de lecciones estilo Duolingo: un camino serpenteante con nodos 3D,
 /// decoración temática por ruta, destellos que fluyen por lo completado y un
@@ -60,11 +61,11 @@ class _LessonPathMapState extends State<LessonPathMap>
     _flow = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
-    )..repeat();
+    )..repeatUnlessReduced();
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
   }
 
   @override
@@ -376,7 +377,7 @@ class _LessonPathMapState extends State<LessonPathMap>
         ],
       ),
     )
-        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .animate(onPlay: MotionService.loop(context, reverse: true))
         .moveY(begin: 0, end: -5, duration: 900.ms, curve: Curves.easeInOut);
   }
 
@@ -473,7 +474,7 @@ class _LessonPathMapState extends State<LessonPathMap>
       children: [
         done
             ? trophy
-                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .animate(onPlay: MotionService.loop(context, reverse: true))
                 .scale(
                   begin: const Offset(1, 1),
                   end: const Offset(1.07, 1.07),
@@ -591,7 +592,7 @@ class _LessonPathMapState extends State<LessonPathMap>
             opacity: opacity,
             child: Text(emoji, style: TextStyle(fontSize: size)),
           )
-              .animate(onPlay: (c) => c.repeat(reverse: true))
+              .animate(onPlay: MotionService.loop(context, reverse: true))
               .moveY(begin: -4, end: 4, duration: floatMs.ms, curve: Curves.easeInOut)
               .rotate(begin: -0.02, end: 0.02, duration: floatMs.ms),
         ),
@@ -609,7 +610,7 @@ class _LessonPathMapState extends State<LessonPathMap>
               size: 12 + rnd.nextDouble() * 6,
               color: widget.route.color.withValues(alpha: 0.35),
             )
-                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .animate(onPlay: MotionService.loop(context, reverse: true))
                 .fade(begin: 0.2, end: 1, duration: (1200 + rnd.nextInt(900)).ms),
           ),
         ));

@@ -10,6 +10,7 @@ import '../../../domain/providers/garden_provider.dart';
 import 'dart:ui' as ui;
 import './seed_icon.dart';
 import '../../domain/services/sound_service.dart';
+import '../../domain/services/motion_service.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // RewardDialog — muestra la recompensa ganada (semillas o item)
@@ -67,7 +68,7 @@ class _RewardDialogState extends State<RewardDialog>
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
 
     // Generar partículas según tipo de recompensa
     _particles = List.generate(

@@ -60,6 +60,8 @@ Clean architecture simplificada:
 11. **PowerShell 5.1 parte los argumentos con comillas dobles** al llamar ejecutables (`git commit -m "..."`, `python -c "..."`): usar `git commit -F archivo.txt` y scripts `.py` en archivo.
 12. **Nada de textos visibles hardcodeados, tampoco en providers**: los mensajes de error que devuelven `AuthProvider` y `GardenProvider` también van con `.tr()` (antes el login mostraba "Contraseña incorrecta" en inglés).
 13. **`flutter analyze` está en 0 issues** — mantenerlo así: `withValues(alpha: x)` en vez de `withOpacity(x)`, `activeThumbColor` en `Switch`, `toARGB32()` en vez de `Color.value`, y tras un `await` leer providers antes del `await` o chequear `mounted` (`context.mounted` dentro de closures del `build`).
+14. **Nada de curvas con rebote (`easeOutBack`, `elasticOut`) en `AnimatedContainer` que cambie sombras**: el rebote interpola el `blurRadius` por debajo de 0 y lanza una aserción. Usar `easeOutCubic`; el rebote va bien en `scale`/`slide`.
+15. **Bucles de animación respetan "Reducir animaciones"**: `.animate(onPlay: MotionService.loop(context, reverse: true))` en vez de `(c) => c.repeat(...)`, `controller..repeatUnlessReduced()` en vez de `..repeat()`, y el confeti solo si `!MotionService.instance.reducedNow`.
 
 ## Features implementadas
 
@@ -101,7 +103,8 @@ Clean architecture simplificada:
   - `pick`: selección múltiple reflexiva sin respuesta correcta. `options` + `explanation` o `responses` de 3 (según cuántas marque).
   - `story`: burbujas de chat al tocar. `lines`: `> ` = el usuario, `* ` = narración, resto = `speaker` (emoji).
   - `commit`: micro-reto; elegir uno de `options` y mantener presionado. Se muestra en la pantalla de lección completada.
-- Los tipos nuevos (desde `mythfact`) viven en `lib/ui/screens/routes/steps/` y avisan a `LessonScreen` con `StepCallbacks` (`onAnswer`, `onReflect`, `onReady`).
+- **Estructura de la lección**: `lesson_screen.dart` (~720 líneas, antes ~2 400) solo coordina barra superior, Lumi, "Continuar", racha, XP y guardado. **Los 13 tipos** viven en `lib/ui/screens/routes/steps/<tipo>_step.dart` y avisan con `StepCallbacks` (`onAnswer`, `onReflect`, `onReady`); `exercise` avisa su borrador con `onDraftChanged` y la pantalla lo guarda al continuar. Fondo en `widgets/lesson_background.dart` (un solo `CustomPainter` y un controlador) y pantalla final en `widgets/lesson_complete_view.dart`. Piezas comunes en `steps/step_common.dart` (`StepChip`, `StepHeading`, `StepBody`, `StepCard`, `StepNote`, `StepInlineButton`, `StepColors`).
+- **Modo claro y oscuro**: la lección sigue el tema de la app. Oscuro = cielo nocturno (estrellas que titilan, fugaces, nebulosas); claro = amanecer (sol tibio, burbujas de luz que suben). **Los pasos no usan `Colors.white` directo**: piden el color a `LessonPalette.of(context)` (`ink`, `inkA(a)` texto, `card(a)` rellenos, `line(a)` bordes, `accent(c)` color legible como texto, `glow`, `cardShadow`). Blanco directo solo sobre rellenos de color (círculo elegido, botón). En claro los rellenos de opciones elegidas son opacos (`Color.lerp(Colors.white, color, 0.14)`): con alpha se transparenta la sombra de color. El `feedback` de un `Draggable` se dibuja fuera del árbol: envolverlo en `LessonPaletteScope`.
 - **Contenido de salud mental**: no afirmar datos sin respaldo (p. ej. "21 días para un hábito" o "golpear una almohada libera el enojo" son mitos). Los temas delicados (tristeza persistente, ansiedad) mencionan buscar ayuda profesional.
 - **Mapa de lecciones**: `lib/ui/screens/routes/widgets/lesson_path_map.dart`. Camino serpenteante con `sin(i · 0.9)` por índice (no por total de lecciones: la fórmula vieja `sin(i/(n-1)·2π)` dejaba recta una ruta de 2 lecciones). Nodos 3D presionables, anillo giratorio y globo "Empezar" en la lección actual, destellos que fluyen por lo completado, decoración con emojis por ruta (`_themes`, por id), cartel de mitad de camino y trofeo final. Sin `MaskFilter.blur`.
 - **Caché de contenido**: `seed/seed_routes.js` escribe `wellness_routes/_meta` (`version`, `routeCount`, `lessonCount`, `stepCount`) cada vez que sube algo. No tiene `order`, así que no sale en la lista de rutas. `RoutesService` lee solo `_meta` (1 lectura); si la versión coincide con la guardada en SharedPreferences (`routes_content_version`) carga todo de la caché local de Firestore (0 lecturas) y verifica los totales; si no, descarga (~473 lecturas) en paralelo. Sin internet usa la caché. En web la persistencia se activa en `main.dart`. **Si editas contenido a mano en la consola, corre `node seed/seed_routes.js --all --meta-only`** o las apps seguirán con la versión vieja.
@@ -202,6 +205,11 @@ Clean architecture simplificada:
 - Popup ilustrado la primera vez que se entra al jardín, respiración, diario, rutas o recordatorios, con +5 semillas (`DiscoveryDialog`).
 - Guardado en `progress/discoveries`. Diario y Rutas se disparan al tocar la pestaña en `MainShell` (viven en un `IndexedStack`, su `initState` corre al abrir la app).
 
+### Reducir animaciones
+- `MotionService` (`lib/domain/services/motion_service.dart`, pref `reduce_motion`), interruptor en Perfil. Se suma a la opción del sistema: `app.dart` la inyecta en `MediaQuery.disableAnimations`, así que `MotionService.reduced(context)` es la fuente única (y `reducedNow` sin contexto).
+- Apaga bucles (flotar, latir, titilar, rayos, halos), la sacudida del cofre y de `order`, el destello de pantalla completa al responder, el giro 3D de `reveal` y el confeti. Deja las transiciones cortas de entrada. Los sonidos y la vibración no cambian.
+- Los controladores que se crean en `initState` se deciden al abrir la pantalla; los de flutter_animate, al construir.
+
 ### Onboarding
 - 4 slides al terminar profile setup: bienvenida, rutas, diario, jardín.
 - Colores por slide (verde, naranja, azul, morado).
@@ -287,9 +295,8 @@ flutter clean; flutter pub get
 9. ~~Rutas nuevas **Ansiedad y Estrés** y **Sueño**~~: hechas. Si se vuelven premium, revisar `WeeklySummary.recommendedLessons` (hoy recomienda `ans_*`/`sue_*`).
 
 **Pulido**:
-- La pantalla de lección solo tiene modo oscuro.
-- Accesibilidad: opción "reducir animaciones" y revisar TalkBack en los pasos nuevos.
-- `lesson_screen.dart` (~2 200 líneas): mover quiz, sort, reveal y slider a `steps/`, como los tipos nuevos.
+- ~~Modo claro de la lección~~, ~~"Reducir animaciones"~~ y ~~dividir `lesson_screen.dart`~~: hechos (2026-09-16).
+- Accesibilidad pendiente: revisar con TalkBack los pasos (arrastrar en `sort` no tiene alternativa por toques; mito/realidad sí tiene botones).
 
 **Antes de publicar**:
 - ~~Caché del contenido de rutas con documento de versión~~: hecho.

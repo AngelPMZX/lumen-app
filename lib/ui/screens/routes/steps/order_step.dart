@@ -6,6 +6,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../data/models/wellness_route.dart';
 import 'step_common.dart';
 import '../../../../domain/services/sound_service.dart';
+import '../lesson_palette.dart';
+import '../../../../domain/services/motion_service.dart';
 
 /// ORDER — tocar los pasos de un proceso en el orden correcto.
 ///
@@ -86,6 +88,7 @@ class _OrderStepState extends State<OrderStep> {
 
   @override
   Widget build(BuildContext context) {
+    final p = LessonPalette.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -97,14 +100,7 @@ class _OrderStepState extends State<OrderStep> {
         const SizedBox(height: 16),
         StepHeading(text: widget.step.title, glow: widget.routeColor, fontSize: 23),
         const SizedBox(height: 10),
-        Text(
-          widget.step.instruction ?? '',
-          style: TextStyle(
-            fontSize: 14.5,
-            height: 1.6,
-            color: Colors.white.withValues(alpha: 0.72),
-          ),
-        ),
+        StepBody(widget.step.instruction ?? ''),
         const SizedBox(height: 18),
 
         // Pasos ya colocados, numerados
@@ -118,11 +114,11 @@ class _OrderStepState extends State<OrderStep> {
           if (_placed > 0) const SizedBox(height: 6),
           Text(
             'routes.orderNext'.tr(namedArgs: {'n': '${_placed + 1}'}),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.8,
-              color: Colors.white38,
+              color: p.inkA(0.38),
             ),
           ),
           const SizedBox(height: 10),
@@ -152,11 +148,14 @@ class _OrderStepState extends State<OrderStep> {
   }
 
   Widget _placedTile(int i) {
+    final p = LessonPalette.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF10B981).withValues(alpha: 0.14),
+        color: p.isDark
+            ? const Color(0xFF10B981).withValues(alpha: 0.14)
+            : Color.lerp(Colors.white, const Color(0xFF10B981), 0.12),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
       ),
@@ -184,11 +183,11 @@ class _OrderStepState extends State<OrderStep> {
           Expanded(
             child: Text(
               _items[i],
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14.5,
                 height: 1.4,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: p.ink,
               ),
             ),
           ),
@@ -202,6 +201,7 @@ class _OrderStepState extends State<OrderStep> {
   }
 
   Widget _poolTile(int i) {
+    final p = LessonPalette.of(context);
     final wrong = _wrongIndex == i;
     final tile = GestureDetector(
       onTap: () => _tap(i),
@@ -212,28 +212,27 @@ class _OrderStepState extends State<OrderStep> {
         decoration: BoxDecoration(
           color: wrong
               ? const Color(0xFFEF4444).withValues(alpha: 0.18)
-              : Colors.white.withValues(alpha: 0.07),
+              : p.card(0.07),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: wrong
-                ? const Color(0xFFEF4444)
-                : Colors.white.withValues(alpha: 0.14),
+            color: wrong ? const Color(0xFFEF4444) : p.line(0.14),
             width: wrong ? 1.8 : 1,
           ),
+          boxShadow: p.cardShadow,
         ),
         child: Row(
           children: [
             Icon(Icons.radio_button_unchecked_rounded,
-                size: 18, color: Colors.white.withValues(alpha: 0.4)),
+                size: 18, color: p.inkA(0.4)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 _items[i],
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14.5,
                   height: 1.4,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: p.ink,
                 ),
               ),
             ),
@@ -242,7 +241,8 @@ class _OrderStepState extends State<OrderStep> {
       ),
     );
 
-    if (!wrong) return tile;
+    // Con movimiento reducido el borde rojo basta, sin sacudir.
+    if (!wrong || MotionService.reduced(context)) return tile;
     return tile
         .animate(key: ValueKey('shake_${i}_$_mistakes'))
         .shakeX(hz: 6, amount: 5, duration: 380.ms);

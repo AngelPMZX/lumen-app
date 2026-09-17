@@ -10,6 +10,7 @@ import '../../data/models/wellness_route.dart';
 import '../../domain/services/analytics_service.dart';
 import '../../domain/services/sound_service.dart';
 import 'route_share_card.dart';
+import '../../domain/services/motion_service.dart';
 
 /// Celebración al completar una ruta, con la tarjeta lista para compartir.
 class RouteCompleteDialog extends StatefulWidget {
@@ -47,7 +48,7 @@ class _RouteCompleteDialogState extends State<RouteCompleteDialog> {
     super.initState();
     _confetti = ConfettiController(duration: const Duration(seconds: 3));
     Future.delayed(const Duration(milliseconds: 350), () {
-      if (mounted) _confetti.play();
+      if (mounted && !MotionService.instance.reducedNow) _confetti.play();
     });
   }
 
@@ -129,7 +130,7 @@ class _RouteCompleteDialogState extends State<RouteCompleteDialog> {
                     .animate()
                     .rotate(begin: -0.03, end: 0, duration: 600.ms, curve: Curves.easeOutBack)
                     .then()
-                    .animate(onPlay: (c) => c.repeat(reverse: true))
+                    .animate(onPlay: MotionService.loop(context, reverse: true))
                     .moveY(begin: 0, end: -5, duration: 1800.ms, curve: Curves.easeInOut),
                 const SizedBox(height: 10),
                 Text(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../data/models/commitment.dart';
+import '../../domain/services/motion_service.dart';
 
 /// Tarjeta del Home: "¿Cumpliste tu reto?".
 ///
@@ -104,7 +105,7 @@ class _CommitmentCheckCardState extends State<CommitmentCheckCard> {
         Row(
           children: [
             const Text('🤝', style: TextStyle(fontSize: 24))
-                .animate(onPlay: (c) => c.repeat(reverse: true))
+                .animate(onPlay: MotionService.loop(context, reverse: true))
                 .rotate(begin: -0.03, end: 0.03, duration: 900.ms),
             const SizedBox(width: 10),
             Expanded(

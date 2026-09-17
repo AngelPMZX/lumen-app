@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../data/models/crisis_resource.dart';
 import '../breathing/breathing_screen.dart';
+import '../../../domain/services/motion_service.dart';
 
 /// Pantalla de líneas de ayuda en crisis.
 ///
@@ -34,7 +35,7 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
     _auraCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
-    )..repeat(reverse: true);
+    )..repeatUnlessReduced(reverse: true);
     _country = CrisisResources.mexico;
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../data/models/lumi.dart';
 import '../../../domain/services/sound_service.dart';
+import '../../../domain/services/motion_service.dart';
 
 /// Lumi, dibujada con código: una gota de luz con llamita, ojos grandes y
 /// mejillas. Flota, respira, parpadea, mece su llama y rebota al tocarla.
@@ -39,7 +40,7 @@ class _LumiAvatarState extends State<LumiAvatar> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _idle = AnimationController(vsync: this, duration: const Duration(milliseconds: 3200))..repeat();
+    _idle = AnimationController(vsync: this, duration: const Duration(milliseconds: 3200))..repeatUnlessReduced();
     _bounce = AnimationController(vsync: this, duration: const Duration(milliseconds: 650));
     _blink = AnimationController(vsync: this, duration: const Duration(milliseconds: 160));
     _scheduleBlink();
