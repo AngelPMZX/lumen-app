@@ -272,7 +272,22 @@
     "xpMultiplierActive": "⚡ ×{mult} XP activo — ¡Momento ideal para una lección!",
     "xpMultiplierHint": "Quedan {mins} minutos de bonus",
     "lessonDoneToday": "¡Lección completada!",
-    "lessonDoneTodaySubtitle": "Vuelve mañana para la siguiente"
+    "lessonDoneTodaySubtitle": "Vuelve mañana para la siguiente",
+    "moodTodayLabel": "Hoy te sientes",
+    "moodGoodNote": "Qué bueno. Guarda un poquito de esto para después.",
+    "moodNeutralNote": "Gracias por registrarlo. Cada día cuenta.",
+    "moodHardNote": "Está bien no estar bien. Aquí tienes herramientas para hoy.",
+    "planKicker": "Paso a paso",
+    "progressKicker": "Mira todo lo que llevas",
+    "lessonOfDay": "Tu lección de hoy",
+    "lessonDoneTodayKicker": "Lección de hoy lista",
+    "startLesson": "Empezar",
+    "anotherLesson": "Hacer otra",
+    "diaryDoneSubtitle": "Ya escribiste hoy. ¿Otra página?",
+    "habitsShort": "Hábitos",
+    "taskMoodShort": "Ánimo",
+    "taskLessonShort": "Lección",
+    "taskDiaryShort": "Diario"
   },
   "mood": {
     "happy": "Feliz",

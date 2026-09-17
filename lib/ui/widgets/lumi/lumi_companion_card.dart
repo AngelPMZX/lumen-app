@@ -16,11 +16,15 @@ class LumiCompanionCard extends StatefulWidget {
   /// Se llama cuando el usuario leyó la presentación (para no repetirla).
   final VoidCallback? onIntroSeen;
 
+  /// Sin fondo propio: para ponerla sobre otra escena (el cielo del Home).
+  final bool transparent;
+
   const LumiCompanionCard({
     super.key,
     required this.line,
     required this.isDark,
     this.onIntroSeen,
+    this.transparent = false,
   });
 
   @override
@@ -99,22 +103,29 @@ class _LumiCompanionCardState extends State<LumiCompanionCard> {
     final shown = text.characters.take(_visibleChars).toString();
     const gold = Color(0xFFFBBF24);
 
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: '${'lumi.name'.tr()}: $text',
+      onTap: _onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
       onTap: _onTap,
       child: Container(
         padding: const EdgeInsets.fromLTRB(6, 10, 14, 10),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [
-              gold.withValues(alpha: isDark ? 0.16 : 0.14),
-              gold.withValues(alpha: isDark ? 0.04 : 0.03),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: gold.withValues(alpha: isDark ? 0.25 : 0.35)),
-        ),
+        decoration: widget.transparent
+            ? null
+            : BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [
+                    gold.withValues(alpha: isDark ? 0.16 : 0.14),
+                    gold.withValues(alpha: isDark ? 0.04 : 0.03),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: gold.withValues(alpha: isDark ? 0.25 : 0.35)),
+              ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -173,6 +184,7 @@ class _LumiCompanionCardState extends State<LumiCompanionCard> {
           ],
         ),
       ),
+    ),
     ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic);
   }
 

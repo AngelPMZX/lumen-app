@@ -11,11 +11,9 @@ import '../../../data/models/daily_challenge.dart';
 import '../../../data/models/wellness_route.dart';
 import '../../../data/models/reward_service.dart';
 import '../../../domain/providers/auth_provider.dart';
-import '../../../domain/providers/theme_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
+import '../../../domain/providers/theme_provider.dart';
 import '../../widgets/animated_particles_background.dart';
-import '../../widgets/weekly_mood_chart.dart';
-import '../../widgets/daily_progress_ring.dart';
 import '../../widgets/challenge_dialog.dart';
 import '../../widgets/reward_dialog.dart';
 import '../../widgets/crisis_support_card.dart';
@@ -40,11 +38,15 @@ import '../../widgets/weekly_summary_card.dart';
 import '../../../data/models/review_deck.dart';
 import '../review/daily_review_screen.dart';
 import '../../../data/models/lumi.dart';
-import '../../widgets/lumi/lumi_companion_card.dart';
 import '../../../domain/services/mission_service.dart';
 import '../missions/missions_screen.dart';
 import '../../widgets/missions_home_card.dart';
-import '../../../domain/services/motion_service.dart';
+import '../../../data/models/routes_overview.dart';
+import 'widgets/home_header.dart';
+import 'widgets/home_hero.dart';
+import 'widgets/home_progress.dart';
+import 'widgets/mood_checkin_card.dart';
+import 'widgets/today_plan.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,13 +55,10 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _streakGlow;
+class _HomeScreenState extends State<HomeScreen> {
   MoodType? _selectedMood;
   Quote? _quote;
   Map<int, MoodType> _weeklyMoods = {};
-  bool _isLoadingQuote = true;
   bool _hasDiaryToday = false;
   Set<String> _completedLessons = {};
   bool _hasLessonToday = false;
@@ -123,11 +122,6 @@ class _HomeScreenState extends State<HomeScreen>
  @override
 void initState() {
   super.initState();
-  _streakGlow = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 2),
-  )..repeatUnlessReduced(reverse: true);
-
   WidgetsBinding.instance.addPostFrameCallback((_) async {
   _checkProfileComplete();
   _loadChallengeState();
@@ -190,9 +184,9 @@ Future<void> _loadChallengeState() async {
     try {
       final quote = QuoteService.getQuoteOfTheDay();
       if (!mounted) return;
-      setState(() { _quote = quote; _isLoadingQuote = false; });
+      setState(() => _quote = quote);
     } catch (e) {
-      if (mounted) setState(() => _isLoadingQuote = false);
+      debugPrint('Error loading quote: $e');
     }
 
     if (!mounted) return;
@@ -380,7 +374,7 @@ Future<void> _scheduleDailyReminders() async {
         streakBroken: auth.streakBrokenToday,
         hasPendingCommitment: _pendingCommitment != null,
         lessonDoneToday: _hasLessonToday,
-        nextLessonTitle: _nextLessonInfo?.$1,
+        nextLessonTitle: _suggested?.nextLesson?.title,
         reviewAvailable: _reviewDeck.isNotEmpty,
         reviewDoneToday: _reviewDoneToday,
       ));
@@ -577,72 +571,100 @@ Future<void> _scheduleDailyReminders() async {
 
   // ── Lessons ────────────────────────────────────────────────────────────────
 
-  Future<void> _openNextLesson() async {
+  /// La lección sugerida: la misma que "Continúa donde te quedaste" en rutas.
+  RouteProgress? get _suggested {
     final routes = _dynamicRoutes.isNotEmpty ? _dynamicRoutes : WellnessRoute.all;
-    for (final route in routes) {
-      for (int i = 0; i < route.lessons.length; i++) {
-        final lesson = route.lessons[i];
-        if (!_completedLessons.contains(lesson.id)) {
-          if (i == 0 || _completedLessons.contains(route.lessons[i - 1].id)) {
-            final result = await Navigator.push<bool>(
-              context,
-              MaterialPageRoute(
-                builder: (_) => LessonScreen(
-                  lesson: lesson,
-                  routeColor: route.color,
-                  routeEmoji: route.emoji,
-                  routeId: route.id,
-                ),
-              ),
-            );
-            if (!mounted) return;
-            if (result == true) {
-              // ── Completar lección pasando GardenProvider para XP multiplicado ──
-              final auth = context.read<AuthProvider>();
-              final garden = context.read<GardenProvider>();
-              await auth.completeLesson(
-                lesson.id,
-                lesson.xpReward,
-                garden: garden,
-              );
-              _loadData();
-              setState(() => _hasLessonToday = true);
-              await _grantGardenReward(RewardSource.lessonCompleted);
-            }
-            return;
-          }
-        }
-      }
+    return RoutesOverview.compute(routes, _completedLessons).suggested;
+  }
+
+  Future<void> _openNextLesson() async {
+    final suggested = _suggested;
+    final lesson = suggested?.nextLesson;
+    if (suggested == null || lesson == null) {
+      SoundService.instance.play(Sfx.routeComplete, volume: 0.6);
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(
+          content: Text('home.allLessonsComplete'.tr()),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          margin: const EdgeInsets.all(16),
+        ));
+      return;
     }
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Row(children: [
-          const Text('🎉', style: TextStyle(fontSize: 20)),
-          const SizedBox(width: 10),
-          Text('home.allLessonsComplete'.tr(),
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-        ]),
-        backgroundColor: const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(16),
-      ));
+    SoundService.instance.play(Sfx.tapNode, volume: 0.6);
+    await _openLesson(suggested.route, lesson);
+  }
+
+  /// Abre una lección. `LessonScreen` ya guarda el progreso; aquí solo se
+  /// recarga, se da la recompensa del jardín (una vez al día) y se encadena
+  /// "Siguiente lección" si la eligió.
+  Future<void> _openLesson(WellnessRoute route, Lesson lesson) async {
+    final index = route.lessons.indexOf(lesson);
+    final next = index >= 0 && index < route.lessons.length - 1 ? route.lessons[index + 1] : null;
+    final hadLessonToday = _hasLessonToday;
+    final result = await Navigator.push<Object?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LessonScreen(
+          lesson: lesson,
+          routeColor: route.color,
+          routeEmoji: route.emoji,
+          routeId: route.id,
+          nextLesson: next,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    final completed = result == true || result == LessonScreen.nextResult;
+    if (!completed) return;
+    await _loadData();
+    if (!hadLessonToday && mounted) await _grantGardenReward(RewardSource.lessonCompleted);
+    if (result == LessonScreen.nextResult && next != null && mounted) {
+      await _openLesson(route, next);
     }
   }
 
-  (String, String, Color)? get _nextLessonInfo {
-    final routes = _dynamicRoutes.isNotEmpty ? _dynamicRoutes : WellnessRoute.all;
-    for (final route in routes) {
-      for (int i = 0; i < route.lessons.length; i++) {
-        final lesson = route.lessons[i];
-        if (!_completedLessons.contains(lesson.id)) {
-          if (i == 0 || _completedLessons.contains(route.lessons[i - 1].id)) {
-            return (_lessonTitle(route, lesson), '${route.emoji} ${_routeTitle(route)}', route.color);
-          }
-        }
-      }
+  // ── Reto diario ────────────────────────────────────────────────────────────
+
+  Future<void> _completeChallenge(DailyChallenge challenge) async {
+    // ChallengeAction ya da la recompensa del jardín: aquí solo XP y estado.
+    final completed = await ChallengeAction.execute(context, challenge);
+    if (!completed || !mounted) return;
+    setState(() => _challengeCompletedToday = true);
+    final auth = context.read<AuthProvider>();
+    final garden = context.read<GardenProvider>();
+    try {
+      final uid = auth.firebaseUser?.uid ?? '';
+      final today = WeeklySummary.dayKey(DateTime.now());
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('challenge_done_${uid}_$today', true);
+      // El id incluye el año: antes `challenge_<día>_<mes>` chocaba con el
+      // mismo día del año siguiente y ya no daba XP.
+      await auth.completeLesson('challenge_$today', challenge.xpReward, garden: garden);
+    } catch (e) {
+      debugPrint('Error awarding challenge XP: $e');
     }
-    return null;
+  }
+
+  // ── Diario rápido ──────────────────────────────────────────────────────────
+
+  Future<void> _openQuickDiary() async {
+    SoundService.instance.play(Sfx.pageTurn, volume: 0.6);
+    final auth = context.read<AuthProvider>();
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()),
+    );
+    if (result != true || !mounted) return;
+    _loadData();
+    // Recompensa del jardín por escribir: una vez al día
+    final uid = auth.firebaseUser?.uid ?? '';
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'diary_reward_${uid}_${WeeklySummary.dayKey(DateTime.now())}';
+    if (prefs.getBool(key) ?? false) return;
+    await prefs.setBool(key, true);
+    await _grantGardenReward(RewardSource.diaryEntry);
   }
 
   // ── Mood ───────────────────────────────────────────────────────────────────
@@ -699,7 +721,7 @@ Future<void> _scheduleDailyReminders() async {
         SoundService.instance.play(Sfx.checkin, volume: 0.6);
         AnalyticsService.instance.moodCheckIn();
         setState(() => _weeklyMoods[DateTime.now().weekday] = mood);
-        if (mounted) {
+        if (mounted && isFirstToday) {
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(SnackBar(
@@ -707,14 +729,12 @@ Future<void> _scheduleDailyReminders() async {
                 Text(mood.emoji, style: const TextStyle(fontSize: 20)),
                 const SizedBox(width: 10),
                 Expanded(child: Text(
-                  isFirstToday
-                      ? 'home.moodRegistered'.tr(namedArgs: {'mood': _moodLabel(mood), 'xp': '${mood.xpReward}'})
-                      : 'home.moodUpdated'.tr(namedArgs: {'mood': _moodLabel(mood)}),
+                  'home.moodRegistered'.tr(namedArgs: {'mood': _moodLabel(mood), 'xp': '${mood.xpReward}'}),
                   style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 )),
-                if (isFirstToday) const Icon(Icons.bolt_rounded, color: Color(0xFFFBBF24), size: 20),
+                const Icon(Icons.bolt_rounded, color: Color(0xFFFBBF24), size: 20),
               ]),
-              backgroundColor: mood.color.withValues(alpha: 0.9),
+              backgroundColor: Color.lerp(mood.color, Colors.black, 0.15),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               margin: const EdgeInsets.all(16),
@@ -726,12 +746,6 @@ Future<void> _scheduleDailyReminders() async {
         }
       } catch (e) { debugPrint('Error saving mood: $e'); }
     }
-  }
-
-  @override
-  void dispose() {
-    _streakGlow.dispose();
-    super.dispose();
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -775,9 +789,6 @@ Future<void> _scheduleDailyReminders() async {
     return c.category;
   }
 
-  String _routeTitle(WellnessRoute route) => route.title;
-  String _lessonTitle(WellnessRoute route, Lesson lesson) => lesson.title;
-
   String _quoteText(Quote quote) {
     try {
       final key = (quote as dynamic).textKey as String?;
@@ -814,7 +825,7 @@ Future<void> _scheduleDailyReminders() async {
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'home.greetingMorning'.tr();
-    if (hour < 18) return 'home.greetingAfternoon'.tr();
+    if (hour < 19) return 'home.greetingAfternoon'.tr();
     return 'home.greetingEvening'.tr();
   }
 
@@ -828,21 +839,35 @@ Future<void> _scheduleDailyReminders() async {
     final themeProvider = context.watch<ThemeProvider>();
     final gardenProvider = context.watch<GardenProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final greeting = _getGreeting();
     final progress = authProvider.userProgress;
     final streak = authProvider.currentStreak;
-    final bestStreak = progress?.longestStreak ?? 0;
     final totalXp = progress?.totalXp ?? 0;
     final level = progress?.level ?? 1;
-    final levelTitle = _levelTitleText(level, progress?.levelTitle ?? 'Novato Emocional', progress);
+    final levelTitle = _levelTitleText(level, progress?.levelTitle ?? '', progress);
     final xpForNext = progress?.xpForNextLevel ?? 100;
+    final xpInLevel = xpForNext == 0 ? 0 : totalXp % xpForNext;
     final challenge = DailyChallenge.getToday();
-    final nextLesson = _nextLessonInfo;
+    final suggested = _suggested;
+    final avatarColors = _getArchetypeGradient(authProvider.userModel?.archetype);
+    final name = authProvider.userName.isNotEmpty ? authProvider.userName : 'home.user'.tr();
 
-    // ── Estado del jardín para banners ─────────────────────────────────────
-    final canUseShield = gardenProvider.canUseShield;
-    final shields = gardenProvider.streakShields;
+    final hasHarvest = gardenProvider.garden.any((p) {
+      final item = GardenCatalog.findById(p.itemId);
+      return item != null && p.hasPendingHarvestFor(item);
+    });
+    final gardenBadge = hasHarvest
+        ? GardenBadge.harvest
+        : gardenProvider.seeds > 0
+            ? GardenBadge.seeds
+            : GardenBadge.none;
     final activeMultiplier = gardenProvider.activeMultiplier;
+    final hasDeck = _reviewDeck.isNotEmpty;
+
+    // Entrada escalonada de cada bloque
+    Widget enter(Widget child, int order) => child
+        .animate()
+        .fadeIn(delay: (120 + order * 60).ms, duration: 420.ms)
+        .slideY(begin: 0.06, end: 0, curve: Curves.easeOutCubic);
 
     return Scaffold(
       body: Stack(
@@ -853,791 +878,231 @@ Future<void> _scheduleDailyReminders() async {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: isDark
-                    ? [const Color(0xFF0F0F23), const Color(0xFF1A1A2E), const Color(0xFF16213E)]
-                    : [const Color(0xFFF0F4FF), const Color(0xFFFAFBFF), Colors.white],
+                    ? [const Color(0xFF0F0F23), const Color(0xFF15152B), const Color(0xFF16213E)]
+                    : [const Color(0xFFF1EEFF), const Color(0xFFFAF8FF), const Color(0xFFFFFBF3)],
               ),
             ),
           ),
-          const AnimatedParticlesBackground(particleCount: 20, maxShootingStars: 0),
-
+          const AnimatedParticlesBackground(particleCount: 14, maxShootingStars: 0),
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            child: RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 10, 16, 36),
                 children: [
-
-                  // ── HEADER ─────────────────────────────────────────────────
-                  Row(
-                    children: [
-                      Container(
-                        width: 52, height: 52,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: _getArchetypeGradient(authProvider.userModel?.archetype)),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [BoxShadow(
-                            color: _getArchetypeGradient(authProvider.userModel?.archetype).first.withValues(alpha: 0.3),
-                            blurRadius: 12, offset: const Offset(0, 4),
-                          )],
-                        ),
-                        child: Center(
-                          child: Text(
-                            authProvider.userName.isNotEmpty ? authProvider.userName[0].toUpperCase() : 'U',
-                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(greeting, style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-                          Text(
-                            authProvider.userName.isNotEmpty ? authProvider.userName : 'home.user'.tr(),
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
-                                color: isDark ? Colors.white : AppColors.textPrimary),
-                          ),
-                        ]),
-                      ),
-
-                      // XP badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.streak.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.bolt_rounded, color: AppColors.streak, size: 16),
-                          const SizedBox(width: 2),
-                          Text('$totalXp', style: const TextStyle(
-                              color: AppColors.streak, fontSize: 13, fontWeight: FontWeight.w800)),
-                        ]),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Jardín button
-                      GestureDetector(
-                        onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const GardenScreen())),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: 42, height: 42,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.1) : AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Consumer<GardenProvider>(
-                            builder: (_, garden, _) => Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                const Text('🌱', style: TextStyle(fontSize: 18)),
-                                // Badge de cosecha pendiente (naranja, más prominente)
-                                if (garden.garden.any((p) {
-  final item = GardenCatalog.findById(p.itemId);
-  return item != null && p.hasPendingHarvestFor(item);
-}))
-                                  Positioned(
-                                    top: 4, right: 4,
-                                    child: Container(
-                                      width: 10, height: 10,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF59E0B),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                            color: Colors.white.withValues(alpha: 0.8), width: 1.5),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFFF59E0B).withValues(alpha: 0.6),
-                                            blurRadius: 4,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                else if (garden.seeds > 0)
-                                  Positioned(
-                                    top: 6, right: 6,
-                                    child: Container(
-                                      width: 8, height: 8,
-                                      decoration: const BoxDecoration(
-                                          color: Color(0xFF10B981), shape: BoxShape.circle),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Theme toggle
-                      GestureDetector(
-                        onTap: () { HapticFeedback.lightImpact(); themeProvider.toggleTheme(); },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: 42, height: 42,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.1) : AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            transitionBuilder: (child, anim) => RotationTransition(
-                              turns: Tween(begin: 0.75, end: 1.0).animate(anim),
-                              child: FadeTransition(opacity: anim, child: child),
-                            ),
-                            child: Icon(
-                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                              key: ValueKey(isDark),
-                              color: isDark ? const Color(0xFFFBBF24) : AppColors.textSecondary,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ).animate().fadeIn(duration: 500.ms),
-                  const SizedBox(height: 20),
-
-                  // ── BANNER: MULTIPLICADOR XP ACTIVO ────────────────────────
-                  if (activeMultiplier != null) ...[
-                    _buildMultiplierBanner(activeMultiplier.multiplier,
-                        activeMultiplier.timeRemaining, isDark),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // ── FRASE DEL DÍA ──────────────────────────────────────────
-                  if (_quote != null || _isLoadingQuote)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft, end: Alignment.bottomRight,
-                          colors: isDark
-                              ? [Colors.white.withValues(alpha: 0.07), Colors.white.withValues(alpha: 0.03)]
-                              : [const Color(0xFFFFFBF0), const Color(0xFFFFF8E7)],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : const Color(0xFFE8D5A3).withValues(alpha: 0.6),
-                        ),
-                        boxShadow: [BoxShadow(
-                          color: isDark
-                              ? Colors.black.withValues(alpha: 0.1)
-                              : const Color(0xFFD4A853).withValues(alpha: 0.08),
-                          blurRadius: 12, offset: const Offset(0, 4),
-                        )],
-                      ),
-                      child: _isLoadingQuote
-                          ? const Center(child: SizedBox(
-                              width: 20, height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2)))
-                          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(children: [
-                                Container(
-                                  width: 32, height: 32,
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? AppColors.streak.withValues(alpha: 0.15)
-                                        : const Color(0xFFD4A853).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(Icons.format_quote_rounded,
-                                      color: isDark ? AppColors.streak : const Color(0xFFB8860B),
-                                      size: 16),
-                                ),
-                                const SizedBox(width: 10),
-                                Text('home.quoteOfDay'.tr(), style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w700,
-                                  color: isDark ? Colors.white70 : const Color(0xFF8B6914),
-                                )),
-                              ]),
-                              const SizedBox(height: 12),
-                              Text('"${_quoteText(_quote!)}"', style: TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w600,
-                                fontStyle: FontStyle.italic,
-                                color: isDark ? Colors.white : const Color(0xFF4A3728),
-                                height: 1.5,
-                              )),
-                              const SizedBox(height: 6),
-                              Text('— ${_quoteAuthor(_quote!)}', style: TextStyle(
-                                fontSize: 13,
-                                color: isDark ? Colors.white54 : const Color(0xFF8B6914),
-                                fontWeight: FontWeight.w500,
-                              )),
-                              if (_quote!.source == 'ZenQuotes.io') ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  'home.poweredBy'.tr(namedArgs: {'source': _quote!.source}),
-                                  style: TextStyle(fontSize: 10,
-                                      color: isDark
-                                          ? Colors.white24
-                                          : const Color(0xFFB8860B).withValues(alpha: 0.4)),
-                                ),
-                              ],
-                            ]),
-                    ).animate().fadeIn(delay: 150.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
-                  const SizedBox(height: 16),
-
-                  // ── PROGRESO CIRCULAR ──────────────────────────────────────
-                  DailyProgressRing(
-                    checkInDone: _selectedMood != null,
-                    lessonDone: _hasLessonToday,
-                    diaryDone: _hasDiaryToday,
-                  ).animate().fadeIn(delay: 200.ms, duration: 600.ms),
-                  const SizedBox(height: 16),
-
-                  // ── STREAK CARD ────────────────────────────────────────────
-                  AnimatedBuilder(
-                    animation: _streakGlow,
-                    builder: (context, child) => Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(22),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6C63FF), Color(0xFF5A4FCF), Color(0xFF4A3AB5)],
-                          begin: Alignment.topLeft, end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.15 + _streakGlow.value * 0.1),
-                          blurRadius: 16 + _streakGlow.value * 8,
-                          offset: const Offset(0, 6),
-                        )],
-                      ),
-                      child: Column(children: [
-                        Row(children: [
-                          Container(
-                            width: 56, height: 56,
-                            decoration: BoxDecoration(
-                              color: AppColors.streak.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                              boxShadow: [BoxShadow(
-                                color: AppColors.streak.withValues(alpha: _streakGlow.value * 0.3),
-                                blurRadius: 16, spreadRadius: 2,
-                              )],
-                            ),
-                            child: const Icon(Icons.local_fire_department_rounded,
-                                color: AppColors.streak, size: 32),
-                          ),
-                          const SizedBox(width: 16),
-                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(
-                              streak == 1
-                                  ? 'home.streakDay'.tr()
-                                  : 'home.streakDays'.tr(namedArgs: {'count': '$streak'}),
-                              style: const TextStyle(color: Colors.white, fontSize: 30,
-                                  fontWeight: FontWeight.w800, height: 1),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              streak > 0 ? 'home.streakKeepGoing'.tr() : 'home.streakDoCheckin'.tr(),
-                              style: const TextStyle(color: Colors.white70, fontSize: 14,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                          ]),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(14)),
-                            child: Column(children: [
-                              const Icon(Icons.emoji_events_rounded,
-                                  color: Color(0xFFFBBF24), size: 18),
-                              const SizedBox(height: 2),
-                              Text('$bestStreak', style: const TextStyle(
-                                  color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                              Text('home.streakBest'.tr(), style: const TextStyle(
-                                  color: Colors.white60, fontSize: 10)),
-                            ]),
-                          ),
-                        ]),
-                        const SizedBox(height: 18),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16)),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: List.generate(7, (index) {
-                              final days = [
-                                'days.monShort'.tr(), 'days.tueShort'.tr(), 'days.wedShort'.tr(),
-                                'days.thuShort'.tr(), 'days.friShort'.tr(),
-                                'days.satShort'.tr(), 'days.sunShort'.tr(),
-                              ];
-                              final today = DateTime.now().weekday - 1;
-                              final isToday = index == today;
-                              final isPast = index < today;
-                              final wasActive = isPast && streak > (today - index);
-                              return Column(children: [
-                                Text(days[index], style: TextStyle(
-                                    color: isToday ? Colors.white : Colors.white54, fontSize: 11,
-                                    fontWeight: isToday ? FontWeight.w700 : FontWeight.w400)),
-                                const SizedBox(height: 6),
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  width: 30, height: 30,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: isToday
-                                        ? AppColors.streak
-                                        : wasActive
-                                            ? AppColors.streak.withValues(alpha: 0.4)
-                                            : Colors.white.withValues(alpha: 0.08),
-                                  ),
-                                  child: Icon(
-                                    isToday
-                                        ? Icons.local_fire_department_rounded
-                                        : wasActive ? Icons.check_rounded : Icons.circle_outlined,
-                                    color: isToday || wasActive ? Colors.white : Colors.white24,
-                                    size: isToday ? 16 : wasActive ? 14 : 6,
-                                  ),
-                                ),
-                              ]);
-                            }),
-                          ),
-                        ),
-                      ]),
-                    ),
-                  ).animate().fadeIn(delay: 300.ms, duration: 700.ms).slideY(begin: 0.15, end: 0),
-                  const SizedBox(height: 12),
-
-                  // ── BANNER: COMODÍN DE RACHA ────────────────────────────────
-                  if (canUseShield) ...[
-                    _buildShieldBanner(shields, isDark),
-                    const SizedBox(height: 8),
-                  ],
-                  const SizedBox(height: 8),
-
-                  // ── LUMI ───────────────────────────────────────────────────
-                  if (_lumiReady) ...[
-                    LumiCompanionCard(
-                      line: _lumiLine(authProvider),
-                      isDark: isDark,
-                      onIntroSeen: _markLumiIntroSeen,
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // ── MOOD CHECK-IN ──────────────────────────────────────────
-                  Row(children: [
-                    Expanded(child: Text('home.moodCheckIn'.tr(), style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.white : AppColors.textPrimary))),
-                    if (_selectedMood != null)
-                      GestureDetector(
-                        onTap: () => setState(() => _selectedMood = null),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.textSecondary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(mainAxisSize: MainAxisSize.min, children: [
-                            Icon(Icons.refresh_rounded, size: 14, color: AppColors.textSecondary),
-                            const SizedBox(width: 4),
-                            Text('home.moodChange'.tr(), style: TextStyle(
-                                fontSize: 12, color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w600)),
-                          ]),
-                        ),
-                      ),
-                  ]).animate().fadeIn(delay: 450.ms),
+                  HomeHeader(
+                    name: name,
+                    greeting: _getGreeting(),
+                    avatarColors: avatarColors,
+                    level: level,
+                    levelProgress: xpForNext == 0 ? 0 : xpInLevel / xpForNext,
+                    streak: streak,
+                    gardenBadge: gardenBadge,
+                    isDark: isDark,
+                    onGarden: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GardenScreen())),
+                    onToggleTheme: themeProvider.toggleTheme,
+                  ),
                   const SizedBox(height: 14),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (activeMultiplier != null) ...[
+                          _buildMultiplierBanner(activeMultiplier.multiplier, activeMultiplier.timeRemaining, isDark),
+                          const SizedBox(height: 12),
+                        ],
+                        if (gardenProvider.canUseShield) ...[
+                          _buildShieldBanner(gardenProvider.streakShields, isDark),
+                          const SizedBox(height: 12),
+                        ],
 
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-                      boxShadow: isDark ? null : [BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04), blurRadius: 8,
-                          offset: const Offset(0, 2))],
-                    ),
-                    child: Wrap(
-                      spacing: 6, runSpacing: 10, alignment: WrapAlignment.center,
-                      children: MoodType.values.map((mood) {
-                        final isSelected = _selectedMood == mood;
-                        return GestureDetector(
-                          onTap: () => _onMoodSelected(mood),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 72,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isSelected ? mood.color.withValues(alpha: 0.15) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(16),
-                              border: isSelected
-                                  ? Border.all(color: mood.color.withValues(alpha: 0.5), width: 2)
-                                  : null,
+                        // ── Lumi en su cielo + progreso de hoy ─────────────────
+                        HomeHero(
+                          line: _lumiReady ? _lumiLine(authProvider) : null,
+                          isDark: isDark,
+                          onIntroSeen: _markLumiIntroSeen,
+                          checkInDone: _selectedMood != null,
+                          lessonDone: _hasLessonToday,
+                          diaryDone: _hasDiaryToday,
+                          hour: DateTime.now().hour,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ── Avisos del día (solo si aplican) ───────────────────
+                        if (_pendingCommitment != null) ...[
+                          enter(
+                            CommitmentCheckCard(
+                              key: ValueKey(_pendingCommitment!.id),
+                              commitment: _pendingCommitment!,
+                              isDark: isDark,
+                              onAnswer: _answerCommitment,
+                              onRetry: _retryCommitment,
+                              onClose: () => setState(() => _pendingCommitment = null),
                             ),
-                            child: Column(children: [
-                              Text(mood.emoji,
-                                  style: TextStyle(fontSize: isSelected ? 30 : 26)),
-                              const SizedBox(height: 4),
-                              Text(_moodLabel(mood), style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                color: isSelected ? mood.color : AppColors.textSecondary,
-                              )),
-                            ]),
+                            1,
                           ),
-                        );
-                      }).toList(),
-                    ),
-                  ).animate().fadeIn(delay: 500.ms, duration: 600.ms).slideY(begin: 0.1, end: 0),
-                  const SizedBox(height: 20),
-
-                  // ── RESUMEN SEMANAL ────────────────────────────────────────
-                  if (_showWeeklySummaryCard) ...[
-                    WeeklySummaryCard(
-                      isDark: isDark,
-                      onOpen: _openWeeklySummary,
-                      onDismiss: _markWeeklySummarySeen,
-                    ).animate().fadeIn(delay: 510.ms, duration: 500.ms),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // ── ¿CUMPLISTE TU RETO? ────────────────────────────────────
-                  if (_pendingCommitment != null) ...[
-                    CommitmentCheckCard(
-                      key: ValueKey(_pendingCommitment!.id),
-                      commitment: _pendingCommitment!,
-                      isDark: isDark,
-                      onAnswer: _answerCommitment,
-                      onRetry: _retryCommitment,
-                      onClose: () => setState(() => _pendingCommitment = null),
-                    ).animate().fadeIn(delay: 520.ms, duration: 500.ms),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // ── APOYO EN CRISIS (varios días difíciles) ────────────────
-                  if (_shouldOfferCrisisSupport) ...[
-                    CrisisSupportCard(
-                      isDark: isDark,
-                      onDismiss: _dismissCrisisCard,
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  // ── GRÁFICA SEMANAL ────────────────────────────────────────
-                  WeeklyMoodChart(weeklyMoods: _weeklyMoods)
-                      .animate().fadeIn(delay: 550.ms, duration: 600.ms),
-                  const SizedBox(height: 20),
-
-                  // ── RETO DIARIO ────────────────────────────────────────────
-                  GestureDetector(
-                    onTap: _challengeCompletedToday ? null : () async {
-                      final completed = await ChallengeAction.execute(context, challenge);
-                      if (completed && context.mounted) {
-  setState(() => _challengeCompletedToday = true);
-  final auth = context.read<AuthProvider>();
-  final garden = context.read<GardenProvider>();
-  try {
-    // Persistir estado del reto
-    final prefs = await SharedPreferences.getInstance();
-    final uid = auth.firebaseUser?.uid ?? '';
-    final today = DateTime.now();
-    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    await prefs.setBool('challenge_done_${uid}_$todayStr', true);
-
-    await auth.completeLesson(
-      'challenge_${DateTime.now().day}_${DateTime.now().month}',
-      challenge.xpReward,
-      garden: garden,
-    );
-    // Recompensa de jardín solo una vez
-    await _grantGardenReward(RewardSource.lessonCompleted);
-  } catch (e) { debugPrint('Error awarding challenge XP: $e'); }
-}
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [
-                          _challengeCompletedToday
-                              ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.2 : 0.1)
-                              : challenge.color.withValues(alpha: isDark ? 0.15 : 0.08),
-                          _challengeCompletedToday
-                              ? const Color(0xFF10B981).withValues(alpha: isDark ? 0.1 : 0.05)
-                              : challenge.color.withValues(alpha: isDark ? 0.08 : 0.03),
-                        ]),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: _challengeCompletedToday
-                              ? const Color(0xFF10B981).withValues(alpha: 0.4)
-                              : challenge.color.withValues(alpha: isDark ? 0.2 : 0.15),
-                        ),
-                        boxShadow: [BoxShadow(
-                          color: (_challengeCompletedToday
-                              ? const Color(0xFF10B981)
-                              : challenge.color)
-                              .withValues(alpha: isDark ? 0.1 : 0.06),
-                          blurRadius: 12, offset: const Offset(0, 4),
-                        )],
-                      ),
-                      child: Row(children: [
-                        Container(
-                          width: 52, height: 52,
-                          decoration: BoxDecoration(
-                            color: (_challengeCompletedToday
-                                ? const Color(0xFF10B981)
-                                : challenge.color).withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(16),
+                          const SizedBox(height: 16),
+                        ],
+                        if (_showWeeklySummaryCard) ...[
+                          enter(
+                            WeeklySummaryCard(isDark: isDark, onOpen: _openWeeklySummary, onDismiss: _markWeeklySummarySeen),
+                            1,
                           ),
-                          child: _challengeCompletedToday
-                              ? const Icon(Icons.check_circle_rounded,
-                                  color: Color(0xFF10B981), size: 26)
-                              : Icon(challenge.icon, color: challenge.color, size: 26),
+                          const SizedBox(height: 16),
+                        ],
+                        if (_shouldOfferCrisisSupport) ...[
+                          CrisisSupportCard(isDark: isDark, onDismiss: _dismissCrisisCard),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // ── Ánimo ──────────────────────────────────────────────
+                        enter(
+                          MoodCheckInCard(
+                            selected: _selectedMood,
+                            weeklyMoods: _weeklyMoods,
+                            isDark: isDark,
+                            onSelect: _onMoodSelected,
+                          ),
+                          2,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: 26),
+
+                        // ── Plan de hoy ────────────────────────────────────────
+                        enter(HomeSectionTitle(kicker: 'home.planKicker'.tr(), title: 'home.todayTraining'.tr(), isDark: isDark), 3),
+                        const SizedBox(height: 12),
+                        enter(
+                          TodayLessonCard(
+                            routeEmoji: suggested?.route.emoji,
+                            routeTitle: suggested?.route.title,
+                            lessonTitle: suggested?.nextLesson?.title,
+                            color: suggested?.route.color ?? const Color(0xFF10B981),
+                            colorDark: suggested?.route.colorDark ?? const Color(0xFF059669),
+                            doneToday: _hasLessonToday,
+                            allComplete: suggested == null,
+                            onTap: suggested == null ? null : _openNextLesson,
+                          ),
+                          4,
+                        ),
+                        const SizedBox(height: 12),
+                        enter(
+                          Row(
                             children: [
-                          Row(children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: (_challengeCompletedToday
-                                    ? const Color(0xFF10B981)
-                                    : challenge.color).withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                _challengeCompletedToday
-                                    ? 'challenge.challengeDone'.tr()
-                                    : 'home.challengeLabel'.tr(
-                                        namedArgs: {'category': _challengeCategory(challenge)}),
-                                style: TextStyle(
-                                  fontSize: 10, fontWeight: FontWeight.w700,
-                                  color: _challengeCompletedToday
-                                      ? const Color(0xFF10B981) : challenge.color,
+                              Expanded(
+                                child: QuickActionTile(
+                                  emoji: '🃏',
+                                  title: _reviewDoneToday ? 'review.doneTitle'.tr() : 'review.title'.tr(),
+                                  subtitle: !hasDeck
+                                      ? 'review.lockedSubtitle'.tr()
+                                      : _reviewDoneToday
+                                          ? 'review.doneSubtitle'.tr()
+                                          : 'review.homeSubtitle'.tr(),
+                                  color: const Color(0xFFF59E0B),
+                                  state: !hasDeck
+                                      ? QuickTileState.locked
+                                      : _reviewDoneToday
+                                          ? QuickTileState.done
+                                          : QuickTileState.normal,
+                                  isDark: isDark,
+                                  onTap: _openReview,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            if (!_challengeCompletedToday)
-                              Text(challenge.duration,
-                                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                          ]),
-                          const SizedBox(height: 6),
-                          Text(_challengeTitle(challenge), style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : AppColors.textPrimary)),
-                          const SizedBox(height: 2),
-                          Text(
-                            _challengeCompletedToday
-                                ? '+${challenge.xpReward} XP 🎉'
-                                : _challengeDescription(challenge),
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: _challengeCompletedToday
-                                  ? const Color(0xFF10B981) : AppColors.textSecondary,
-                              fontWeight: _challengeCompletedToday
-                                  ? FontWeight.w600 : FontWeight.w400,
-                            ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: QuickActionTile(
+                                  emoji: '🌬️',
+                                  title: 'home.breathingTitle'.tr(),
+                                  subtitle: 'home.breathingSubtitle'.tr(),
+                                  color: AppColors.moodCalm,
+                                  isDark: isDark,
+                                  // La recompensa la da BreathingScreen al completar la sesión
+                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BreathingScreen())),
+                                ),
+                              ),
+                            ],
                           ),
-                        ])),
-                        if (!_challengeCompletedToday)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                                color: challenge.color.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8)),
-                            child: Text('+${challenge.xpReward}', style: TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w800,
-                                color: challenge.color)),
-                          ),
-                      ]),
-                    ),
-                  ).animate().fadeIn(delay: 600.ms, duration: 600.ms),
-                  const SizedBox(height: 20),
-
-                  // ── ACCIONES RÁPIDAS ───────────────────────────────────────
-                  Text('home.todayTraining'.tr(), style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppColors.textPrimary))
-                      .animate().fadeIn(delay: 650.ms),
-                  const SizedBox(height: 14),
-
-                  _buildActionCard(
-  icon: Icons.menu_book_rounded,
-  title: _hasLessonToday
-      ? 'home.lessonDoneToday'.tr()
-      : nextLesson != null ? nextLesson.$1 : 'home.allComplete'.tr(),
-  subtitle: _hasLessonToday
-      ? 'home.lessonDoneTodaySubtitle'.tr()
-      : nextLesson != null ? nextLesson.$2 : 'home.congratulations'.tr(),
-  color: _hasLessonToday
-      ? const Color(0xFF10B981)
-      : nextLesson?.$3 ?? const Color(0xFF10B981),
-  isDark: isDark, delay: 700,
-  onTap: _hasLessonToday ? null : _openNextLesson,
-  isDone: _hasLessonToday,
-),
-                  const SizedBox(height: 12),
-                  Builder(builder: (context) {
-                    final hasDeck = _reviewDeck.isNotEmpty;
-                    return _buildActionCard(
-                      icon: hasDeck ? Icons.style_rounded : Icons.lock_rounded,
-                      title: _reviewDoneToday ? 'review.doneTitle'.tr() : 'review.title'.tr(),
-                      subtitle: !hasDeck
-                          ? 'review.lockedSubtitle'.tr()
-                          : _reviewDoneToday
-                              ? 'review.doneSubtitle'.tr()
-                              : 'review.homeSubtitle'.tr(),
-                      color: hasDeck ? const Color(0xFFF59E0B) : AppColors.textSecondary,
-                      isDark: isDark, delay: 725,
-                      onTap: _openReview,
-                      isDone: _reviewDoneToday,
-                    );
-                  }),
-                  const SizedBox(height: 12),
-                  _buildActionCard(
-                    icon: Icons.air_rounded,
-                    title: 'home.breathingTitle'.tr(),
-                    subtitle: 'home.breathingSubtitle'.tr(),
-                    color: AppColors.moodCalm,
-                    isDark: isDark, delay: 750,
-                    // La recompensa la da BreathingScreen al completar la sesión
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const BreathingScreen())),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildActionCard(
-                    icon: Icons.edit_note_rounded,
-                    title: 'home.quickDiary'.tr(),
-                    subtitle: 'home.quickDiarySubtitle'.tr(),
-                    color: const Color(0xFF10B981),
-                    isDark: isDark, delay: 800,
-                    onTap: () async {
-                      final result = await Navigator.push<bool>(context,
-                          MaterialPageRoute(builder: (_) => const NewDiaryEntryScreen()));
-                      if (!context.mounted) return;
-                      if (result == true) {
-  _loadData();
-  // Solo dar recompensa de diario una vez al día
-  final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
-  final prefs = await SharedPreferences.getInstance();
-  final today = DateTime.now();
-  final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-  final key = 'diary_reward_${uid}_$todayStr';
-  final alreadyClaimed = prefs.getBool(key) ?? false;
-  if (!alreadyClaimed) {
-    await prefs.setBool(key, true);
-    await _grantGardenReward(RewardSource.diaryEntry);
-  }
-}
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildActionCard(
-                    icon: Icons.track_changes_rounded,
-                    title: 'home.habitsReminders'.tr(),
-                    subtitle: 'home.habitsRemindersSubtitle'.tr(),
-                    color: const Color(0xFF8B5CF6),
-                    isDark: isDark, delay: 850,
-                    onTap: () => Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const RemindersScreen())),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // ── MISIONES DE LA SEMANA ──────────────────────────────────
-                  if (_missions != null) ...[
-                    MissionsHomeCard(
-                      state: _missions!,
-                      isDark: isDark,
-                      onTap: _openMissions,
-                    ).animate().fadeIn(delay: 880.ms, duration: 450.ms).slideY(begin: 0.1, end: 0),
-                    const SizedBox(height: 24),
-                  ],
-
-                  // ── STATS ──────────────────────────────────────────────────
-                  Text('home.yourSummary'.tr(), style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : AppColors.textPrimary))
-                      .animate().fadeIn(delay: 900.ms),
-                  const SizedBox(height: 14),
-                  Row(children: [
-                    _buildStatCard('🔥', '$streak', 'home.streak'.tr(), isDark),
-                    const SizedBox(width: 12),
-                    _buildStatCard('⚡', '$totalXp', 'home.totalXp'.tr(), isDark),
-                    const SizedBox(width: 12),
-                    _buildStatCard('🏆', '${'home.levelShort'.tr()} $level', levelTitle, isDark),
-                  ]).animate().fadeIn(delay: 950.ms),
-                  const SizedBox(height: 20),
-
-                  // ── NIVEL Y XP ─────────────────────────────────────────────
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(22),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: isDark
-                          ? [Colors.white.withValues(alpha: 0.06), Colors.white.withValues(alpha: 0.03)]
-                          : [const Color(0xFFF5F3FF), const Color(0xFFEDE9FE)]),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.08) : const Color(0xFFDDD6FE)),
-                    ),
-                    child: Row(children: [
-                      Container(
-                        width: 60, height: 60,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: _getArchetypeGradient(authProvider.userModel?.archetype),
-                            begin: Alignment.topLeft, end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [BoxShadow(
-                            color: _getArchetypeGradient(
-                                authProvider.userModel?.archetype).first.withValues(alpha: 0.3),
-                            blurRadius: 12, offset: const Offset(0, 4),
-                          )],
+                          5,
                         ),
-                        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                          Text('home.levelShort'.tr(), style: const TextStyle(
-                              color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w600)),
-                          Text('$level', style: const TextStyle(
-                              color: Colors.white, fontSize: 22,
-                              fontWeight: FontWeight.w800, height: 1)),
-                        ]),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                        Text(levelTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white : AppColors.textPrimary)),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: LinearProgressIndicator(
-                            value: (totalXp % xpForNext) / xpForNext,
-                            backgroundColor: isDark
-                                ? Colors.white.withValues(alpha: 0.1) : const Color(0xFFDDD6FE),
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                                _getArchetypeGradient(authProvider.userModel?.archetype).first),
-                            minHeight: 10,
+                        const SizedBox(height: 12),
+                        enter(
+                          Row(
+                            children: [
+                              Expanded(
+                                child: QuickActionTile(
+                                  emoji: '📝',
+                                  title: 'home.quickDiary'.tr(),
+                                  subtitle: _hasDiaryToday ? 'home.diaryDoneSubtitle'.tr() : 'home.quickDiarySubtitle'.tr(),
+                                  color: const Color(0xFF10B981),
+                                  state: _hasDiaryToday ? QuickTileState.done : QuickTileState.normal,
+                                  isDark: isDark,
+                                  onTap: _openQuickDiary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: QuickActionTile(
+                                  emoji: '🎯',
+                                  title: 'home.habitsShort'.tr(),
+                                  subtitle: 'home.habitsRemindersSubtitle'.tr(),
+                                  color: const Color(0xFF8B5CF6),
+                                  isDark: isDark,
+                                  onTap: () async {
+                                    await Navigator.push(context, MaterialPageRoute(builder: (_) => const RemindersScreen()));
+                                    if (mounted) _loadData();
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
+                          6,
                         ),
-                        const SizedBox(height: 6),
-                        Text('${totalXp % xpForNext} / $xpForNext XP',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                      ])),
-                    ]),
-                  ).animate().fadeIn(delay: 1000.ms),
+                        const SizedBox(height: 16),
+                        enter(
+                          DailyChallengeCard(
+                            challenge: challenge,
+                            title: _challengeTitle(challenge),
+                            description: _challengeDescription(challenge),
+                            category: _challengeCategory(challenge),
+                            done: _challengeCompletedToday,
+                            isDark: isDark,
+                            onTap: () => _completeChallenge(challenge),
+                          ),
+                          7,
+                        ),
 
+                        // ── Misiones ───────────────────────────────────────────
+                        if (_missions != null) ...[
+                          const SizedBox(height: 16),
+                          enter(MissionsHomeCard(state: _missions!, isDark: isDark, onTap: _openMissions), 8),
+                        ],
+                        const SizedBox(height: 26),
+
+                        // ── Tu progreso ────────────────────────────────────────
+                        enter(HomeSectionTitle(kicker: 'home.progressKicker'.tr(), title: 'home.yourSummary'.tr(), isDark: isDark), 9),
+                        const SizedBox(height: 12),
+                        enter(
+                          HomeProgressCard(
+                            streak: streak,
+                            bestStreak: progress?.longestStreak ?? 0,
+                            level: level,
+                            levelTitle: levelTitle,
+                            xpInLevel: xpInLevel,
+                            xpForNext: xpForNext,
+                            totalXp: totalXp,
+                            levelColors: avatarColors,
+                            isDark: isDark,
+                          ),
+                          10,
+                        ),
+                        const SizedBox(height: 26),
+
+                        // ── Frase del día ──────────────────────────────────────
+                        if (_quote != null)
+                          enter(QuoteNote(text: _quoteText(_quote!), author: _quoteAuthor(_quote!), isDark: isDark), 11),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1747,86 +1212,4 @@ Future<void> _scheduleDailyReminders() async {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.1, end: 0);
   }
 
-  // ── Widgets ────────────────────────────────────────────────────────────────
-
-  Widget _buildStatCard(String emoji, String value, String label, bool isDark) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-          boxShadow: isDark ? null : [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8,
-              offset: const Offset(0, 2))],
-        ),
-        child: Column(children: [
-          Text(emoji, style: const TextStyle(fontSize: 22)),
-          const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : AppColors.textPrimary)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-              overflow: TextOverflow.ellipsis),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildActionCard({
-  required IconData icon,
-  required String title,
-  required String subtitle,
-  required Color color,
-  required bool isDark,
-  required int delay,
-  VoidCallback? onTap,
-  bool isDone = false,
-}) {
-    return GestureDetector(
-      onTap: onTap ?? () {},
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200),
-          boxShadow: isDark ? null : [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8,
-              offset: const Offset(0, 2))],
-        ),
-        child: Row(children: [
-          Container(
-            width: 52, height: 52,
-            decoration: BoxDecoration(
-                color: color.withValues(alpha: isDark ? 0.2 : 0.1),
-                borderRadius: BorderRadius.circular(16)),
-            child: Icon(icon, color: color, size: 26),
-          ),
-          const SizedBox(width: 16),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700,
-                color: isDark ? Colors.white : AppColors.textPrimary)),
-            const SizedBox(height: 3),
-            Text(subtitle, style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-          ])),
-          Container(
-            width: 36, height: 36,
-            decoration: BoxDecoration(
-                color: color.withValues(alpha: isDark ? 0.15 : 0.08),
-                borderRadius: BorderRadius.circular(10)),
-            child: Icon(
-              isDone ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
-              color: color,
-              size: 20,
-            ),
-          ),
-        ]),
-      ),
-    ).animate().fadeIn(delay: delay.ms).slideX(begin: -0.05, end: 0);
-  }
 }

@@ -98,10 +98,19 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Check-in de ánimo diario con 12 emojis.
 - Racha diaria con validación anti-trampa vía server timestamp (colección `_server_time`).
 - La racha mostrada es `AuthProvider.currentStreak` (0 si ya se perdió un día); `currentStreak` en Firestore solo se recalcula al hacer check-in.
-- `LumiCompanionCard` (ver "Lumi"), lección del día + diario rápido, tarjeta de repaso diario, `MissionsHomeCard`, `CommitmentCheckCard` (reto de ayer), `WeeklySummaryCard` (domingo y lunes) y `CrisisSupportCard` cuando corresponde.
-- Reto diario aleatorio.
-- Timeline emocional semanal.
-- **Pendiente: polish completo** (ver "Pulido" en el roadmap).
+- **Diseño (2026-09-17)**, piezas en `lib/ui/screens/home/widgets/`, en este orden:
+  1. `HomeHeader`: avatar con anillo de nivel, saludo a mano, llamita de racha, jardín (punto verde con semillas, naranja latiendo con cosecha) y tema.
+  2. Banners de multiplicador y escudo (solo si aplican).
+  3. `HomeHero`: el **cielo del momento** (`ReminderSky` por hora) con `LumiCompanionCard(transparent: true)` y el progreso de hoy (ánimo, lección, diario) con anillo 🎉 al completar los 3.
+  4. Avisos del día: `CommitmentCheckCard`, `WeeklySummaryCard`, `CrisisSupportCard`.
+  5. `MoodCheckInCard`: burbujas grandes; al elegir se resume con el ánimo grande, destellos y una frase según la categoría (cariñosa si es difícil); "Cambiar" vuelve a abrir las opciones; abajo la semana en emojis (reemplaza a `WeeklyMoodChart`, borrado).
+  6. "Tu entrenamiento de hoy": `TodayLessonCard` (color de la ruta, emoji flotando; tras hacer una hoy ofrece "Hacer otra") y cuadrícula de `QuickActionTile` (repaso, respiración, diario, hábitos; estados hecho/bloqueado).
+  7. `DailyChallengeCard` y `MissionsHomeCard`.
+  8. "Tu resumen": `HomeProgressCard` (racha con semana de llamas + nivel con anillo y XP; reemplaza stat cards, tarjeta de nivel y `DailyProgressRing`, borrado).
+  9. `QuoteNote`: la frase del día como nota a mano con cinta.
+- Entradas escalonadas, deslizar para refrescar, tarjetas que se hunden al tocar, todo con `Semantics` y respetando "Reducir animaciones".
+- **La lección sugerida es `RoutesOverview.suggested`**, la misma que "Continúa" del menú de rutas. `_openLesson` acepta "Siguiente lección" y no vuelve a llamar a `completeLesson` (ya lo hace `LessonScreen`); la recompensa del jardín por lección desde el Home es una vez al día.
+- **Reto diario**: `ChallengeAction.execute` ya da la recompensa del jardín (antes el Home daba otra). Se guarda como `completed_lessons/challenge_<yyyy-MM-dd>` (antes `challenge_<día>_<mes>`, que chocaba al año siguiente) y `hasCompletedLessonToday` lo ignora.
 
 ### Rutas de bienestar (Wellness Routes)
 - 9 rutas. Meta: **10 lecciones por ruta, 5-7 pasos cada una**, sin dos lecciones con la misma secuencia de tipos. Antes eran 19 lecciones con la misma forma (reading + quiz + exercise), por eso se sentían repetitivas.
@@ -337,7 +346,7 @@ flutter clean; flutter pub get
 - ~~Accesibilidad de pasos y menú~~: hecha (2026-09-17), ver "Accesibilidad".
 - ~~Menú de rutas~~ (2026-09-17) y ~~diario, hábitos y recordatorios estilo cuaderno~~ (2026-09-17): hechos.
 - **Jardín: polish completo** (pedido por Ángel, 2026-09-17). Debe cumplir la "Guía de diseño y polish": animaciones (plantas que se mecen y crecen, cosecha con destellos, compra/booster con celebración), Lumi presente (acompaña, reacciona al cosechar o a un jardín vacío), sonidos propios donde falten, modo claro/oscuro, reducir animaciones, accesibilidad y el mismo nivel visual que rutas y diario. Revisar antes `garden_screen.dart` (~3 100 líneas): probablemente convenga dividirlo como se hizo con la lección.
-- **Menú principal (Home): polish completo** (pedido por Ángel, 2026-09-17). Mismo checklist: jerarquía clara de las tarjetas (hoy hay muchas; `home_screen.dart` tiene ~1 800 líneas), animaciones de entrada y microinteracciones, Lumi como protagonista del saludo, check-in de ánimo más expresivo, sonidos, modo claro/oscuro, reducir animaciones y accesibilidad. Coherente con el estilo de rutas, diario y misiones.
+- ~~**Menú principal (Home): polish completo**~~: hecho (2026-09-17), ver "Home". Pedido original (2026-09-17): Mismo checklist: jerarquía clara de las tarjetas (hoy hay muchas; `home_screen.dart` tiene ~1 800 líneas), animaciones de entrada y microinteracciones, Lumi como protagonista del saludo, check-in de ánimo más expresivo, sonidos, modo claro/oscuro, reducir animaciones y accesibilidad. Coherente con el estilo de rutas, diario y misiones.
 
 **Antes de publicar**:
 - ~~Caché del contenido de rutas con documento de versión~~: hecho.

@@ -1496,8 +1496,10 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
           .where('completedAt',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('completedAt', isLessThan: Timestamp.fromDate(endOfDay))
-          .limit(1).get();
-      return snapshot.docs.isNotEmpty;
+          .get();
+      // Los retos diarios del Home también se guardan en completed_lessons
+      // (`challenge_<fecha>`): no son una lección.
+      return snapshot.docs.any((d) => !d.id.startsWith('challenge_'));
     } catch (e) { return false; }
   }
 
