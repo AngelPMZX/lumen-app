@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:lottie/lottie.dart';
 import 'package:confetti/confetti.dart';
 import '../../../data/models/diary_entry.dart';
 import '../../../data/models/mood_entry.dart';
@@ -23,6 +22,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../domain/services/commitment_service.dart';
 import '../../../domain/services/notification_service.dart';
 import '../../../domain/services/analytics_service.dart';
+import '../../../data/models/lumi.dart';
+import '../../widgets/lumi/lumi_avatar.dart';
 
 // ─── Character state ──────────────────────────────────────────────────────────
 enum _CharacterState { idle, correct, wrong }
@@ -947,72 +948,18 @@ class _LessonScreenState extends State<LessonScreen>
     );
   }
 
+  /// Lumi acompaña la lección: contenta mientras lees, emocionada al acertar
+  /// y cariñosa al equivocarte (nunca decepcionada).
   Widget _buildCharacter() {
-    String assetPath;
-    switch (_charState) {
-      case _CharacterState.idle:
-        assetPath = 'assets/lottie/character_idle.json';
-        break;
-      case _CharacterState.correct:
-        assetPath = 'assets/lottie/character_correct.json';
-        break;
-      case _CharacterState.wrong:
-        assetPath = 'assets/lottie/character_wrong.json';
-        break;
-    }
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
-      transitionBuilder: (child, anim) => ScaleTransition(
-        scale: Tween<double>(begin: 0.75, end: 1.0).animate(
-          CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
-        ),
-        child: FadeTransition(opacity: anim, child: child),
-      ),
-      child: SizedBox(
-        key: ValueKey(assetPath),
-        height: 110,
-        child: Lottie.asset(
-          assetPath,
-          fit: BoxFit.contain,
-          errorBuilder: (_, _, _) => _buildCharacterFallback(),
-        ),
-      ),
+    final mood = switch (_charState) {
+      _CharacterState.idle => LumiMood.happy,
+      _CharacterState.correct => LumiMood.excited,
+      _CharacterState.wrong => LumiMood.caring,
+    };
+    return SizedBox(
+      height: 110,
+      child: Center(child: LumiAvatar(mood: mood, size: 104)),
     );
-  }
-
-  Widget _buildCharacterFallback() {
-    String emoji;
-    Color glow;
-    switch (_charState) {
-      case _CharacterState.idle:
-        emoji = widget.routeEmoji;
-        glow = widget.routeColor;
-        break;
-      case _CharacterState.correct:
-        emoji = '🎉';
-        glow = const Color(0xFF10B981);
-        break;
-      case _CharacterState.wrong:
-        emoji = '😅';
-        glow = const Color(0xFFEF4444);
-        break;
-    }
-
-    return Center(
-      child: Container(
-        width: 80, height: 80,
-        decoration: BoxDecoration(
-          color: glow.withValues(alpha: 0.15),
-          shape: BoxShape.circle,
-          border: Border.all(color: glow.withValues(alpha: 0.3), width: 1.5),
-          boxShadow: [BoxShadow(color: glow.withValues(alpha: 0.35), blurRadius: 20, spreadRadius: 2)],
-        ),
-        child: Center(child: Text(emoji, style: const TextStyle(fontSize: 38))),
-      ),
-    )
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .moveY(begin: 0, end: -6, duration: 1800.ms, curve: Curves.easeInOut);
   }
 
   Widget _buildStepContent(bool isDark) {
@@ -2236,13 +2183,9 @@ class _LessonScreenState extends State<LessonScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
+            const SizedBox(
               height: 160,
-              child: Lottie.asset(
-                'assets/lottie/character_correct.json',
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => _buildCharacterFallback(),
-              ),
+              child: Center(child: LumiAvatar(mood: LumiMood.proud, size: 160)),
             )
                 .animate()
                 .scale(

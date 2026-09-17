@@ -1955,5 +1955,35 @@
     "rewarded": "+{xp} XP por tu repaso de hoy",
     "practiceMessage": "Ya recibiste la recompensa de hoy, pero repasar siempre suma.",
     "toReview": "Volverán en próximos repasos"
+  },
+  "lumi": {
+    "name": "Lumi",
+    "intro": "¡Hola, {name}! Soy Lumi, una pequeña luz que te va a acompañar aquí. Tócame cuando quieras charlar.",
+    "night": "Ya es tarde, {name}… ¿una respiración corta antes de dormir? Descansar también es cuidarte.",
+    "welcomeBack": "¡{name}, te extrañé! Lo importante no es la racha: es que volviste.",
+    "askMoodMorning": "¡Buenos días, {name}! ¿Cómo amaneciste hoy?",
+    "askMood": "¡Hola, {name}! ¿Cómo te sientes hoy? Cuéntame aquí abajo.",
+    "hardDay": "Gracias por contarme, {name}. Hoy puedes ir con calma; aquí estoy contigo.",
+    "commitment": "Oye… ayer elegiste un reto. ¿Cómo te fue? ¡Tengo curiosidad!",
+    "streak": "¡{n} días seguidos cuidándote! Qué orgullo acompañarte.",
+    "nextLesson": "¿Vamos con «{lesson}»? Creo que te va a gustar.",
+    "review": "Ya hiciste tu lección. ¿Un repaso rapidito para que no se olvide?",
+    "allDone": "¡Hoy hiciste mucho por ti, {name}! Brillo de felicidad.",
+    "goodMood": "¡Qué bien que hoy te sientes así, {name}! Guardemos este momento.",
+    "default": "Aquí estoy, {name}. Un paso a la vez.",
+    "tap": {
+      "0": "¿Sabías que ponerle nombre a una emoción puede bajar su intensidad?",
+      "1": "¡Jiji, cosquillas! Bueno, sigamos cuidándote.",
+      "2": "¿Ya tomaste agua hoy? Tu cerebro también la necesita.",
+      "3": "Respira conmigo: inhala… y exhala despacio. Así, muy bien.",
+      "4": "Cada pequeño paso cuenta. De verdad, cada uno.",
+      "5": "Si hoy pesa, está bien ir más lento. Aquí sigo.",
+      "6": "Me encanta cuando vienes. ¡Brillo más!",
+      "7": "¿Te has dado permiso de descansar hoy?",
+      "8": "Tus emociones no son buenas ni malas: son información.",
+      "9": "Una cosa que agradecer hoy, aunque sea pequeñita. ¿Cuál sería?",
+      "10": "Recuerda: pedir ayuda también es de valientes.",
+      "11": "Soy una luz pequeña, pero junto a ti me siento enorme."
+    }
   }
 }

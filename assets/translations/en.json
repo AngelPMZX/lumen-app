@@ -1955,5 +1955,35 @@
     "rewarded": "+{xp} XP for today’s review",
     "practiceMessage": "You already got today’s reward, but reviewing always helps.",
     "toReview": "Coming back in future reviews"
+  },
+  "lumi": {
+    "name": "Lumi",
+    "intro": "Hi, {name}! I’m Lumi, a little light who’ll keep you company here. Tap me whenever you want to chat.",
+    "night": "It’s late, {name}… a short breathing session before bed? Resting is self-care too.",
+    "welcomeBack": "{name}, I missed you! The streak isn’t what matters: you came back.",
+    "askMoodMorning": "Good morning, {name}! How did you wake up today?",
+    "askMood": "Hi, {name}! How are you feeling today? Tell me down below.",
+    "hardDay": "Thanks for telling me, {name}. You can take it slow today; I’m right here with you.",
+    "commitment": "Hey… yesterday you picked a challenge. How did it go? I’m curious!",
+    "streak": "{n} days in a row taking care of yourself! I’m so proud to be with you.",
+    "nextLesson": "Shall we do \"{lesson}\"? I think you’ll like it.",
+    "review": "You did your lesson. A quick review so it sticks?",
+    "allDone": "You did so much for yourself today, {name}! I’m glowing with joy.",
+    "goodMood": "So glad you feel this way today, {name}! Let’s treasure this moment.",
+    "default": "I’m here, {name}. One step at a time.",
+    "tap": {
+      "0": "Did you know naming an emotion can lower its intensity?",
+      "1": "Hehe, that tickles! Okay, back to taking care of you.",
+      "2": "Have you had some water today? Your brain needs it too.",
+      "3": "Breathe with me: in… and slowly out. That’s it, nicely done.",
+      "4": "Every small step counts. Really, every single one.",
+      "5": "If today feels heavy, it’s okay to go slower. I’m still here.",
+      "6": "I love it when you come by. I glow brighter!",
+      "7": "Have you given yourself permission to rest today?",
+      "8": "Your emotions aren’t good or bad: they’re information.",
+      "9": "One thing to be grateful for today, even a tiny one. What would it be?",
+      "10": "Remember: asking for help takes courage too.",
+      "11": "I’m a small light, but next to you I feel huge."
+    }
   }
 }

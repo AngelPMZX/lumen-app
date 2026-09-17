@@ -39,6 +39,8 @@ import '../summary/weekly_summary_screen.dart';
 import '../../widgets/weekly_summary_card.dart';
 import '../../../data/models/review_deck.dart';
 import '../review/daily_review_screen.dart';
+import '../../../data/models/lumi.dart';
+import '../../widgets/lumi/lumi_companion_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -66,6 +68,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Aviso del resumen semanal (domingo y lunes, hasta abrirlo).
   bool _showWeeklySummaryCard = false;
+
+  /// Lumi aparece cuando ya cargaron los datos del día (así no cambia de
+  /// frase a media animación).
+  bool _lumiReady = false;
+  bool _lumiIntroSeen = true;
 
   /// Repaso diario: tarjetas falladas pendientes y si ya se hizo hoy.
   Set<String> _reviewMissed = {};
@@ -248,6 +255,16 @@ Future<void> _loadChallengeState() async {
     if (!mounted) return;
     await _loadWeeklySummaryCard();
 
+    if (!mounted) return;
+    try {
+      final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+      final prefs = await SharedPreferences.getInstance();
+      final seen = prefs.getBool('lumi_intro_seen_$uid') ?? false;
+      if (mounted) setState(() { _lumiIntroSeen = seen; _lumiReady = true; });
+    } catch (e) {
+      if (mounted) setState(() => _lumiReady = true);
+    }
+
   
   }
 
@@ -326,6 +343,33 @@ Future<void> _scheduleDailyReminders() async {
     } catch (e) {
       debugPrint('Error dismissing crisis card: $e');
     }
+  }
+
+  // ── Lumi ───────────────────────────────────────────────────────────────────
+
+  LumiLine _lumiLine(AuthProvider auth) => LumiDialog.forHome(LumiContext(
+        name: auth.userName.isNotEmpty ? auth.userName : 'home.user'.tr(),
+        hour: DateTime.now().hour,
+        introSeen: _lumiIntroSeen,
+        todayMoodCategory: _selectedMood?.category,
+        streak: auth.currentStreak,
+        streakBroken: auth.streakBrokenToday,
+        hasPendingCommitment: _pendingCommitment != null,
+        lessonDoneToday: _hasLessonToday,
+        nextLessonTitle: _nextLessonInfo?.$1,
+        reviewAvailable: _reviewDeck.isNotEmpty,
+        reviewDoneToday: _reviewDoneToday,
+      ));
+
+  Future<void> _markLumiIntroSeen() async {
+    if (_lumiIntroSeen) return;
+    final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('lumi_intro_seen_$uid', true);
+    } catch (_) {}
+    // No se cambia _lumiIntroSeen en esta sesión: la presentación sigue
+    // visible hasta la próxima vez que se abra el Home.
   }
 
   // ── Repaso diario ──────────────────────────────────────────────────────────
@@ -1134,6 +1178,16 @@ Future<void> _scheduleDailyReminders() async {
                     const SizedBox(height: 8),
                   ],
                   const SizedBox(height: 8),
+
+                  // ── LUMI ───────────────────────────────────────────────────
+                  if (_lumiReady) ...[
+                    LumiCompanionCard(
+                      line: _lumiLine(authProvider),
+                      isDark: isDark,
+                      onIntroSeen: _markLumiIntroSeen,
+                    ),
+                    const SizedBox(height: 20),
+                  ],
 
                   // ── MOOD CHECK-IN ──────────────────────────────────────────
                   Row(children: [

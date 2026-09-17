@@ -773,6 +773,42 @@ def sfx_review_perfect():
     return normalize(oneshot_reverb(x, 2.0, 0.35), -3)
 
 
+# ── Lumi, la compañera ──────────────────────────────────────────────────────
+def lumi_blip(freq, dur, rise=0.35, vibrato=0.0):
+    """Un "bip" tierno: seno con subida de tono, un poco de octava y vibrato."""
+    t = t_axis(dur)
+    f = freq * (1 + rise * np.clip(t / (dur * 0.6), 0, 1) ** 0.7)
+    if vibrato:
+        f *= 1 + vibrato * np.sin(2 * np.pi * 18 * t)
+    phase = 2 * np.pi * np.cumsum(f) / SR
+    env = np.sin(np.pi * np.clip(t / dur, 0, 1)) ** 1.2
+    return (np.sin(phase) + 0.18 * np.sin(2 * phase)) * env
+
+
+def sfx_lumi_chirp(variant):
+    """Tres voces de Lumi al tocarla: siempre alegres, nunca iguales."""
+    x = silence(0.6)
+    if variant == 0:  # "bi-bip"
+        place(x, lumi_blip(midi(84), 0.08), 0, 0.8)
+        place(x, lumi_blip(midi(91), 0.11), 0.09, 0.9)
+    elif variant == 1:  # "uii" que sube
+        place(x, lumi_blip(midi(79), 0.22, rise=0.6, vibrato=0.015), 0, 0.9)
+    else:  # "bip-bup-bip"
+        place(x, lumi_blip(midi(88), 0.07), 0, 0.8)
+        place(x, lumi_blip(midi(84), 0.07, rise=-0.1), 0.08, 0.7)
+        place(x, lumi_blip(midi(91), 0.1), 0.16, 0.9)
+    return normalize(oneshot_reverb(x, 0.5, 0.15), -9)
+
+
+def sfx_lumi_hello():
+    """Lumi aparece para hablar: tres notas que suben y un brillito."""
+    x = silence(1.0)
+    for i, m in enumerate([79, 84, 88]):
+        place(x, lumi_blip(midi(m), 0.09, rise=0.15), i * 0.09, 0.75)
+    place(x, note(midi(96), 0.5, GLASS, decay=0.2), 0.3, 0.2)
+    return normalize(oneshot_reverb(x, 0.8, 0.25), -10)
+
+
 def main():
     print('Ambientes (bucles de %.0f s):' % LOOP)
     export(rain(), 'ambient/rain.mp3', '80k')
@@ -835,6 +871,12 @@ def main():
     for i in range(3):
         export(sfx_star(i), f'sfx/star_{i}.mp3')
     export(sfx_review_perfect(), 'sfx/review_perfect.mp3')
+
+    # Cuarta tanda: la voz de Lumi
+    print('Lumi:')
+    for v in range(3):
+        export(sfx_lumi_chirp(v), f'sfx/lumi_chirp_{v}.mp3')
+    export(sfx_lumi_hello(), 'sfx/lumi_hello.mp3')
 
 
 if __name__ == '__main__':

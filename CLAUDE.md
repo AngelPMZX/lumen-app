@@ -123,6 +123,15 @@ Clean architecture simplificada:
 - `dayKey` es la fecha local `yyyy-MM-dd`, y `daysAgo` compara en UTC para que un día con cambio de horario no cuente como 0.
 - Al completar una lección, "Siguiente lección" (si hay) devuelve `LessonScreen.nextResult` y `RoutesScreen` abre la siguiente.
 
+### Lumi (compañera)
+- **Lumi** es la personaje de la app: una gota de luz dibujada con código (`lib/ui/widgets/lumi/lumi_avatar.dart`, `CustomPainter`), sin assets. Flota, respira, parpadea (a veces dos veces), mece su llama y rebota al tocarla. Resplandor con círculos concéntricos (sin `MaskFilter.blur`).
+- 7 expresiones (`LumiMood`): `happy`, `excited` (destellos que orbitan), `calm` (ojos cerrados con sonrisa), `sleepy` (boca "o" y z que flotan), `proud` (ojos ^^), `caring` (cejas tiernas y un corazón), `curious` (ceja arriba y "?").
+- **Personalidad**: cálida, curiosa y juguetona; nunca juzga ni regaña. **Lenguaje neutro en género** para Lumi y para el usuario (usar "qué orgullo acompañarte", no "orgulloso/a").
+- En el Home, `LumiCompanionCard` muestra un globo que se escribe letra por letra. `LumiDialog.forHome` (lógica pura con pruebas) elige qué decir por prioridad: presentarse (una vez, `lumi_intro_seen_{uid}`), noche, volver tras perder la racha, pedir el check-in, día difícil, reto pendiente, hitos de racha (3, 5 y múltiplos de 7), siguiente lección, repaso, todo hecho. Al tocarla rota entre 12 frases (`lumi.tap.N`).
+- En las lecciones reemplaza a los Lottie: contenta leyendo, emocionada al acertar, **cariñosa al fallar** (nunca decepcionada) y orgullosa al completar.
+- Voz propia: `lumiChirp` (3 variantes al tocarla) y `Sfx.lumiHello` al hablar.
+- Se quitaron el paquete `lottie` y `assets/lottie/`: eran tres animaciones genéricas de personajes distintos, de licencia no verificada (una era `404_hand`).
+
 ### Repaso diario
 - `DailyReviewScreen` (`lib/ui/screens/review/`): 5 tarjetas de lecciones ya completadas, **sin cronómetro** (a propósito: no presionar en una app de bienestar). Tres fases: intro con mazo en abanico, tarjetas repartidas con animación y resultados con anillo de puntuación, 0-3 estrellas y confeti si es perfecto.
 - `ReviewDeck` (`lib/data/models/review_deck.dart`, lógica pura con pruebas): convierte pasos `mythfact` (una tarjeta por afirmación), `sort` (una por item, elegir categoría) y `quiz` en tarjetas con id `lessonId:paso:item`. Mazo determinista por día; primero hasta 2 tarjetas falladas antes y luego al azar entre lecciones distintas. Hacen falta al menos 3 tarjetas posibles.
@@ -254,10 +263,11 @@ flutter clean; flutter pub get
 2. ~~Botón "Siguiente lección" en la pantalla de lección completada~~: hecho.
 3. ~~Resumen semanal con conclusiones personales~~: hecho, ver "Resumen semanal" en Features.
 4. ~~Repaso diario~~: hecho, ver "Repaso diario" en Features.
-5. **Compañero con personalidad**: nombre y frases en Home usando los Lottie del personaje (estilo búho de Duolingo).
+5. ~~Compañero con personalidad~~: hecho, ver "Lumi" en Features.
 6. Misiones semanales con recompensas del jardín.
 7. Tarjeta para compartir al completar una ruta (sin datos sensibles).
 8. Pedir reseña en Play Store (`in_app_review`) después de un logro, nunca tras un día difícil.
+10. **Personalización de Lumi como apoyo al proyecto** (idea de Ángel, 2026-09-16): colores, accesorios (gorrito, bufanda, lentes…) y quizá animaciones especiales, a precio bajo vía RevenueCat. Solo cosmético: nunca bloquear contenido de bienestar ni ayuda. El `LumiPainter` ya dibuja todo por código, así que los accesorios se pueden pintar como capas encima.
 9. Rutas nuevas **Ansiedad y Estrés** y **Sueño**, candidatas a contenido premium (la ayuda en crisis siempre gratis).
 
 **Pulido**:

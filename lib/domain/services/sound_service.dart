@@ -36,6 +36,8 @@ enum Sfx {
   cardDeal,
   reviewStart,
   reviewPerfect,
+  // Lumi
+  lumiHello,
 }
 
 /// Señales de la respiración guiada.
@@ -104,6 +106,7 @@ class SoundService {
       Sfx.cardDeal: 'card_deal',
       Sfx.reviewStart: 'review_start',
       Sfx.reviewPerfect: 'review_perfect',
+      Sfx.lumiHello: 'lumi_hello',
     };
     return 'sounds/sfx/${names[s] ?? s.name}.mp3';
   }
@@ -206,6 +209,12 @@ class SoundService {
   Future<void> star(int index, {double volume = 0.6}) async {
     if (!_effectsEnabled) return;
     await _playOneShot('sounds/sfx/star_${index.clamp(0, 2)}.mp3', volume);
+  }
+
+  /// La voz de Lumi al tocarla: rota entre tres variantes.
+  Future<void> lumiChirp(int count, {double volume = 0.55}) async {
+    if (!_effectsEnabled) return;
+    await _playOneShot('sounds/sfx/lumi_chirp_${count % 3}.mp3', volume);
   }
 
   /// Señal de respiración. La pantalla decide si suena (tiene su propio switch).
