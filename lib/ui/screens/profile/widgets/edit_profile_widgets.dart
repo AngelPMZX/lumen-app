@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../data/models/password_strength.dart';
 import '../../../widgets/journal/journal_style.dart';
 import '../../../widgets/min_tap_target.dart';
+import '../../auth/widgets/auth_widgets.dart' show PasswordStrengthMeter;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Piezas
@@ -381,6 +383,10 @@ class ArchetypeRow extends StatelessWidget {
 
 class PasswordCard extends StatelessWidget {
   final bool isDark;
+
+  /// Fuerza de la contraseña nueva mientras se escribe.
+  final PasswordStrength? strength;
+  final ValueChanged<String> onNewPasswordChanged;
   final bool expanded;
   final bool busy;
   final TextEditingController currentController;
@@ -396,6 +402,8 @@ class PasswordCard extends StatelessWidget {
   const PasswordCard({
     super.key,
     required this.isDark,
+    required this.onNewPasswordChanged,
+    this.strength,
     required this.expanded,
     required this.busy,
     required this.currentController,
@@ -477,9 +485,13 @@ class PasswordCard extends StatelessWidget {
                         label: 'profile.newPassword'.tr(),
                         icon: Icons.lock_reset_rounded,
                         isDark: isDark,
-                        onChanged: (_) {},
+                        onChanged: onNewPasswordChanged,
                         suffix: EyeButton(obscure: obscureNew, onTap: onToggleObscureNew),
                       ),
+                      if (strength != null && strength!.level != PasswordLevel.empty) ...[
+                        const SizedBox(height: 10),
+                        PasswordStrengthMeter(strength: strength!),
+                      ],
                       const SizedBox(height: 12),
                       EditField(
                         controller: confirmController,

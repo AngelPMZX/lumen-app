@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
+import '../../../data/models/archetype.dart';
 import '../../../domain/providers/auth_provider.dart';
 import 'steps/username_step.dart';
 import 'steps/about_you_step.dart';
@@ -10,6 +11,7 @@ import 'steps/hobbies_step.dart';
 import 'steps/music_step.dart';
 import 'steps/archetype_result_step.dart';
 import '../../widgets/animated_particles_background.dart';
+import '../profile/widgets/profile_widgets.dart' show ArchetypeStyle;
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -87,7 +89,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
 
   Future<void> _completeProfile() async {
     final authProvider = context.read<AuthProvider>();
-    final archetype = _calculateArchetype();
+    final archetype = ArchetypeQuiz.compute(hobbies: _hobbies, genres: _musicGenres).id;
 
     final (success, error) = await authProvider.updateUserProfile(
       username: _username,
@@ -151,89 +153,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     if (mounted) {
       _nextStep();
     }
-  }
-
-  String _calculateArchetype() {
-    Map<String, int> scores = {
-      'explorador': 0,
-      'guerrero': 0,
-      'social': 0,
-      'sabio': 0,
-      'libre': 0,
-    };
-
-    // NOTA: Los valores internos de hobbies se mantienen en español
-    // porque así están guardados en Firestore. Se migrarán en fase posterior.
-    for (final hobby in _hobbies) {
-      switch (hobby) {
-        case 'Lectura':
-        case 'Escritura':
-        case 'Arte':
-          scores['explorador'] = scores['explorador']! + 2;
-          break;
-        case 'Deportes':
-        case 'Gym':
-        case 'Artes marciales':
-          scores['guerrero'] = scores['guerrero']! + 2;
-          break;
-        case 'Cocina':
-        case 'Voluntariado':
-        case 'Fiestas':
-          scores['social'] = scores['social']! + 2;
-          break;
-        case 'Meditación':
-        case 'Yoga':
-        case 'Naturaleza':
-          scores['sabio'] = scores['sabio']! + 2;
-          break;
-        case 'Viajar':
-        case 'Fotografía':
-        case 'Videojuegos':
-          scores['libre'] = scores['libre']! + 2;
-          break;
-      }
-    }
-
-    for (final genre in _musicGenres) {
-      switch (genre) {
-        case 'Lo-fi':
-        case 'Clásica':
-        case 'Indie':
-          scores['explorador'] = scores['explorador']! + 1;
-          break;
-        case 'Rock':
-        case 'Metal':
-        case 'Hip Hop':
-          scores['guerrero'] = scores['guerrero']! + 1;
-          break;
-        case 'Pop':
-        case 'Reggaetón':
-        case 'Cumbia':
-          scores['social'] = scores['social']! + 1;
-          break;
-        case 'Jazz':
-        case 'Ambient':
-        case 'New Age':
-          scores['sabio'] = scores['sabio']! + 1;
-          break;
-        case 'Electrónica':
-        case 'Alternativa':
-        case 'K-Pop':
-          scores['libre'] = scores['libre']! + 1;
-          break;
-      }
-    }
-
-    String dominant = 'explorador';
-    int maxScore = 0;
-    scores.forEach((key, value) {
-      if (value > maxScore) {
-        maxScore = value;
-        dominant = key;
-      }
-    });
-
-    return dominant;
   }
 
   String _getStepLabel(int step) {
@@ -376,14 +295,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                         },
                       ),
                       ArchetypeResultStep(
-  archetype: _calculateArchetype(),
-  onContinue: () {
-    Navigator.pushReplacementNamed(
-      context,
-      AppRoutes.onboardingIntro,
-    );
-  },
-),
+                        archetype: ArchetypeQuiz.compute(hobbies: _hobbies, genres: _musicGenres),
+                        affinity: ArchetypeQuiz.affinity(hobbies: _hobbies, genres: _musicGenres),
+                        onContinue: () => Navigator.pushReplacementNamed(context, AppRoutes.onboardingIntro),
+                      ),
                     ],
                   ),
                 ),
@@ -555,21 +470,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     );
   }
 
+  /// Colores del arquetipo que va ganando (tiñen el fondo al revelarlo).
   (Color, Color) _getArchetypeColors() {
-    final arch = _calculateArchetype();
-    switch (arch) {
-      case 'explorador':
-        return (const Color(0xFF6366F1), const Color(0xFF4338CA));
-      case 'guerrero':
-        return (const Color(0xFFEF4444), const Color(0xFFDC2626));
-      case 'social':
-        return (const Color(0xFFEC4899), const Color(0xFFDB2777));
-      case 'sabio':
-        return (const Color(0xFF10B981), const Color(0xFF059669));
-      case 'libre':
-        return (const Color(0xFFF59E0B), const Color(0xFFD97706));
-      default:
-        return (const Color(0xFF6366F1), const Color(0xFF4338CA));
-    }
+    final colors = ArchetypeStyle.colors(
+      ArchetypeQuiz.compute(hobbies: _hobbies, genres: _musicGenres).id,
+    );
+    return (colors.first, colors.last);
   }
 }

@@ -82,11 +82,11 @@ class UserProgress {
   bool hasCheckedInToday(DateTime serverNow) => daysSinceCheckIn(serverNow) == 0;
 
   String get levelTitle {
-    if (level <= 3) return 'Novato Emocional';
-    if (level <= 7) return 'Aprendiz Consciente';
-    if (level <= 12) return 'Explorador Interior';
-    if (level <= 18) return 'Guerrero Resiliente';
-    return 'Maestro Zen';
+    if (level <= 3) return 'Primeros Pasos';
+    if (level <= 7) return 'Práctica Consciente';
+    if (level <= 12) return 'Camino Interior';
+    if (level <= 18) return 'Fuerza Resiliente';
+    return 'Maestría Zen';
   }
 
   String get levelTitleKey {

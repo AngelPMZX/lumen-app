@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../core/utils/validators.dart';
+import '../../../data/models/password_strength.dart';
 import '../../../data/models/lumi.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/providers/garden_provider.dart';
@@ -46,6 +47,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _showPassForm = false;
   bool _obscureCurrent = true;
   bool _obscureNew = true;
+  PasswordStrength _newPassStrength = PasswordStrength.check('');
 
   // Estado del nombre de usuario
   Timer? _debounce;
@@ -81,6 +83,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _confirmPassController.dispose();
     super.dispose();
   }
+
+  /// Correo y nombre: la contraseña no puede contenerlos.
+  List<String> get _personalData => [context.read<AuthProvider>().userEmail, _nameController.text.trim()];
 
   String get _name => _nameController.text.trim();
   String get _username => _usernameController.text.trim().toLowerCase();
@@ -222,9 +227,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // ═══════════════════════════════════════════════════════════════════════════
 
   Future<void> _changePassword() async {
-    if (_newPassController.text.length < 6) {
+    // La contraseña nueva pasa por las mismas reglas que el registro
+    final problem = Validators.strongPassword(_newPassController.text, personal: _personalData);
+    if (problem != null) {
       SoundService.instance.play(Sfx.wrong, volume: 0.4);
-      _toast('validation.passwordTooShort'.tr(), color: _danger, icon: Icons.error_outline_rounded);
+      _toast(problem, color: _danger, icon: Icons.error_outline_rounded);
       return;
     }
     if (_newPassController.text != _confirmPassController.text) {
@@ -425,6 +432,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       const SizedBox(height: 10),
                       PasswordCard(
                         isDark: isDark,
+                        strength: _newPassStrength,
+                        onNewPasswordChanged: (v) => setState(() => _newPassStrength = PasswordStrength.check(v, personal: _personalData)),
                         expanded: _showPassForm,
                         busy: _isChangingPass,
                         currentController: _currentPassController,

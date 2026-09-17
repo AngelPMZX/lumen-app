@@ -1,476 +1,357 @@
-import 'dart:math';
+import 'dart:math' as math;
+
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:easy_localization/easy_localization.dart';
-import '../../../../domain/services/motion_service.dart';
 
+import '../../../../data/models/archetype.dart';
+import '../../../../data/models/lumi.dart';
+import '../../../../domain/services/motion_service.dart';
+import '../../../../domain/services/sound_service.dart';
+import '../../../widgets/journal/journal_style.dart';
+import '../../../widgets/lumi/lumi_avatar.dart';
+import '../../profile/widgets/profile_widgets.dart' show ArchetypeStyle;
+
+/// El momento de descubrir tu arquetipo: el emblema aparece entre rayos de
+/// luz, se muestran tus fortalezas y un consejo de Lumi.
 class ArchetypeResultStep extends StatefulWidget {
-  final String archetype;
+  final Archetype archetype;
+
+  /// Qué tan marcado salió (0-1): se muestra como "afinidad".
+  final double affinity;
   final VoidCallback onContinue;
 
   const ArchetypeResultStep({
     super.key,
     required this.archetype,
     required this.onContinue,
+    this.affinity = 0,
   });
 
   @override
   State<ArchetypeResultStep> createState() => _ArchetypeResultStepState();
 }
 
-class _ArchetypeResultStepState extends State<ArchetypeResultStep>
-    with TickerProviderStateMixin {
-  bool _showContent = false;
+class _ArchetypeResultStepState extends State<ArchetypeResultStep> with TickerProviderStateMixin {
+  late final AnimationController _rays =
+      AnimationController(vsync: this, duration: const Duration(seconds: 26))..repeatUnlessReduced();
+  late final AnimationController _pulse =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 2200))..repeatUnlessReduced(reverse: true, rest: 0.5);
+
+  bool _showEmblem = false;
+  bool _showName = false;
   bool _showCard = false;
   bool _showButton = false;
-
-  late AnimationController _pulseController;
-  late AnimationController _rotateController;
-  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
-
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeatUnlessReduced(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    _rotateController = AnimationController(
-      duration: const Duration(seconds: 20),
-      vsync: this,
-    )..repeatUnlessReduced();
-
-    _startRevealSequence();
+    _reveal();
   }
 
-  void _startRevealSequence() async {
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted) setState(() => _showContent = true);
-
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) setState(() => _showCard = true);
-
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted) setState(() => _showButton = true);
+  Future<void> _reveal() async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    setState(() => _showEmblem = true);
+    SoundService.instance.play(Sfx.unlock, volume: 0.5);
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (!mounted) return;
+    setState(() => _showName = true);
+    SoundService.instance.play(Sfx.achievement, volume: 0.45);
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (!mounted) return;
+    setState(() => _showCard = true);
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    setState(() => _showButton = true);
   }
 
   @override
   void dispose() {
-    _pulseController.dispose();
-    _rotateController.dispose();
+    _rays.dispose();
+    _pulse.dispose();
     super.dispose();
-  }
-
-  Map<String, dynamic> _getArchetypeData() {
-    switch (widget.archetype) {
-      case 'explorador':
-        return {
-          'title': 'archetype.explorerName'.tr(),
-          'emoji': '🔮',
-          'icon': Icons.explore_rounded,
-          'description': 'archetype.explorerDesc'.tr(),
-          'strengths': 'archetype.explorerStrengths'.tr().split(','),
-          'tip': 'archetype.explorerTip'.tr(),
-          'color1': const Color(0xFF6366F1),
-          'color2': const Color(0xFF4338CA),
-          'accentColor': const Color(0xFFA5B4FC),
-        };
-      case 'guerrero':
-        return {
-          'title': 'archetype.warriorName'.tr(),
-          'emoji': '⚔️',
-          'icon': Icons.shield_rounded,
-          'description': 'archetype.warriorDesc'.tr(),
-          'strengths': 'archetype.warriorStrengths'.tr().split(','),
-          'tip': 'archetype.warriorTip'.tr(),
-          'color1': const Color(0xFFEF4444),
-          'color2': const Color(0xFFDC2626),
-          'accentColor': const Color(0xFFFCA5A5),
-        };
-      case 'social':
-        return {
-          'title': 'archetype.socialName'.tr(),
-          'emoji': '💝',
-          'icon': Icons.people_rounded,
-          'description': 'archetype.socialDesc'.tr(),
-          'strengths': 'archetype.socialStrengths'.tr().split(','),
-          'tip': 'archetype.socialTip'.tr(),
-          'color1': const Color(0xFFEC4899),
-          'color2': const Color(0xFFDB2777),
-          'accentColor': const Color(0xFFF9A8D4),
-        };
-      case 'sabio':
-        return {
-          'title': 'archetype.sageName'.tr(),
-          'emoji': '🧘',
-          'icon': Icons.spa_rounded,
-          'description': 'archetype.sageDesc'.tr(),
-          'strengths': 'archetype.sageStrengths'.tr().split(','),
-          'tip': 'archetype.sageTip'.tr(),
-          'color1': const Color(0xFF10B981),
-          'color2': const Color(0xFF059669),
-          'accentColor': const Color(0xFF6EE7B7),
-        };
-      case 'libre':
-        return {
-          'title': 'archetype.freeSpiritName'.tr(),
-          'emoji': '✨',
-          'icon': Icons.auto_awesome_rounded,
-          'description': 'archetype.freeSpiritDesc'.tr(),
-          'strengths': 'archetype.freeSpiritStrengths'.tr().split(','),
-          'tip': 'archetype.freeSpiritTip'.tr(),
-          'color1': const Color(0xFFF59E0B),
-          'color2': const Color(0xFFD97706),
-          'accentColor': const Color(0xFFFCD34D),
-        };
-      default:
-        return {
-          'title': 'archetype.explorerName'.tr(),
-          'emoji': '🔮',
-          'icon': Icons.explore_rounded,
-          'description': 'archetype.explorerDesc'.tr(),
-          'strengths': 'archetype.explorerStrengths'.tr().split(','),
-          'tip': 'archetype.explorerTip'.tr(),
-          'color1': const Color(0xFF6366F1),
-          'color2': const Color(0xFF4338CA),
-          'accentColor': const Color(0xFFA5B4FC),
-        };
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = _getArchetypeData();
-    final Color color1 = data['color1'];
-    final Color color2 = data['color2'];
-    final Color accent = data['accentColor'];
+    final a = widget.archetype;
+    final colors = ArchetypeStyle.colors(a.id);
+    final accent = Color.lerp(colors.first, Colors.white, 0.45)!;
+    final strengths = a.strengthsKey.tr().split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+    final reduced = MotionService.reduced(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
       child: Column(
         children: [
-          const SizedBox(height: 30),
-
-          // FASE 1: Texto introductorio
           Text(
-            'archetype.analyzing'.tr(),
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w500,
-            ),
-          ).animate().fadeIn(duration: 600.ms),
-          const SizedBox(height: 8),
-
-          if (!_showContent)
-            Column(
+            'archetype.revealSubtitle'.tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white.withValues(alpha: 0.7)),
+          ).animate().fadeIn(duration: 400.ms),
+          const SizedBox(height: 6),
+          Text(
+            'archetype.revealTitle'.tr(),
+            textAlign: TextAlign.center,
+            style: JournalStyle.hand(const TextStyle(fontSize: 26, height: 1.1, color: Colors.white)),
+          ).animate().fadeIn(delay: 100.ms, duration: 400.ms),
+          const SizedBox(height: 10),
+          // Emblema
+          SizedBox(
+            height: 240,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: 60,
-                  height: 60,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 3,
-                    color: Colors.white.withValues(alpha: 0.5),
+                AnimatedBuilder(
+                  animation: _rays,
+                  builder: (_, _) => Transform.rotate(
+                    angle: _rays.value * math.pi * 2,
+                    child: CustomPaint(size: const Size.square(260), painter: _RaysPainter(color: accent)),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                      'archetype.discovering'.tr(),
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 15,
-                      ),
-                    )
-                    .animate(onPlay: MotionService.loop(context))
-                    .fadeIn(duration: 800.ms)
-                    .then()
-                    .fadeOut(duration: 800.ms),
+                if (_showEmblem)
+                  AnimatedBuilder(
+                    animation: _pulse,
+                    builder: (_, child) => Transform.scale(scale: 1 + Curves.easeInOut.transform(_pulse.value) * 0.05, child: child),
+                    child: _Emblem(colors: colors, emoji: a.emoji),
+                  )
+                      .animate()
+                      .scale(begin: const Offset(0.3, 0.3), end: const Offset(1, 1), duration: 900.ms, curve: Curves.elasticOut)
+                      .fadeIn(duration: 350.ms),
+                if (_showEmblem && !reduced)
+                  SparkleBurst(color: accent, size: 280, seed: a.index + 3),
               ],
             ),
-
-          // FASE 2: Revelación del arquetipo
-          if (_showContent) ...[
-            Text(
-              'archetype.yourArchetypeIs'.tr(),
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.white.withValues(alpha: 0.7),
-                fontWeight: FontWeight.w600,
-              ),
-            ).animate().fadeIn(duration: 500.ms),
-            const SizedBox(height: 24),
-
-            // Ícono principal con halo giratorio
-            SizedBox(
-                  width: 160,
-                  height: 160,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _rotateController,
-                        builder: (context, child) {
-                          return Transform.rotate(
-                            angle: _rotateController.value * 2 * pi,
-                            child: Container(
-                              width: 150,
-                              height: 150,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: SweepGradient(
-                                  colors: [
-                                    color1.withValues(alpha: 0.0),
-                                    color1.withValues(alpha: 0.4),
-                                    accent.withValues(alpha: 0.6),
-                                    color2.withValues(alpha: 0.4),
-                                    color1.withValues(alpha: 0.0),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      AnimatedBuilder(
-                        animation: _pulseAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _pulseAnimation.value,
-                            child: Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [color1, color2],
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: color1.withValues(alpha: 0.4),
-                                    blurRadius: 30,
-                                    spreadRadius: 5,
-                                  ),
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(
-                                  data['emoji'],
-                                  style: const TextStyle(fontSize: 52),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                )
-                .animate()
-                .fadeIn(duration: 800.ms)
-                .scale(
-                  begin: const Offset(0.2, 0.2),
-                  end: const Offset(1.0, 1.0),
-                  duration: 1000.ms,
-                  curve: Curves.easeOutBack,
-                ),
-            const SizedBox(height: 24),
-
-            Text(
-                  data['title'],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                    shadows: [
-                      Shadow(
-                        color: color1.withValues(alpha: 0.5),
-                        blurRadius: 20,
-                      ),
-                    ],
-                  ),
-                )
-                .animate()
-                .fadeIn(delay: 300.ms, duration: 800.ms)
-                .slideY(begin: 0.4, end: 0),
-            const SizedBox(height: 16),
-
-            Container(
-              constraints: const BoxConstraints(maxWidth: 380),
+          ),
+          if (_showName) ...[
+            Semantics(
+              header: true,
               child: Text(
-                data['description'],
+                a.nameKey.tr(),
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.white.withValues(alpha: 0.8),
-                  height: 1.6,
-                ),
+                style: const TextStyle(fontSize: 27, height: 1.15, fontWeight: FontWeight.w900, color: Colors.white),
               ),
-            ).animate().fadeIn(delay: 600.ms, duration: 800.ms),
+            ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.25, end: 0, curve: Curves.easeOutCubic),
+            const SizedBox(height: 10),
+            if (widget.affinity > 0)
+              _AffinityBar(value: widget.affinity, color: accent)
+                  .animate()
+                  .fadeIn(delay: 200.ms, duration: 400.ms),
           ],
-
-          // FASE 3: Card de fortalezas
-          if (_showCard) ...[
-            const SizedBox(height: 28),
+          const SizedBox(height: 16),
+          if (_showCard)
             Container(
-                  constraints: const BoxConstraints(maxWidth: 380),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withValues(alpha: 0.15),
-                        Colors.white.withValues(alpha: 0.05),
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    a.descriptionKey.tr(),
+                    style: TextStyle(fontSize: 14.5, height: 1.5, color: Colors.white.withValues(alpha: 0.92)),
+                  ),
+                  if (strengths.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    Text(
+                      'archetype.strengths'.tr(),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.8, color: accent),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final (i, s) in strengths.indexed)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: accent.withValues(alpha: 0.4)),
+                            ),
+                            child: Text(s, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ).animate().fadeIn(delay: (120 * i).ms, duration: 300.ms).scale(
+                                begin: const Offset(0.85, 0.85),
+                                end: const Offset(1, 1),
+                                curve: Curves.easeOutCubic,
+                              ),
                       ],
                     ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: accent.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Column(
+                  ],
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: color1.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(data['icon'], color: accent, size: 28),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Text(
-                        'archetype.strengths'.tr(),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.center,
-                        children: (data['strengths'] as List<String>)
-                            .map(
-                              (s) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: color1.withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: accent.withValues(alpha: 0.4),
-                                  ),
-                                ),
-                                child: Text(
-                                  s,
-                                  style: TextStyle(
-                                    color: accent,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                      const SizedBox(height: 16),
-
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.lightbulb_rounded,
-                              color: accent,
-                              size: 20,
+                      const LumiAvatar(mood: LumiMood.proud, size: 52),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                              bottomLeft: Radius.circular(4),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                data['tip'],
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.8),
-                                  fontSize: 13,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
+                          child: Text(
+                            a.tipKey.tr(),
+                            style: const TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600, color: Color(0xFF2D2D3A)),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                )
-                .animate()
-                .fadeIn(duration: 800.ms)
-                .slideY(begin: 0.3, end: 0)
-                .scale(begin: const Offset(0.95, 0.95)),
-          ],
-
-          // FASE 4: Botón de continuar
-          if (_showButton) ...[
-            const SizedBox(height: 36),
-            Container(
-              constraints: const BoxConstraints(maxWidth: 380),
+                ],
+              ),
+            ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic),
+          const SizedBox(height: 22),
+          if (_showButton)
+            SizedBox(
               width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
+              height: 56,
+              child: FilledButton(
                 onPressed: widget.onContinue,
-                style: ElevatedButton.styleFrom(
+                style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
-                  foregroundColor: color1,
-                  elevation: 8,
-                  shadowColor: color1.withValues(alpha: 0.4),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  foregroundColor: colors.last,
+                  elevation: 6,
+                  shadowColor: Colors.black.withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(data['icon'], size: 22),
-                    const SizedBox(width: 10),
-                    Text(
-                      'archetype.startJourney'.tr(),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+                    Text('archetype.startJourney'.tr(), style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w900)),
                     const SizedBox(width: 8),
                     const Icon(Icons.arrow_forward_rounded, size: 20),
                   ],
                 ),
               ),
-            ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.5, end: 0),
-            const SizedBox(height: 36),
-          ],
+            ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic),
         ],
       ),
     );
   }
+}
+
+/// El emblema: disco con el color del arquetipo, borde de luz y su emoji.
+class _Emblem extends StatelessWidget {
+  final List<Color> colors;
+  final String emoji;
+
+  const _Emblem({required this.colors, required this.emoji});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 148,
+      height: 148,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          center: const Alignment(-0.3, -0.35),
+          colors: [Color.lerp(colors.first, Colors.white, 0.5)!, colors.first, colors.last],
+          stops: const [0, 0.55, 1],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 3),
+        boxShadow: [BoxShadow(color: colors.first.withValues(alpha: 0.55), blurRadius: 34, spreadRadius: 4)],
+      ),
+      child: Center(child: Text(emoji, style: const TextStyle(fontSize: 62))),
+    );
+  }
+}
+
+class _AffinityBar extends StatelessWidget {
+  final double value;
+  final Color color;
+
+  const _AffinityBar({required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = (value * 100).round();
+    return Semantics(
+      label: '${'archetype.affinity'.tr()}: $percent%',
+      excludeSemantics: true,
+      child: Column(
+        children: [
+          Text(
+            'archetype.affinity'.tr(),
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: Colors.white.withValues(alpha: 0.75)),
+          ),
+          const SizedBox(height: 6),
+          LayoutBuilder(
+            builder: (context, c) {
+              final width = math.min(c.maxWidth, 240.0);
+              return SizedBox(
+                width: width,
+                child: Stack(
+                  children: [
+                    Container(
+                      height: 8,
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(4)),
+                    ),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0, end: value.clamp(0.0, 1.0)),
+                      duration: MotionService.reduced(context) ? Duration.zero : const Duration(milliseconds: 1100),
+                      curve: Curves.easeOutCubic,
+                      builder: (_, v, _) => Container(
+                        width: width * v,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(colors: [Colors.white, color]),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 4),
+          Text('$percent%', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.white)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Rayos de luz suaves detrás del emblema (sin blur).
+class _RaysPainter extends CustomPainter {
+  final Color color;
+  const _RaysPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2;
+    final paint = Paint()
+      ..shader = RadialGradient(colors: [color.withValues(alpha: 0.3), color.withValues(alpha: 0)])
+          .createShader(Rect.fromCircle(center: c, radius: r));
+    const rays = 14;
+    for (int i = 0; i < rays; i++) {
+      final a = i / rays * math.pi * 2;
+      const half = math.pi / rays * 0.4;
+      final path = Path()
+        ..moveTo(c.dx, c.dy)
+        ..lineTo(c.dx + math.cos(a - half) * r, c.dy + math.sin(a - half) * r)
+        ..lineTo(c.dx + math.cos(a + half) * r, c.dy + math.sin(a + half) * r)
+        ..close();
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RaysPainter old) => old.color != color;
 }

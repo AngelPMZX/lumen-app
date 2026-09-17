@@ -239,11 +239,14 @@ class _ParticlesPainter extends CustomPainter {
       canvas.drawCircle(Offset(px, py), p.size, paint);
 
       if (p.size > 2.0) {
-        final glowPaint = Paint()
-          ..color = particleColor.withValues(alpha: adjustedOpacity * 0.3)
-          ..style = PaintingStyle.fill
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-        canvas.drawCircle(Offset(px, py), p.size * 2, glowPaint);
+        // Resplandor con círculos concéntricos: MaskFilter.blur rompe WebGL
+        for (int ring = 3; ring >= 1; ring--) {
+          canvas.drawCircle(
+            Offset(px, py),
+            p.size * (1 + ring * 0.5),
+            Paint()..color = particleColor.withValues(alpha: adjustedOpacity * 0.1 * (4 - ring) / 3),
+          );
+        }
       }
     }
   }
@@ -302,11 +305,13 @@ class _ParticlesPainter extends CustomPainter {
           ..style = PaintingStyle.fill;
         canvas.drawCircle(Offset(headX, headY), star.thickness * 1.2, headPaint);
 
-        final headGlow = Paint()
-          ..color = particleColor.withValues(alpha: opacity * 0.4)
-          ..style = PaintingStyle.fill
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-        canvas.drawCircle(Offset(headX, headY), star.thickness * 3, headGlow);
+        for (int ring = 3; ring >= 1; ring--) {
+          canvas.drawCircle(
+            Offset(headX, headY),
+            star.thickness * (1.2 + ring * 0.6),
+            Paint()..color = particleColor.withValues(alpha: opacity * 0.12 * (4 - ring) / 3),
+          );
+        }
       }
     }
   }

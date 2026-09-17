@@ -1,25 +1,40 @@
 import 'package:easy_localization/easy_localization.dart';
 
+import '../../data/models/password_strength.dart';
+
 class Validators {
   static String? email(String? value) {
     if (value == null || value.isEmpty) {
       return 'validation.enterEmail'.tr();
     }
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    // El dominio de primer nivel puede tener más de 4 letras (.online, .digital)
+    final emailRegex = RegExp(r'^[\w.+-]+@([\w-]+\.)+[A-Za-z]{2,}$');
     if (!emailRegex.hasMatch(value)) {
       return 'validation.invalidEmail'.tr();
     }
     return null;
   }
 
+  /// Contraseña para entrar: solo comprobamos que haya algo (las cuentas
+  /// viejas pueden tener contraseñas de 6 caracteres).
   static String? password(String? value) {
     if (value == null || value.isEmpty) {
       return 'validation.enterPassword'.tr();
     }
-    if (value.length < 6) {
-      return 'validation.passwordTooShort'.tr();
-    }
     return null;
+  }
+
+  /// Contraseña nueva (registro y cambio de contraseña): tiene que pasar
+  /// todas las reglas de [PasswordStrength]. [personal] son el correo y el
+  /// nombre, para que no los use como contraseña.
+  static String? strongPassword(String? value, {List<String> personal = const []}) {
+    if (value == null || value.isEmpty) {
+      return 'validation.enterPassword'.tr();
+    }
+    final strength = PasswordStrength.check(value, personal: personal);
+    if (strength.isValid) return null;
+    final missing = PasswordStrength.required.firstWhere((r) => !strength.has(r));
+    return PasswordStrength.ruleKey(missing).tr();
   }
 
   static String? confirmPassword(String? value, String password) {

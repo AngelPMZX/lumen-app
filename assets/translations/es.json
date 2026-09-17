@@ -107,7 +107,14 @@
     "verifyEmailBackToLogin": "Volver al inicio de sesión",
     "verifyEmailNotYetVerified": "Aún no encontramos la verificación. Revisa tu correo y toca el enlace.",
     "verifyEmailSuccess": "¡Correo verificado! 🎉",
-    "verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos..."
+    "verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos...",
+    "privacyTitle": "Tus datos, tuyos",
+    "privacyIntro": "Al crear tu cuenta aceptas cómo cuidamos tus datos.",
+    "privacyLink": "Ver cómo los cuidamos",
+    "privacyPoint1": "Tu diario, tus ánimos y tus notas son privados: nadie más los ve.",
+    "privacyPoint2": "Se guardan en tu cuenta de Firebase para que no los pierdas al cambiar de teléfono.",
+    "privacyPoint3": "Las estadísticas de uso son anónimas: nunca enviamos lo que escribes ni cómo te sientes.",
+    "privacyPoint4": "Puedes borrar tu cuenta y todos tus datos cuando quieras desde Editar perfil."
   },
   "validation": {
     "required": "Este campo es obligatorio",
@@ -131,7 +138,22 @@
     "minChars": "Mínimo {count} caracteres",
     "maxChars": "Máximo {count} caracteres",
     "onlyLowercaseEtc": "Solo letras minúsculas, números, puntos y guiones bajos",
-    "noStartEndDot": "No puede empezar ni terminar con punto"
+    "noStartEndDot": "No puede empezar ni terminar con punto",
+    "strengthLabel": "Fuerza de la contraseña",
+    "strength": {
+      "empty": "—",
+      "weak": "Débil",
+      "fair": "Aceptable",
+      "good": "Buena",
+      "strong": "Muy buena"
+    },
+    "passwordRules": {
+      "length": "Al menos 8 caracteres",
+      "letters": "Incluye letras",
+      "numbers": "Incluye números",
+      "notCommon": "Nada de contraseñas muy usadas",
+      "notPersonal": "Que no sea tu nombre ni tu correo"
+    }
   },
   "profileSetup": {
     "title": "Configura tu perfil",
@@ -195,26 +217,27 @@
     "analyzing": "Hemos analizado tu perfil...",
     "discovering": "Descubriendo tu arquetipo...",
     "yourArchetypeIs": "Tu arquetipo es",
-    "explorerName": "Explorador Introspectivo",
-    "explorerDesc": "Eres reflexivo, creativo y buscas profundidad emocional. Tu mundo interior es rico y lleno de matices. Ves lo que otros pasan por alto y encuentras belleza en la complejidad.",
+    "explorerName": "Alma Exploradora",
+    "explorerDesc": "Tienes una mirada reflexiva y creativa, y buscas profundidad emocional. Tu mundo interior es rico y lleno de matices: ves lo que otras personas pasan por alto y encuentras belleza en la complejidad.",
     "explorerStrengths": "Creatividad,Empatía,Autoconciencia",
-    "explorerTip": "Tu superpoder es la introspección. Lumen te ayudará a canalizar esa profundidad en crecimiento personal.",
-    "warriorName": "Guerrero Resiliente",
-    "warriorDesc": "Eres enérgico, orientado a la acción y determinado. Enfrentas los retos de frente y no te rindes fácilmente. Tu disciplina es tu mayor arma.",
+    "explorerTip": "Tu superpoder es la introspección. Lumen te ayuda a convertir esa profundidad en crecimiento personal.",
+    "warriorName": "Fuerza Resiliente",
+    "warriorDesc": "Tienes energía, determinación y ganas de actuar. Enfrentas los retos de frente y no te rindes fácilmente: tu disciplina es tu mayor aliada.",
     "warriorStrengths": "Disciplina,Fuerza mental,Perseverancia",
-    "warriorTip": "Tu superpoder es la resiliencia. Lumen potenciará tu fortaleza mental con retos a tu medida.",
+    "warriorTip": "Tu superpoder es la resiliencia. Lumen potencia tu fortaleza mental con retos a tu medida.",
     "socialName": "Alma Social",
-    "socialDesc": "Eres empático, conectado y te importan los demás. Tu energía viene de las relaciones humanas y sabes hacer que todos se sientan bienvenidos.",
+    "socialDesc": "Tienes empatía y te importan las personas. Tu energía viene de los vínculos y sabes hacer que todo el mundo se sienta bienvenido.",
     "socialStrengths": "Comunicación,Generosidad,Liderazgo social",
-    "socialTip": "Tu superpoder es la conexión. Lumen te ayudará a mantener relaciones saludables mientras cuidas de ti.",
-    "sageName": "Sabio Tranquilo",
-    "sageDesc": "Eres calmado, analítico y buscas equilibrio en todo. Tu paz interior es contagiosa y eres un ancla para quienes te rodean.",
+    "socialTip": "Tu superpoder es la conexión. Lumen te ayuda a cuidar tus relaciones mientras te cuidas.",
+    "sageName": "Mente Serena",
+    "sageDesc": "Tienes calma y mirada analítica, y buscas equilibrio en todo. Tu paz interior se contagia y eres un ancla para quienes te rodean.",
     "sageStrengths": "Paciencia,Sabiduría,Equilibrio",
-    "sageTip": "Tu superpoder es la serenidad. Lumen profundizará tu camino hacia la armonía interior.",
+    "sageTip": "Tu superpoder es la serenidad. Lumen profundiza tu camino hacia la armonía interior.",
     "freeSpiritName": "Espíritu Libre",
-    "freeSpiritDesc": "Eres espontáneo, curioso y amante del cambio. Cada día es una nueva aventura y tu optimismo ilumina cualquier habitación.",
+    "freeSpiritDesc": "Tienes espontaneidad, curiosidad y amor por el cambio. Cada día es una aventura nueva y tu optimismo ilumina cualquier lugar.",
     "freeSpiritStrengths": "Adaptabilidad,Curiosidad,Optimismo",
-    "freeSpiritTip": "Tu superpoder es la libertad. Lumen será tu compañero de aventuras en el crecimiento emocional."
+    "freeSpiritTip": "Tu superpoder es la libertad. Lumen te acompaña en cada aventura de tu crecimiento emocional.",
+    "affinity": "Afinidad"
   },
   "home": {
     "greeting": "¡Hola, {name}!",
@@ -770,7 +793,11 @@
     "noSession": "No hay sesión activa. Vuelve a iniciar sesión.",
     "invalidEmail": "Correo electrónico inválido",
     "invalidCredential": "Credenciales inválidas. Verifica tu correo y contraseña.",
-    "saveCheckConnection": "Error al guardar. Verifica tu conexión."
+    "saveCheckConnection": "Error al guardar. Verifica tu conexión.",
+    "wrongCredentials": "Correo o contraseña incorrectos",
+    "googleFailed": "No pudimos entrar con Google. Inténtalo de nuevo.",
+    "accountExistsWithEmail": "Ya existe una cuenta con ese correo. Entra con tu contraseña.",
+    "userDisabled": "Esta cuenta está deshabilitada. Escríbenos si crees que es un error."
   },
   "dailyChallenges": {
     "categories": {
@@ -883,11 +910,11 @@
   },
   "userProgress": {
     "levelTitles": {
-      "emotionalNovice": "Novato Emocional",
-      "consciousApprentice": "Aprendiz Consciente",
-      "innerExplorer": "Explorador Interior",
-      "resilientWarrior": "Guerrero Resiliente",
-      "zenMaster": "Maestro Zen"
+      "emotionalNovice": "Primeros Pasos",
+      "consciousApprentice": "Práctica Consciente",
+      "innerExplorer": "Camino Interior",
+      "resilientWarrior": "Fuerza Resiliente",
+      "zenMaster": "Maestría Zen"
     }
   },
   "achievements": {

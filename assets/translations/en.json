@@ -107,7 +107,14 @@
     "verifyEmailBackToLogin": "Volver al inicio de sesión",
     "verifyEmailNotYetVerified": "Aún no encontramos la verificación. Revisa tu correo y toca el enlace.",
     "verifyEmailSuccess": "¡Correo verificado! 🎉",
-    "verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos..."
+    "verifyEmailWaitingHint": "Revisando automáticamente cada pocos segundos...",
+    "privacyTitle": "Your data is yours",
+    "privacyIntro": "By creating your account you accept how we look after your data.",
+    "privacyLink": "See how we look after it",
+    "privacyPoint1": "Your journal, moods and notes are private: nobody else sees them.",
+    "privacyPoint2": "They are stored in your Firebase account so you do not lose them when you change phones.",
+    "privacyPoint3": "Usage stats are anonymous: we never send what you write or how you feel.",
+    "privacyPoint4": "You can delete your account and all your data anytime from Edit profile."
   },
   "validation": {
     "required": "This field is required",
@@ -131,7 +138,22 @@
     "minChars": "Minimum {count} characters",
     "maxChars": "Maximum {count} characters",
     "onlyLowercaseEtc": "Only lowercase letters, numbers, dots and underscores",
-    "noStartEndDot": "Cannot start or end with a dot"
+    "noStartEndDot": "Cannot start or end with a dot",
+    "strengthLabel": "Password strength",
+    "strength": {
+      "empty": "—",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Great"
+    },
+    "passwordRules": {
+      "length": "At least 8 characters",
+      "letters": "Include letters",
+      "numbers": "Include numbers",
+      "notCommon": "No very common passwords",
+      "notPersonal": "Not your name or email"
+    }
   },
   "profileSetup": {
     "title": "Set up your profile",
@@ -195,11 +217,11 @@
     "analyzing": "We've analyzed your profile...",
     "discovering": "Discovering your archetype...",
     "yourArchetypeIs": "Your archetype is",
-    "explorerName": "Introspective Explorer",
+    "explorerName": "Exploring Soul",
     "explorerDesc": "You are reflective, creative and seek emotional depth. Your inner world is rich and full of nuances. You see what others overlook and find beauty in complexity.",
     "explorerStrengths": "Creativity,Empathy,Self-awareness",
     "explorerTip": "Your superpower is introspection. Lumen will help you channel that depth into personal growth.",
-    "warriorName": "Resilient Warrior",
+    "warriorName": "Resilient Strength",
     "warriorDesc": "You are energetic, action-oriented and determined. You face challenges head-on and don't give up easily. Your discipline is your greatest weapon.",
     "warriorStrengths": "Discipline,Mental strength,Perseverance",
     "warriorTip": "Your superpower is resilience. Lumen will boost your mental strength with challenges tailored to you.",
@@ -207,14 +229,15 @@
     "socialDesc": "You are empathetic, connected and care about others. Your energy comes from human relationships and you know how to make everyone feel welcome.",
     "socialStrengths": "Communication,Generosity,Social leadership",
     "socialTip": "Your superpower is connection. Lumen will help you maintain healthy relationships while taking care of yourself.",
-    "sageName": "Quiet Sage",
+    "sageName": "Serene Mind",
     "sageDesc": "You are calm, analytical and seek balance in everything. Your inner peace is contagious and you are an anchor for those around you.",
     "sageStrengths": "Patience,Wisdom,Balance",
     "sageTip": "Your superpower is serenity. Lumen will deepen your path towards inner harmony.",
     "freeSpiritName": "Free Spirit",
     "freeSpiritDesc": "You are spontaneous, curious and a lover of change. Every day is a new adventure and your optimism lights up any room.",
     "freeSpiritStrengths": "Adaptability,Curiosity,Optimism",
-    "freeSpiritTip": "Your superpower is freedom. Lumen will be your adventure companion in emotional growth."
+    "freeSpiritTip": "Your superpower is freedom. Lumen will be your adventure companion in emotional growth.",
+    "affinity": "Affinity"
   },
   "home": {
     "greeting": "Hi, {name}!",
@@ -770,7 +793,11 @@
     "noSession": "No active session. Please sign in again.",
     "invalidEmail": "Invalid email address",
     "invalidCredential": "Invalid credentials. Check your email and password.",
-    "saveCheckConnection": "Could not save. Check your connection."
+    "saveCheckConnection": "Could not save. Check your connection.",
+    "wrongCredentials": "Wrong email or password",
+    "googleFailed": "We could not sign in with Google. Please try again.",
+    "accountExistsWithEmail": "An account already exists with that email. Sign in with your password.",
+    "userDisabled": "This account is disabled. Write to us if you think this is a mistake."
   },
   "dailyChallenges": {
     "categories": {

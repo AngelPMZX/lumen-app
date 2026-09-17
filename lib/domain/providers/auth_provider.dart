@@ -627,7 +627,12 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
     notifyListeners();
     return true;
   } on FirebaseAuthException catch (e) {
-    _errorMessage = _getErrorMessage(e.code);
+    // Correo o contraseña mal se responden igual: decir "no existe esa
+    // cuenta" le confirmaría a un atacante qué correos están registrados.
+    _errorMessage = switch (e.code) {
+      'user-not-found' || 'wrong-password' || 'invalid-credential' => 'errors.wrongCredentials'.tr(),
+      _ => _getErrorMessage(e.code),
+    };
     _isLoading = false;
     notifyListeners();
     return false;
@@ -752,8 +757,23 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       _isLoading = false;
       notifyListeners();
       return true;
+    } on FirebaseAuthException catch (e) {
+      // Si la sesión de Firebase falla, cerramos también la de Google para no
+      // dejar la cuenta elegida "a medias" en el siguiente intento.
+      try { await _googleSignIn.signOut(); } catch (_) {}
+      _errorMessage = switch (e.code) {
+        'account-exists-with-different-credential' => 'errors.accountExistsWithEmail'.tr(),
+        'invalid-credential' => 'errors.googleFailed'.tr(),
+        'user-disabled' => 'errors.userDisabled'.tr(),
+        _ => _getErrorMessage(e.code),
+      };
+      _isLoading = false;
+      notifyListeners();
+      return false;
     } catch (e) {
-      _errorMessage = 'Error al iniciar con Google';
+      try { await _googleSignIn.signOut(); } catch (_) {}
+      debugPrint('loginWithGoogle error: $e');
+      _errorMessage = 'errors.googleFailed'.tr();
       _isLoading = false;
       notifyListeners();
       return false;
@@ -1538,6 +1558,8 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       case 'invalid-credential': return 'errors.invalidCredential'.tr();
       case 'too-many-requests': return 'errors.tooManyRequests'.tr();
       case 'network-request-failed': return 'errors.network'.tr();
+      case 'user-disabled': return 'errors.userDisabled'.tr();
+      case 'operation-not-allowed': return 'errors.generic'.tr();
       default: return 'errors.generic'.tr();
     }
   }

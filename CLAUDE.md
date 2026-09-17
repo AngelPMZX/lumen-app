@@ -86,6 +86,11 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 
 ### Autenticación
 - Login/registro con email+password.
+- **Contraseñas seguras (2026-09-17)**: `PasswordStrength` (`lib/data/models/password_strength.dart`, lógica pura con pruebas) exige mínimo 8 caracteres, letras y números, nada de contraseñas muy usadas (lista de filtraciones, repeticiones y series tipo `abcdefgh`) ni que contenga el nombre o el correo. `Validators.strongPassword` la aplica en el registro y al cambiar la contraseña; `Validators.password` (solo "no vacía") se queda para entrar, porque hay cuentas viejas de 6 caracteres. En el registro y en editar perfil se ve una barra de fuerza con las reglas que faltan (`PasswordStrengthMeter`).
+- **Sin filtrar qué correos existen**: al entrar, `user-not-found`, `wrong-password` e `invalid-credential` responden lo mismo ("Correo o contraseña incorrectos"); el correo de recuperación ya fingía éxito con correos que no existen. Conviene activar además *Email enumeration protection* en Firebase Console.
+- **Google Sign-In**: errores traducidos (antes era un texto fijo en español), caso `account-exists-with-different-credential` explicado y cierre de sesión de Google si Firebase falla, para que el siguiente intento vuelva a preguntar la cuenta.
+- El correo se valida con un dominio de cualquier largo (antes `{2,4}` rechazaba `.online`, `.digital`…).
+- **Diseño de las pantallas de cuenta** (`lib/ui/screens/auth/widgets/auth_widgets.dart`): fondo con luces que flotan **sin `MaskFilter.blur`** (login y registro lo usaban, y también `AnimatedParticlesBackground`), tarjeta, campos con `autofillHints`, banner de error, botón de Google con su logo dibujado y nota de privacidad que abre un resumen de qué se guarda.
 - Google Sign-In (Android con SHA-1 registrado, web con `--web-port 8080`).
 - Recuperación de contraseña con cooldown de reenvío.
 - Verificación de email obligatoria (modo estricto) — Google exento. También se exige al abrir la app con sesión guardada (splash).
@@ -292,6 +297,12 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Apaga bucles (flotar, latir, titilar, rayos, halos), la sacudida del cofre y de `order`, el destello de pantalla completa al responder, el giro 3D de `reveal` y el confeti. Deja las transiciones cortas de entrada. Los sonidos y la vibración no cambian.
 - Los controladores que se crean en `initState` se deciden al abrir la pantalla; los de flutter_animate, al construir.
 
+### Registro y arquetipo (profile setup)
+- 5 pasos: usuario, sobre ti, gustos, música y **descubrir tu arquetipo**.
+- **`ArchetypeQuiz`** (`lib/data/models/archetype.dart`, lógica pura con pruebas): cada gusto suma 2 puntos y cada género 1; gana el arquetipo con más puntos y, si hay empate, el primero del enum (mismo resultado con las mismas respuestas). Antes vivía dentro de la pantalla. `Archetype` guarda el id que va a Firestore (**no renombrarlos**: `explorador`, `guerrero`, `social`, `sabio`, `libre`) y sus claves de texto.
+- La revelación (`steps/archetype_result_step.dart`) muestra el emblema entre rayos de luz con destellos, el nombre, una barra de **afinidad** (qué tan marcado salió), las fortalezas y un consejo de Lumi; suena `unlock` y `achievement`.
+- **Nombres de arquetipo y títulos de nivel en lenguaje neutro** (antes "Explorador Introspectivo", "Guerrero Resiliente", "Sabio Tranquilo", "Novato Emocional", "Maestro Zen").
+
 ### Onboarding
 - 4 slides al terminar profile setup: bienvenida, rutas, diario, jardín.
 - Colores por slide (verde, naranja, azul, morado).
@@ -382,6 +393,7 @@ flutter clean; flutter pub get
 - ~~**Jardín y tienda: polish completo**~~: hecho (2026-09-17), ver "Jardín".
 - ~~**Perfil y medallas: polish completo**~~: hecho (2026-09-17), ver "Perfil y medallas".
 - ~~**Respiración guiada y editar perfil**~~: hechos (2026-09-17), ver "Respiración guiada" y "Autenticación".
+- ~~**Registro, login y arquetipo: seguridad y polish**~~: hechos (2026-09-17), ver "Autenticación" y "Registro y arquetipo".
 - ~~**Menú principal (Home): polish completo**~~: hecho (2026-09-17), ver "Home". Pedido original (2026-09-17): Mismo checklist: jerarquía clara de las tarjetas (hoy hay muchas; `home_screen.dart` tiene ~1 800 líneas), animaciones de entrada y microinteracciones, Lumi como protagonista del saludo, check-in de ánimo más expresivo, sonidos, modo claro/oscuro, reducir animaciones y accesibilidad. Coherente con el estilo de rutas, diario y misiones.
 
 **Antes de publicar**:
