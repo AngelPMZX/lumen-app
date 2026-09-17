@@ -44,12 +44,13 @@ class _CommitStepState extends State<CommitStep>
     super.initState();
     // Un solo reto: queda elegido de entrada.
     if (_options.length == 1) _choice = 0;
-    _hold = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1300),
-    )..addStatusListener((s) {
-        if (s == AnimationStatus.completed) _commit();
-      });
+    _hold =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 1300),
+        )..addStatusListener((s) {
+          if (s == AnimationStatus.completed) _commit();
+        });
   }
 
   @override
@@ -102,54 +103,60 @@ class _CommitStepState extends State<CommitStep>
           final locked = _committed && !chosen;
           return Padding(
             padding: const EdgeInsets.only(bottom: 9),
-            child: GestureDetector(
-              onTap: _committed
-                  ? null
-                  : () {
-                      HapticFeedback.selectionClick();
-                      SoundService.instance.play(Sfx.toggleOn, volume: 0.45);
-                      _hold.reset();
-                      setState(() => _choice = i);
-                    },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 240),
-                width: double.infinity,
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: chosen
-                      ? (p.isDark
-                          ? _accent.withValues(alpha: 0.16)
-                          : Color.lerp(Colors.white, _accent, 0.16))
-                      : p.card(locked ? 0.02 : 0.06),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: chosen ? _accent : p.line(locked ? 0.05 : 0.13),
-                    width: chosen ? 1.8 : 1,
-                  ),
-                  boxShadow: locked ? null : p.cardShadow,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      chosen
-                          ? Icons.radio_button_checked_rounded
-                          : Icons.radio_button_off_rounded,
-                      size: 20,
-                      color: chosen ? p.accent(_accent) : p.inkA(0.38),
+            child: Semantics(
+              button: true,
+              selected: chosen,
+              inMutuallyExclusiveGroup: true,
+              enabled: !_committed,
+              child: GestureDetector(
+                onTap: _committed
+                    ? null
+                    : () {
+                        HapticFeedback.selectionClick();
+                        SoundService.instance.play(Sfx.toggleOn, volume: 0.45);
+                        _hold.reset();
+                        setState(() => _choice = i);
+                      },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 240),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: chosen
+                        ? (p.isDark
+                              ? _accent.withValues(alpha: 0.16)
+                              : Color.lerp(Colors.white, _accent, 0.16))
+                        : p.card(locked ? 0.02 : 0.06),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: chosen ? _accent : p.line(locked ? 0.05 : 0.13),
+                      width: chosen ? 1.8 : 1,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _options[i],
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                          color: p.inkA(locked ? 0.35 : 1),
+                    boxShadow: locked ? null : p.cardShadow,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        chosen
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_off_rounded,
+                        size: 20,
+                        color: chosen ? p.accent(_accent) : p.inkA(0.38),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _options[i],
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            height: 1.4,
+                            fontWeight: FontWeight.w600,
+                            color: p.inkA(locked ? 0.35 : 1),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -166,60 +173,69 @@ class _CommitStepState extends State<CommitStep>
     final enabled = _choice != null;
     // Sobre el relleno ámbar el texto oscuro se lee mejor en modo claro.
     final fg = p.isDark ? Colors.white : const Color(0xFF5B3A00);
-    return GestureDetector(
-      onTapDown: (_) => _startHold(),
-      onTapUp: (_) => _cancelHold(),
-      onTapCancel: _cancelHold,
-      child: AnimatedBuilder(
-        animation: _hold,
-        builder: (context, _) {
-          return Container(
-            width: double.infinity,
-            height: 58,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: _accent.withValues(alpha: enabled ? 0.14 : 0.05),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: _accent.withValues(alpha: enabled ? 0.7 : 0.2),
-                width: 1.5,
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: enabled
+          ? 'routes.commitA11y'.tr()
+          : 'routes.commitChooseFirst'.tr(),
+      onTap: enabled ? _commit : null,
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTapDown: (_) => _startHold(),
+        onTapUp: (_) => _cancelHold(),
+        onTapCancel: _cancelHold,
+        child: AnimatedBuilder(
+          animation: _hold,
+          builder: (context, _) {
+            return Container(
+              width: double.infinity,
+              height: 58,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: _accent.withValues(alpha: enabled ? 0.14 : 0.05),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: _accent.withValues(alpha: enabled ? 0.7 : 0.2),
+                  width: 1.5,
+                ),
               ),
-            ),
-            child: Stack(
-              children: [
-                // Relleno que avanza mientras se mantiene presionado
-                FractionallySizedBox(
-                  widthFactor: _hold.value,
-                  heightFactor: 1,
-                  child: Container(color: _accent.withValues(alpha: 0.55)),
-                ),
-                Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.fingerprint_rounded,
-                        size: 22,
-                        color: fg.withValues(alpha: enabled ? 1 : 0.35),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        enabled
-                            ? 'routes.commitHold'.tr()
-                            : 'routes.commitChooseFirst'.tr(),
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: fg.withValues(alpha: enabled ? 1 : 0.4),
-                        ),
-                      ),
-                    ],
+              child: Stack(
+                children: [
+                  // Relleno que avanza mientras se mantiene presionado
+                  FractionallySizedBox(
+                    widthFactor: _hold.value,
+                    heightFactor: 1,
+                    child: Container(color: _accent.withValues(alpha: 0.55)),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.fingerprint_rounded,
+                          size: 22,
+                          color: fg.withValues(alpha: enabled ? 1 : 0.35),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          enabled
+                              ? 'routes.commitHold'.tr()
+                              : 'routes.commitChooseFirst'.tr(),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: fg.withValues(alpha: enabled ? 1 : 0.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -227,9 +243,10 @@ class _CommitStepState extends State<CommitStep>
   Widget _buildCommitted() {
     return Column(
       children: [
-        const Text('🤝', style: TextStyle(fontSize: 42))
-            .animate()
-            .scale(duration: 450.ms, curve: Curves.easeOutBack),
+        const Text(
+          '🤝',
+          style: TextStyle(fontSize: 42),
+        ).animate().scale(duration: 450.ms, curve: Curves.easeOutBack),
         const SizedBox(height: 8),
         Text(
           'routes.commitDone'.tr(),

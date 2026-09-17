@@ -98,7 +98,11 @@ class _OrderStepState extends State<OrderStep> {
           color: _accent,
         ),
         const SizedBox(height: 16),
-        StepHeading(text: widget.step.title, glow: widget.routeColor, fontSize: 23),
+        StepHeading(
+          text: widget.step.title,
+          glow: widget.routeColor,
+          fontSize: 23,
+        ),
         const SizedBox(height: 10),
         StepBody(widget.step.instruction ?? ''),
         const SizedBox(height: 18),
@@ -150,54 +154,55 @@ class _OrderStepState extends State<OrderStep> {
   Widget _placedTile(int i) {
     final p = LessonPalette.of(context);
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: p.isDark
-            ? const Color(0xFF10B981).withValues(alpha: 0.14)
-            : Color.lerp(Colors.white, const Color(0xFF10B981), 0.12),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              color: Color(0xFF10B981),
-              shape: BoxShape.circle,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: p.isDark
+                ? const Color(0xFF10B981).withValues(alpha: 0.14)
+                : Color.lerp(Colors.white, const Color(0xFF10B981), 0.12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF10B981).withValues(alpha: 0.5),
             ),
-            child: Center(
-              child: Text(
-                '${i + 1}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF10B981),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '${i + 1}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _items[i],
-              style: TextStyle(
-                fontSize: 14.5,
-                height: 1.4,
-                fontWeight: FontWeight.w600,
-                color: p.ink,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _items[i],
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    height: 1.4,
+                    fontWeight: FontWeight.w600,
+                    color: p.ink,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
-    ).animate(key: ValueKey('placed_$i')).fadeIn(duration: 250.ms).slideY(
-          begin: 0.3,
-          end: 0,
-          curve: Curves.easeOutBack,
-        );
+        )
+        .animate(key: ValueKey('placed_$i'))
+        .fadeIn(duration: 250.ms)
+        .slideY(begin: 0.3, end: 0, curve: Curves.easeOutBack);
   }
 
   Widget _poolTile(int i) {
@@ -222,8 +227,11 @@ class _OrderStepState extends State<OrderStep> {
         ),
         child: Row(
           children: [
-            Icon(Icons.radio_button_unchecked_rounded,
-                size: 18, color: p.inkA(0.4)),
+            Icon(
+              Icons.radio_button_unchecked_rounded,
+              size: 18,
+              color: p.inkA(0.4),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(

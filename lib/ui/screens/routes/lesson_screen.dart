@@ -35,6 +35,7 @@ import 'steps/step_common.dart';
 import 'steps/story_step.dart';
 import 'widgets/lesson_background.dart';
 import 'widgets/lesson_complete_view.dart';
+import '../../widgets/min_tap_target.dart';
 
 enum _CharacterState { idle, correct, wrong }
 
@@ -444,7 +445,7 @@ class _LessonScreenState extends State<LessonScreen> {
         const violet = Color(0xFF8B5CF6);
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 16, 4),
+          padding: const EdgeInsets.fromLTRB(6, 4, 16, 4),
           child: Column(
             children: [
               Row(
@@ -452,7 +453,7 @@ class _LessonScreenState extends State<LessonScreen> {
                   Semantics(
                     button: true,
                     label: MaterialLocalizations.of(context).closeButtonTooltip,
-                    child: GestureDetector(
+                    child: MinTapTarget(
                       onTap: () => Navigator.pop(context),
                       child: Container(
                         width: 36,
@@ -466,9 +467,9 @@ class _LessonScreenState extends State<LessonScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 4),
                   Expanded(child: _buildProgressNodes(p)),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 6),
                   // Racha de aciertos seguidos dentro de la lección
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
@@ -480,7 +481,7 @@ class _LessonScreenState extends State<LessonScreen> {
                         : const SizedBox.shrink(),
                   ),
                   _buildAmbientToggle(p),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 2),
                   _buildXpBadge(p),
                 ],
               ),
@@ -568,7 +569,7 @@ class _LessonScreenState extends State<LessonScreen> {
       button: true,
       toggled: on,
       label: 'routes.ambientToggle'.tr(),
-      child: GestureDetector(
+      child: MinTapTarget(
         onTap: () async {
           HapticFeedback.selectionClick();
           await SoundService.instance.setLessonAmbientEnabled(!on);

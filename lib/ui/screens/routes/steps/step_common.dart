@@ -192,11 +192,7 @@ class StepNote extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 14.5,
-                height: 1.6,
-                color: p.inkA(0.9),
-              ),
+              style: TextStyle(fontSize: 14.5, height: 1.6, color: p.inkA(0.9)),
             ),
           ),
         ],

@@ -1,22 +1,39 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'package:easy_localization/easy_localization.dart';
+
 import '../../../core/constants/app_colors.dart';
+import '../../../data/models/lumi.dart';
+import '../../../data/models/routes_overview.dart';
 import '../../../data/models/wellness_route.dart';
 import '../../../domain/providers/auth_provider.dart';
-import '../../../domain/services/routes_service.dart';
-import '../../widgets/animated_particles_background.dart';
-import 'lesson_screen.dart';
-import 'widgets/lesson_path_map.dart';
-import '../../../domain/services/sound_service.dart';
 import '../../../domain/services/analytics_service.dart';
 import '../../../domain/services/app_review_service.dart';
+import '../../../domain/services/motion_service.dart';
+import '../../../domain/services/routes_service.dart';
+import '../../../domain/services/sound_service.dart';
+import '../../widgets/animated_particles_background.dart';
+import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/route_complete_dialog.dart';
+import 'lesson_screen.dart';
+import 'widgets/continue_route_card.dart';
+import 'widgets/lesson_path_map.dart';
+import 'widgets/route_card.dart';
+import 'widgets/route_progress_ring.dart';
+import '../../widgets/min_tap_target.dart';
 
+/// Pestaña de rutas: el menú (resumen, "continúa", filtros y tarjetas) y,
+/// al elegir una ruta, su mapa de lecciones.
 class RoutesScreen extends StatefulWidget {
-  const RoutesScreen({super.key});
+  /// Solo para pruebas: rutas y progreso fijos, sin Firebase.
+  @visibleForTesting
+  final List<WellnessRoute>? previewRoutes;
+  @visibleForTesting
+  final Set<String>? previewCompleted;
+
+  const RoutesScreen({super.key, this.previewRoutes, this.previewCompleted});
 
   @override
   State<RoutesScreen> createState() => _RoutesScreenState();
@@ -28,16 +45,26 @@ class _RoutesScreenState extends State<RoutesScreen> {
   List<WellnessRoute> _routes = [];
   bool _isLoading = true;
   String _loadedLocale = '';
+  RouteFilter _filter = RouteFilter.all;
+
+  bool get _preview => widget.previewRoutes != null;
 
   @override
   void initState() {
     super.initState();
+    if (_preview) {
+      _routes = widget.previewRoutes!;
+      _completedLessons = widget.previewCompleted ?? {};
+      _isLoading = false;
+      return;
+    }
     _loadProgress();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_preview) return;
     final currentLocale = context.locale.languageCode;
     if (_loadedLocale != currentLocale) {
       _loadedLocale = currentLocale;
@@ -53,6 +80,17 @@ class _RoutesScreenState extends State<RoutesScreen> {
     } catch (e) {
       debugPrint('Error loading routes: $e');
       if (mounted) setState(() { _routes = WellnessRoute.all; _isLoading = false; });
+    }
+  }
+
+  Future<void> _loadProgress() async {
+    if (_preview) return;
+    try {
+      final auth = context.read<AuthProvider>();
+      final completed = await auth.getCompletedLessons();
+      if (mounted) setState(() => _completedLessons = completed);
+    } catch (e) {
+      debugPrint('Error loading progress: $e');
     }
   }
 
@@ -76,24 +114,25 @@ class _RoutesScreenState extends State<RoutesScreen> {
     }
   }
 
-  Future<void> _loadProgress() async {
-    try {
-      final auth = context.read<AuthProvider>();
-      final completed = await auth.getCompletedLessons();
-      if (mounted) setState(() => _completedLessons = completed);
-    } catch (e) {
-      debugPrint('Error loading progress: $e');
-    }
-  }
-
   void _selectRoute(WellnessRoute route) {
     HapticFeedback.mediumImpact();
+    SoundService.instance.play(Sfx.tapNode, volume: 0.6);
     setState(() => _selectedRoute = route);
   }
 
   void _backToRoutes() {
     HapticFeedback.lightImpact();
     setState(() => _selectedRoute = null);
+  }
+
+  /// "Continúa donde te quedaste": abre el mapa de fondo y la lección encima,
+  /// así al volver se ve el desbloqueo en el mapa.
+  void _continue(RouteProgress progress) {
+    final next = progress.nextLesson;
+    if (next == null) return;
+    SoundService.instance.play(Sfx.tapNode, volume: 0.6);
+    setState(() => _selectedRoute = progress.route);
+    _openLesson(next, progress.route);
   }
 
   Future<void> _openLesson(Lesson lesson, WellnessRoute route) async {
@@ -127,204 +166,452 @@ class _RoutesScreenState extends State<RoutesScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final selected = _selectedRoute;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          AnimatedParticlesBackground(
-            particleCount: 15, maxShootingStars: isDark ? 2 : 0,
-            particleColor: isDark
-                ? Colors.white.withValues(alpha: 0.2)
-                : (_selectedRoute?.color ?? AppColors.primary).withValues(alpha: 0.08),
-          ),
-          SafeArea(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _selectedRoute == null
-                    ? _buildRoutesList(isDark)
-                    : _buildLessonMap(isDark),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════
-  // LISTA DE RUTAS
-  // ═══════════════════════════════════════════
-  Widget _buildRoutesList(bool isDark) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('routes.title'.tr(),
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white : AppColors.textPrimary)),
-          const SizedBox(height: 4),
-          Text('routes.chooseRoute'.tr(),
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-          const SizedBox(height: 20),
-          ...List.generate(_routes.length, (i) {
-            final route = _routes[i];
-            final completed = route.lessons.where((l) => _completedLessons.contains(l.id)).length;
-            final progress = route.totalLessons > 0 ? completed / route.totalLessons : 0.0;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: GestureDetector(
-                onTap: () => _selectRoute(route),
-                child: Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft, end: Alignment.bottomRight,
-                      colors: [
-                        route.color.withValues(alpha: isDark ? 0.15 : 0.08),
-                        route.colorDark.withValues(alpha: isDark ? 0.08 : 0.03),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: route.color.withValues(alpha: isDark ? 0.25 : 0.15)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 56, height: 56,
-                        decoration: BoxDecoration(
-                          color: route.color.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(18)),
-                        child: Center(child: Text(route.emoji, style: const TextStyle(fontSize: 28))),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ── FIX overflow: maxLines + ellipsis ──
-                            Text(
-                              route.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark ? Colors.white : AppColors.textPrimary),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              route.description,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 13,
-                                  color: AppColors.textSecondary),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: progress,
-                                      backgroundColor: isDark
-                                          ? Colors.white.withValues(alpha: 0.1)
-                                          : route.color.withValues(alpha: 0.15),
-                                      valueColor: AlwaysStoppedAnimation<Color>(route.color),
-                                      minHeight: 5),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text('$completed/${route.totalLessons}',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700,
-                                        color: route.color)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(Icons.chevron_right_rounded, color: route.color, size: 24),
-                    ],
+    return PopScope(
+      // Atrás desde el mapa vuelve al menú en vez de salir de la app.
+      canPop: selected == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && selected != null) _backToRoutes();
+      },
+      child: Scaffold(
+        body: Stack(
+          children: [
+            AnimatedParticlesBackground(
+              particleCount: 15,
+              maxShootingStars: isDark ? 2 : 0,
+              particleColor: isDark
+                  ? Colors.white.withValues(alpha: 0.2)
+                  : (selected?.color ?? AppColors.primary).withValues(alpha: 0.08),
+            ),
+            SafeArea(
+              child: AnimatedSwitcher(
+                duration: MotionService.reduced(context)
+                    ? const Duration(milliseconds: 120)
+                    : const Duration(milliseconds: 380),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(
+                    scale: Tween(
+                      begin: MotionService.reduced(context) ? 1.0 : 0.97,
+                      end: 1.0,
+                    ).animate(animation),
+                    child: child,
                   ),
                 ),
+                child: _isLoading
+                    ? _RoutesSkeleton(key: const ValueKey('loading'), isDark: isDark)
+                    : selected == null
+                        ? KeyedSubtree(
+                            key: const ValueKey('menu'),
+                            child: _buildMenu(isDark),
+                          )
+                        : KeyedSubtree(
+                            key: ValueKey('map_${selected.id}'),
+                            child: _buildLessonMap(selected, isDark),
+                          ),
               ),
-            ).animate().fadeIn(delay: (80 * i).ms, duration: 400.ms)
-                .slideX(begin: -0.03, end: 0);
-          }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MENÚ
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildMenu(bool isDark) {
+    final overview = RoutesOverview.compute(_routes, _completedLessons);
+    final suggested = overview.suggested;
+    final visible = overview.filtered(_filter);
+    final ink = isDark ? Colors.white : AppColors.textPrimary;
+
+    return RefreshIndicator(
+      onRefresh: _loadProgress,
+      child: CustomScrollView(
+        key: const PageStorageKey('routes_menu'),
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            sliver: SliverList.list(
+              children: [
+                // Encabezado con Lumi
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Semantics(
+                            header: true,
+                            child: Text(
+                              'routes.title'.tr(),
+                              style: TextStyle(
+                                fontSize: 26,
+                                height: 1.15,
+                                fontWeight: FontWeight.w900,
+                                color: ink,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'routes.chooseRoute'.tr(),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark ? Colors.white60 : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    LumiAvatar(
+                      mood: overview.allDone ? LumiMood.proud : LumiMood.happy,
+                      size: 62,
+                    ),
+                  ],
+                ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.1, end: 0),
+                const SizedBox(height: 16),
+                _buildStats(overview, isDark),
+                const SizedBox(height: 18),
+                if (suggested != null)
+                  ContinueRouteCard(
+                    progress: suggested,
+                    onContinue: () => _continue(suggested),
+                  )
+                      .animate()
+                      .fadeIn(delay: 120.ms, duration: 450.ms)
+                      .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic)
+                else
+                  _buildAllDone(isDark),
+                const SizedBox(height: 24),
+                Semantics(
+                  header: true,
+                  child: Text(
+                    'routes.allRoutes'.tr(),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: ink),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _buildFilters(overview, isDark),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+          if (visible.isEmpty)
+            SliverToBoxAdapter(child: _buildEmptyFilter(isDark))
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              sliver: SliverList.builder(
+                itemCount: visible.length,
+                itemBuilder: (context, i) {
+                  final progress = visible[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: RouteCard(
+                      key: ValueKey('${_filter.name}_${progress.route.id}'),
+                      progress: progress,
+                      isDark: isDark,
+                      onTap: () => _selectRoute(progress.route),
+                    )
+                        .animate()
+                        .fadeIn(delay: (60 * i).ms, duration: 380.ms)
+                        .slideY(begin: 0.06, end: 0, curve: Curves.easeOutCubic),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );
   }
 
-  // ═══════════════════════════════════════════
-  // MAPA DE LECCIONES — ESTILO DUOLINGO
-  // ═══════════════════════════════════════════
-  Widget _buildLessonMap(bool isDark) {
-    final route = _selectedRoute!;
-    final lessons = route.lessons;
-    final completed = lessons.where((l) => _completedLessons.contains(l.id)).length;
-    final progress = lessons.isEmpty ? 0.0 : completed / lessons.length;
+  Widget _buildStats(RoutesOverview overview, bool isDark) {
+    final tiles = [
+      (
+        '📚',
+        '${overview.lessonsCompleted}/${overview.lessonsTotal}',
+        'routes.statLessons'.tr(),
+        const Color(0xFF6366F1),
+      ),
+      (
+        '🏆',
+        '${overview.routesCompleted}',
+        'routes.statRoutes'.tr(),
+        const Color(0xFFF59E0B),
+      ),
+      (
+        '⚡',
+        '${overview.xpEarned}',
+        'routes.statXp'.tr(),
+        const Color(0xFF10B981),
+      ),
+    ];
+    return Row(
+      children: [
+        for (int i = 0; i < tiles.length; i++) ...[
+          if (i > 0) const SizedBox(width: 10),
+          Expanded(
+            child: Semantics(
+              label: '${tiles[i].$2} ${tiles[i].$3}',
+              excludeSemantics: true,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: tiles[i].$4.withValues(alpha: isDark ? 0.25 : 0.15),
+                  ),
+                  boxShadow: isDark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: tiles[i].$4.withValues(alpha: 0.07),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                ),
+                child: Column(
+                  children: [
+                    Text(tiles[i].$1, style: const TextStyle(fontSize: 20)),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        tiles[i].$2,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tiles[i].$3,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white54 : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ).animate().fadeIn(delay: (60 + 60 * i).ms, duration: 350.ms).scale(
+                  begin: const Offset(0.92, 0.92),
+                  end: const Offset(1, 1),
+                  delay: (60 + 60 * i).ms,
+                  duration: 350.ms,
+                  curve: Curves.easeOutBack,
+                ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildFilters(RoutesOverview overview, bool isDark) {
+    final labels = {
+      RouteFilter.all: 'routes.filterAll'.tr(),
+      RouteFilter.inProgress: 'routes.filterInProgress'.tr(),
+      RouteFilter.notStarted: 'routes.filterNew'.tr(),
+      RouteFilter.completed: 'routes.filterDone'.tr(),
+    };
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        children: [
+          for (final f in RouteFilter.values) ...[
+            _FilterChip(
+              label: labels[f]!,
+              count: overview.count(f),
+              selected: _filter == f,
+              isDark: isDark,
+              onTap: () {
+                if (_filter == f) return;
+                HapticFeedback.selectionClick();
+                SoundService.instance.play(Sfx.toggleOn, volume: 0.4);
+                setState(() => _filter = f);
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyFilter(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+      child: Column(
+        children: [
+          const LumiAvatar(mood: LumiMood.curious, size: 76),
+          const SizedBox(height: 10),
+          Text(
+            'routes.emptyFilter'.tr(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.45,
+              color: isDark ? Colors.white60 : AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(duration: 300.ms);
+  }
+
+  Widget _buildAllDone(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFBBF24), Color(0xFFF59E0B), Color(0xFFD97706)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Text('🏆', style: TextStyle(fontSize: 52))
+              .animate(onPlay: MotionService.loop(context, reverse: true))
+              .scale(begin: const Offset(1, 1), end: const Offset(1.08, 1.08), duration: 1300.ms),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'routes.allDoneTitle'.tr(),
+                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'routes.allDoneBody'.tr(),
+                  style: TextStyle(fontSize: 13.5, height: 1.4, color: Colors.white.withValues(alpha: 0.92)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: 120.ms, duration: 450.ms);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MAPA DE LECCIONES
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildLessonMap(WellnessRoute route, bool isDark) {
+    final progress = RouteProgress.compute(route, _completedLessons);
+    final ink = isDark ? Colors.white : AppColors.textPrimary;
 
     return Column(
       children: [
-        // Header
         Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
+          padding: const EdgeInsets.fromLTRB(12, 10, 20, 0),
           child: Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_rounded),
-                onPressed: _backToRoutes),
-              Container(
-                width: 44, height: 44,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [route.color, route.colorDark],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              Semantics(
+                button: true,
+                label: MaterialLocalizations.of(context).backButtonTooltip,
+                onTap: _backToRoutes,
+                excludeSemantics: true,
+                child: MinTapTarget(
+                  onTap: _backToRoutes,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white,
+                      border: Border.all(color: route.color.withValues(alpha: 0.25)),
+                      boxShadow: isDark
+                          ? null
+                          : [BoxShadow(color: route.color.withValues(alpha: 0.12), blurRadius: 10)],
+                    ),
+                    child: Icon(Icons.arrow_back_rounded, size: 20, color: ink),
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: route.color.withValues(alpha: 0.3),
-                      blurRadius: 8, offset: const Offset(0, 2)),
-                  ],
                 ),
-                child: Center(child: Text(route.emoji, style: const TextStyle(fontSize: 22))),
+              ),
+              const SizedBox(width: 6),
+              RouteProgressRing(
+                progress: progress.fraction,
+                color: progress.status == RouteStatus.completed ? const Color(0xFFF59E0B) : route.color,
+                track: route.color.withValues(alpha: isDark ? 0.2 : 0.14),
+                size: 52,
+                stroke: 4,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [route.color, route.colorDark],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Center(child: Text(route.emoji, style: const TextStyle(fontSize: 20))),
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      route.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : AppColors.textPrimary),
-                    ),
-                    Text('routes.lessonsProgress'.tr(namedArgs: {
-                      'completed': '$completed',
-                      'total': '${lessons.length}',
-                    }),
-                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0, end: progress),
-                        duration: const Duration(milliseconds: 900),
-                        curve: Curves.easeOutCubic,
-                        builder: (context, value, _) => LinearProgressIndicator(
-                          value: value,
-                          minHeight: 7,
-                          backgroundColor: route.color.withValues(alpha: isDark ? 0.15 : 0.12),
-                          valueColor: AlwaysStoppedAnimation<Color>(route.color),
-                        ),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        route.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: ink),
                       ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          'routes.lessonsProgress'.tr(namedArgs: {
+                            'completed': '${progress.completed}',
+                            'total': '${progress.total}',
+                          }),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.white60 : AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.bolt_rounded, size: 14, color: const Color(0xFFF59E0B)),
+                        Text(
+                          '${progress.xpEarned}/${progress.xpTotal}',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -333,8 +620,6 @@ class _RoutesScreenState extends State<RoutesScreen> {
           ),
         ),
         const SizedBox(height: 8),
-
-        // Mapa con camino serpenteante
         Expanded(
           child: Stack(
             children: [
@@ -374,6 +659,139 @@ class _RoutesScreenState extends State<RoutesScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final int count;
+  final bool selected;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const primary = AppColors.primary;
+    final fg = selected
+        ? Colors.white
+        : (isDark ? Colors.white70 : AppColors.textPrimary);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label, $count',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: MinTapTarget(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? const LinearGradient(colors: [AppColors.primaryLight, primary])
+                : null,
+            color: selected ? null : (isDark ? Colors.white.withValues(alpha: 0.07) : Colors.white),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected
+                  ? Colors.transparent
+                  : (isDark ? Colors.white.withValues(alpha: 0.1) : primary.withValues(alpha: 0.12)),
+            ),
+            boxShadow: selected
+                ? [BoxShadow(color: primary.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 4))]
+                : [BoxShadow(color: primary.withValues(alpha: 0), blurRadius: 12, offset: const Offset(0, 4))],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: fg),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : primary.withValues(alpha: isDark ? 0.25 : 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: selected ? Colors.white : (isDark ? Colors.white : primary),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Mientras cargan las rutas: siluetas con un brillo que las recorre.
+class _RoutesSkeleton extends StatelessWidget {
+  final bool isDark;
+
+  const _RoutesSkeleton({super.key, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.05);
+    Widget block(double h, {double? w, double r = 18}) => Container(
+          height: h,
+          width: w,
+          decoration: BoxDecoration(color: base, borderRadius: BorderRadius.circular(r)),
+        );
+    final reduced = MotionService.reduced(context);
+    final content = Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          block(28, w: 220, r: 10),
+          const SizedBox(height: 8),
+          block(14, w: 260, r: 8),
+          const SizedBox(height: 20),
+          Row(children: [
+            Expanded(child: block(78)),
+            const SizedBox(width: 10),
+            Expanded(child: block(78)),
+            const SizedBox(width: 10),
+            Expanded(child: block(78)),
+          ]),
+          const SizedBox(height: 18),
+          block(210, r: 28),
+          const SizedBox(height: 24),
+          block(112, r: 26),
+          const SizedBox(height: 14),
+          block(112, r: 26),
+        ],
+      ),
+    );
+    return Semantics(
+      label: MaterialLocalizations.of(context).refreshIndicatorSemanticLabel,
+      child: reduced
+          ? content
+          : content.animate(onPlay: (c) => c.repeat()).shimmer(
+                duration: 1400.ms,
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.7),
+              ),
     );
   }
 }

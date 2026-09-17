@@ -94,98 +94,124 @@ class _ScenarioStepState extends State<ScenarioStep> {
           final decided = _choice != null;
 
           return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: GestureDetector(
-              onTap: decided ? null : () => _choose(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 280),
-                // Sin rebote: al interpolar sombras volvería negativo el blur.
-                curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: chosen
-                      ? (p.isDark
-                          ? widget.routeColor.withValues(alpha: 0.22)
-                          : Color.lerp(Colors.white, widget.routeColor, 0.12))
-                      : p.card(decided ? 0.03 : 0.07),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: chosen
-                        ? widget.routeColor
-                        : p.line(decided ? 0.06 : 0.14),
-                    width: chosen ? 2 : 1,
-                  ),
-                  boxShadow: decided ? null : p.cardShadow,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 280),
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: chosen ? widget.routeColor : p.line(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: chosen
-                              ? const Icon(Icons.check_rounded,
-                                  size: 16, color: Colors.white)
-                              : null,
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Semantics(
+                  button: true,
+                  selected: chosen,
+                  inMutuallyExclusiveGroup: true,
+                  child: GestureDetector(
+                    onTap: decided ? null : () => _choose(i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 280),
+                      // Sin rebote: al interpolar sombras volvería negativo el blur.
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: chosen
+                            ? (p.isDark
+                                  ? widget.routeColor.withValues(alpha: 0.22)
+                                  : Color.lerp(
+                                      Colors.white,
+                                      widget.routeColor,
+                                      0.12,
+                                    ))
+                            : p.card(decided ? 0.03 : 0.07),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: chosen
+                              ? widget.routeColor
+                              : p.line(decided ? 0.06 : 0.14),
+                          width: chosen ? 2 : 1,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            options[i],
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              height: 1.4,
-                              color: p.inkA(decided && !chosen ? 0.45 : 1),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    // La consecuencia se despliega solo en la opción elegida
-                    if (chosen && i < outcomes.length) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(13),
-                        decoration: BoxDecoration(
-                          color: p.isDark
-                              ? Colors.black.withValues(alpha: 0.25)
-                              : Colors.white.withValues(alpha: 0.8),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(Icons.arrow_forward_rounded,
-                                size: 15, color: p.inkA(0.54)),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Text(
-                                outcomes[i],
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  height: 1.55,
-                                  color: p.inkA(0.85),
+                        boxShadow: decided ? null : p.cardShadow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 280),
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: chosen
+                                      ? widget.routeColor
+                                      : p.line(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: chosen
+                                    ? const Icon(
+                                        Icons.check_rounded,
+                                        size: 16,
+                                        color: Colors.white,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  options[i],
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.4,
+                                    color: p.inkA(
+                                      decided && !chosen ? 0.45 : 1,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
+                          ),
+                          // La consecuencia se despliega solo en la opción elegida
+                          if (chosen && i < outcomes.length) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(13),
+                                  decoration: BoxDecoration(
+                                    color: p.isDark
+                                        ? Colors.black.withValues(alpha: 0.25)
+                                        : Colors.white.withValues(alpha: 0.8),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.arrow_forward_rounded,
+                                        size: 15,
+                                        color: p.inkA(0.54),
+                                      ),
+                                      const SizedBox(width: 9),
+                                      Expanded(
+                                        child: Text(
+                                          outcomes[i],
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            height: 1.55,
+                                            color: p.inkA(0.85),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                                .animate()
+                                .fadeIn(duration: 350.ms)
+                                .slideY(begin: 0.15, end: 0),
                           ],
-                        ),
-                      ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.15, end: 0),
-                    ],
-                  ],
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ).animate(delay: (i * 70).ms).fadeIn(duration: 300.ms).slideX(begin: 0.05, end: 0);
+              )
+              .animate(delay: (i * 70).ms)
+              .fadeIn(duration: 300.ms)
+              .slideX(begin: 0.05, end: 0);
         }),
       ],
     );

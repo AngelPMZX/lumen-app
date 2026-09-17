@@ -8,6 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../data/models/wellness_route.dart';
 import '../../../../domain/services/sound_service.dart';
 import '../../../../domain/services/motion_service.dart';
+import '../route_theme.dart';
 
 /// Mapa de lecciones estilo Duolingo: un camino serpenteante con nodos 3D,
 /// decoración temática por ruta, destellos que fluyen por lo completado y un
@@ -187,27 +188,46 @@ class _LessonPathMapState extends State<LessonPathMap>
     final unlocked = _isUnlocked(i);
     final isCurrent = i == current;
 
+    void onTap() {
+      if (!unlocked) {
+        HapticFeedback.heavyImpact();
+        SoundService.instance.play(Sfx.toggleOff, volume: 0.4);
+        return;
+      }
+      SoundService.instance.play(Sfx.tapNode, volume: 0.7);
+      widget.onOpenLesson(lesson);
+    }
+
+    final state = completed
+        ? 'routes.nodeDone'.tr()
+        : unlocked
+            ? 'routes.nodeCurrent'.tr()
+            : 'routes.nodeLocked'.tr();
+
     return Positioned(
       left: c.dx - 85,
       top: c.dy - _faceCenter,
       width: 170,
-      child: Column(
+      child: Semantics(
+        button: true,
+        enabled: unlocked,
+        label: 'routes.nodeA11y'.tr(namedArgs: {
+          'n': '${i + 1}',
+          'title': lesson.title,
+          'state': state,
+        }),
+        onTap: unlocked ? onTap : null,
+        excludeSemantics: true,
+        child: Column(
         children: [
           _PressableNode(
             enabled: unlocked,
-            onTap: () {
-              if (!unlocked) {
-                HapticFeedback.heavyImpact();
-                SoundService.instance.play(Sfx.toggleOff, volume: 0.4);
-                return;
-              }
-              SoundService.instance.play(Sfx.tapNode, volume: 0.7);
-              widget.onOpenLesson(lesson);
-            },
+            onTap: onTap,
             child: _buildNodeFace(i, completed, unlocked, isCurrent),
           ),
           _buildLabel(lesson, completed, unlocked, isCurrent),
         ],
+      ),
       )
           .animate()
           .fadeIn(delay: (70 * i).ms, duration: 450.ms)
@@ -549,20 +569,8 @@ class _LessonPathMapState extends State<LessonPathMap>
   }
 
   // ── Decoración ─────────────────────────────────────────────────────────────
-  static const Map<String, List<String>> _themes = {
-    'emociones': ['🌈', '☁️', '🎈', '✨', '🌤️', '💭'],
-    'autoconocimiento': ['🧭', '🔮', '🗝️', '✨', '🌙', '📜'],
-    'mindfulness': ['🍃', '🪷', '🌿', '🫧', '🕊️', '🌸'],
-    'resiliencia': ['⛰️', '🎋', '🌱', '🔥', '🌄', '🪨'],
-    'autoestima': ['⭐', '🌟', '💫', '🌻', '👑', '✨'],
-    'relaciones': ['💬', '🫶', '🤝', '🌷', '🎶', '☕'],
-    'amor': ['💗', '🌹', '💌', '🦋', '💞', '🌸'],
-    'ansiedad': ['🌊', '🐚', '🫧', '⛵', '🐢', '🌿'],
-    'sueno': ['🌙', '⭐', '☁️', '💤', '🦉', '✨'],
-  };
-
   List<Widget> _buildDecorations(int count) {
-    final set = _themes[widget.route.id] ?? const ['✨', '🌿', '☁️', '⭐'];
+    final set = RouteTheme.decorations(widget.route.id);
     final rnd = math.Random(widget.route.id.hashCode);
     final widgets = <Widget>[];
 

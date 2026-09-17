@@ -188,10 +188,13 @@ class _PracticeStepState extends State<PracticeStep>
   Widget _buildIntro() {
     final p = LessonPalette.of(context);
     final minutes = _totalSeconds >= 60
-        ? 'routes.practiceMinutes'.tr(namedArgs: {
-            'n': (_totalSeconds / 60).toStringAsFixed(
-                _totalSeconds % 60 == 0 ? 0 : 1),
-          })
+        ? 'routes.practiceMinutes'.tr(
+            namedArgs: {
+              'n': (_totalSeconds / 60).toStringAsFixed(
+                _totalSeconds % 60 == 0 ? 0 : 1,
+              ),
+            },
+          )
         : 'routes.practiceSeconds'.tr(namedArgs: {'n': '$_totalSeconds'});
 
     return Column(
@@ -204,63 +207,67 @@ class _PracticeStepState extends State<PracticeStep>
           decoration: BoxDecoration(
             color: p.card(0.07),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: widget.routeColor.withValues(alpha: 0.25)),
+            border: Border.all(
+              color: widget.routeColor.withValues(alpha: 0.25),
+            ),
             boxShadow: p.cardShadow,
           ),
           child: Text(
             widget.step.content ?? '',
-            style: TextStyle(
-              fontSize: 15.5,
-              height: 1.7,
-              color: p.inkA(0.88),
-            ),
+            style: TextStyle(fontSize: 15.5, height: 1.7, color: p.inkA(0.88)),
           ),
         ),
         const SizedBox(height: 22),
         Center(
-          child: GestureDetector(
-            onTap: _start,
-            child: Container(
-              width: 128,
-              height: 128,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(colors: [
-                  widget.routeColor.withValues(alpha: 0.9),
-                  widget.routeColor.withValues(alpha: 0.45),
-                ]),
-                boxShadow: [
-                  BoxShadow(
-                    color: widget.routeColor.withValues(alpha: 0.45),
-                    blurRadius: 30,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.play_arrow_rounded,
-                      size: 44, color: Colors.white),
-                  Text(
-                    'routes.practiceStart'.tr(),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
+          child:
+              GestureDetector(
+                    onTap: _start,
+                    child: Container(
+                      width: 128,
+                      height: 128,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            widget.routeColor.withValues(alpha: 0.9),
+                            widget.routeColor.withValues(alpha: 0.45),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.routeColor.withValues(alpha: 0.45),
+                            blurRadius: 30,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.play_arrow_rounded,
+                            size: 44,
+                            color: Colors.white,
+                          ),
+                          Text(
+                            'routes.practiceStart'.tr(),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                  )
+                  .animate(onPlay: MotionService.loop(context, reverse: true))
+                  .scale(
+                    begin: const Offset(1, 1),
+                    end: const Offset(1.06, 1.06),
+                    duration: 1400.ms,
+                    curve: Curves.easeInOut,
                   ),
-                ],
-              ),
-            ),
-          )
-              .animate(onPlay: MotionService.loop(context, reverse: true))
-              .scale(
-                begin: const Offset(1, 1),
-                end: const Offset(1.06, 1.06),
-                duration: 1400.ms,
-                curve: Curves.easeInOut,
-              ),
         ),
         const SizedBox(height: 12),
         Center(
@@ -287,8 +294,10 @@ class _PracticeStepState extends State<PracticeStep>
             builder: (context, _) {
               final t = _controller.value;
               final scale = _scaleAt(_index, t);
-              final remaining =
-                  (_durationOf(_index) * (1 - t)).ceil().clamp(1, 999);
+              final remaining = (_durationOf(_index) * (1 - t)).ceil().clamp(
+                1,
+                999,
+              );
               return Stack(
                 alignment: Alignment.center,
                 children: [
@@ -319,15 +328,18 @@ class _PracticeStepState extends State<PracticeStep>
         const SizedBox(height: 20),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          child: Text(
-            _prompts[_index],
+          child: Semantics(
             key: ValueKey('prompt_$_index'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 19,
-              height: 1.45,
-              fontWeight: FontWeight.w700,
-              color: p.ink,
+            liveRegion: true,
+            child: Text(
+              _prompts[_index],
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 19,
+                height: 1.45,
+                fontWeight: FontWeight.w700,
+                color: p.ink,
+              ),
             ),
           ),
         ),
@@ -382,9 +394,10 @@ class _PracticeStepState extends State<PracticeStep>
       key: const ValueKey('done'),
       children: [
         const SizedBox(height: 8),
-        Text(_completedNaturally ? '🌿' : '👍', style: const TextStyle(fontSize: 48))
-            .animate()
-            .scale(duration: 450.ms, curve: Curves.easeOutBack),
+        Text(
+          _completedNaturally ? '🌿' : '👍',
+          style: const TextStyle(fontSize: 48),
+        ).animate().scale(duration: 450.ms, curve: Curves.easeOutBack),
         const SizedBox(height: 10),
         Text(
           _completedNaturally

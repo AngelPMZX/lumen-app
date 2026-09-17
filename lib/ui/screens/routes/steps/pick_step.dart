@@ -39,7 +39,10 @@ class _PickStepState extends State<PickStep> {
     if (_confirmed) return;
     HapticFeedback.selectionClick();
     final turningOn = !_selected.contains(i);
-    SoundService.instance.play(turningOn ? Sfx.toggleOn : Sfx.toggleOff, volume: 0.5);
+    SoundService.instance.play(
+      turningOn ? Sfx.toggleOn : Sfx.toggleOff,
+      volume: 0.5,
+    );
     setState(() {
       if (!_selected.remove(i)) _selected.add(i);
     });
@@ -87,56 +90,65 @@ class _PickStepState extends State<PickStep> {
           final on = _selected.contains(i);
           return Padding(
             padding: const EdgeInsets.only(bottom: 9),
-            child: GestureDetector(
-              onTap: () => _toggle(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                decoration: BoxDecoration(
-                  color: on
-                      ? _accent.withValues(alpha: p.isDark ? 0.2 : 0.13)
-                      : p.card(_confirmed ? 0.03 : 0.07),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: on ? _accent : p.line(0.13),
-                    width: on ? 1.8 : 1,
+            child: Semantics(
+              checked: on,
+              enabled: !_confirmed,
+              child: GestureDetector(
+                onTap: () => _toggle(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 13,
                   ),
-                  boxShadow: _confirmed ? null : p.cardShadow,
-                ),
-                child: Row(
-                  children: [
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 220),
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: on ? _accent : Colors.transparent,
-                        borderRadius: BorderRadius.circular(7),
-                        border: Border.all(
-                          color: on ? _accent : p.inkA(0.35),
-                          width: 1.6,
+                  decoration: BoxDecoration(
+                    color: on
+                        ? _accent.withValues(alpha: p.isDark ? 0.2 : 0.13)
+                        : p.card(_confirmed ? 0.03 : 0.07),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: on ? _accent : p.line(0.13),
+                      width: on ? 1.8 : 1,
+                    ),
+                    boxShadow: _confirmed ? null : p.cardShadow,
+                  ),
+                  child: Row(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 220),
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color: on ? _accent : Colors.transparent,
+                          borderRadius: BorderRadius.circular(7),
+                          border: Border.all(
+                            color: on ? _accent : p.inkA(0.35),
+                            width: 1.6,
+                          ),
+                        ),
+                        child: on
+                            ? const Icon(
+                                Icons.check_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _options[i],
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            height: 1.4,
+                            fontWeight: FontWeight.w600,
+                            color: p.inkA(_confirmed && !on ? 0.45 : 1),
+                          ),
                         ),
                       ),
-                      child: on
-                          ? const Icon(Icons.check_rounded,
-                              size: 16, color: Colors.white)
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _options[i],
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          height: 1.4,
-                          fontWeight: FontWeight.w600,
-                          color: p.inkA(_confirmed && !on ? 0.45 : 1),
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -149,14 +161,20 @@ class _PickStepState extends State<PickStep> {
             child: StepInlineButton(
               label: _selected.isEmpty
                   ? 'routes.pickNone'.tr()
-                  : 'routes.pickConfirm'.tr(namedArgs: {'n': '${_selected.length}'}),
+                  : 'routes.pickConfirm'.tr(
+                      namedArgs: {'n': '${_selected.length}'},
+                    ),
               color: _accent,
               icon: Icons.check_rounded,
               onPressed: _confirm,
             ),
           )
         else if (_feedback != null)
-          StepNote(text: _feedback!, color: _accent, icon: Icons.favorite_rounded),
+          StepNote(
+            text: _feedback!,
+            color: _accent,
+            icon: Icons.favorite_rounded,
+          ),
       ],
     );
   }

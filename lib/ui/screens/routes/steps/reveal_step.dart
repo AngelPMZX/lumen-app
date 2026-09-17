@@ -128,11 +128,19 @@ class _RevealStepState extends State<RevealStep> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.lightbulb_rounded, color: Color(0xFFFBBF24), size: 26),
+                const Icon(
+                  Icons.lightbulb_rounded,
+                  color: Color(0xFFFBBF24),
+                  size: 26,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   widget.step.content ?? '',
-                  style: TextStyle(fontSize: 16, height: 1.75, color: p.inkA(0.92)),
+                  style: TextStyle(
+                    fontSize: 16,
+                    height: 1.75,
+                    color: p.inkA(0.92),
+                  ),
                 ),
               ],
             )
@@ -141,7 +149,12 @@ class _RevealStepState extends State<RevealStep> {
               children: [
                 Icon(Icons.touch_app_rounded, size: 34, color: p.inkA(0.5))
                     .animate(onPlay: MotionService.loop(context, reverse: true))
-                    .moveY(begin: 0, end: -7, duration: 1100.ms, curve: Curves.easeInOut),
+                    .moveY(
+                      begin: 0,
+                      end: -7,
+                      duration: 1100.ms,
+                      curve: Curves.easeInOut,
+                    ),
                 const SizedBox(height: 14),
                 Text(
                   'routes.revealTap'.tr(),

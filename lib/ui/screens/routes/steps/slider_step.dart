@@ -90,7 +90,12 @@ class _SliderStepState extends State<SliderStep> {
                 height: 1,
                 color: _touched ? p.accent(bandColor) : p.inkA(0.24),
                 shadows: _touched && p.isDark
-                    ? [Shadow(color: bandColor.withValues(alpha: 0.5), blurRadius: 26)]
+                    ? [
+                        Shadow(
+                          color: bandColor.withValues(alpha: 0.5),
+                          blurRadius: 26,
+                        ),
+                      ]
                     : null,
               ),
             ),

@@ -101,40 +101,58 @@ class _StoryStepState extends State<StoryStep> {
           Center(
             key: _tapKey,
             child: _finished
-                ? const Icon(Icons.check_circle_rounded,
-                        color: Color(0xFF10B981), size: 26)
-                    .animate()
-                    .scale(duration: 300.ms, curve: Curves.easeOutBack)
-                : Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: p.card(0.08),
-                      borderRadius: BorderRadius.circular(20),
-                      border: p.isDark ? null : Border.all(color: p.line(0.08)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.touch_app_rounded,
-                            size: 16, color: p.inkA(0.6)),
-                        const SizedBox(width: 6),
-                        Text(
-                          'routes.storyTap'.tr(namedArgs: {
-                            'current': '$_shown',
-                            'total': '${_lines.length}',
-                          }),
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w700,
-                            color: p.inkA(0.6),
+                ? const Icon(
+                    Icons.check_circle_rounded,
+                    color: Color(0xFF10B981),
+                    size: 26,
+                  ).animate().scale(duration: 300.ms, curve: Curves.easeOutBack)
+                : Semantics(
+                        button: true,
+                        label: 'routes.storyNextA11y'.tr(),
+                        onTap: _showNext,
+                        excludeSemantics: true,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 9,
+                          ),
+                          decoration: BoxDecoration(
+                            color: p.card(0.08),
+                            borderRadius: BorderRadius.circular(20),
+                            border: p.isDark
+                                ? null
+                                : Border.all(color: p.line(0.08)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.touch_app_rounded,
+                                size: 16,
+                                color: p.inkA(0.6),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'routes.storyTap'.tr(
+                                  namedArgs: {
+                                    'current': '$_shown',
+                                    'total': '${_lines.length}',
+                                  },
+                                ),
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: p.inkA(0.6),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  )
-                    .animate(onPlay: MotionService.loop(context, reverse: true))
-                    .fade(begin: 0.55, end: 1, duration: 900.ms),
+                      )
+                      .animate(
+                        onPlay: MotionService.loop(context, reverse: true),
+                      )
+                      .fade(begin: 0.55, end: 1, duration: 900.ms),
           ),
         ],
       ),
@@ -176,7 +194,8 @@ class _StoryStepState extends State<StoryStep> {
               bottomRight: Radius.circular(4),
             ),
             border: Border.all(
-                color: widget.routeColor.withValues(alpha: 0.55)),
+              color: widget.routeColor.withValues(alpha: 0.55),
+            ),
           ),
           child: Text(
             raw.substring(2),
@@ -205,8 +224,10 @@ class _StoryStepState extends State<StoryStep> {
             const SizedBox(width: 8),
             Flexible(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 15,
+                  vertical: 11,
+                ),
                 decoration: BoxDecoration(
                   color: p.card(0.09),
                   boxShadow: p.cardShadow,
@@ -216,8 +237,7 @@ class _StoryStepState extends State<StoryStep> {
                     bottomLeft: Radius.circular(4),
                     bottomRight: Radius.circular(18),
                   ),
-                  border:
-                      Border.all(color: p.line(0.12)),
+                  border: Border.all(color: p.line(0.12)),
                 ),
                 child: Text(
                   raw,

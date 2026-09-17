@@ -82,7 +82,8 @@ class _ExerciseStepState extends State<ExerciseStep> {
           style: TextStyle(fontSize: 15, color: p.ink),
           cursorColor: widget.routeColor,
           decoration: InputDecoration(
-            hintText: widget.step.placeholder ?? 'routes.exercisePlaceholder'.tr(),
+            hintText:
+                widget.step.placeholder ?? 'routes.exercisePlaceholder'.tr(),
             hintStyle: TextStyle(color: p.inkA(0.3)),
             filled: true,
             fillColor: p.card(0.07),

@@ -10,11 +10,7 @@ class ReadingStep extends StatelessWidget {
   final LessonStep step;
   final Color routeColor;
 
-  const ReadingStep({
-    super.key,
-    required this.step,
-    required this.routeColor,
-  });
+  const ReadingStep({super.key, required this.step, required this.routeColor});
 
   @override
   Widget build(BuildContext context) {
