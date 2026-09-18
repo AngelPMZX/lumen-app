@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
+import 'widgets/habit_color_picker.dart';
 import '../../../data/models/habit.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../data/models/lumi.dart';
@@ -382,25 +383,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           Text('habits.habitColor'.tr(),
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
           const SizedBox(height: 8),
-          Row(
-            children: _colorOptions.map((color) {
-              final sel = _selectedColor == color;
-              return Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: GestureDetector(
-                  onTap: () { HapticFeedback.lightImpact(); setState(() => _selectedColor = color); },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: sel ? 38 : 30, height: sel ? 38 : 30,
-                    decoration: BoxDecoration(
-                      color: color, shape: BoxShape.circle,
-                      border: sel ? Border.all(color: Colors.white, width: 3) : null,
-                      boxShadow: sel ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 10, spreadRadius: 1)] : [],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+          HabitColorPicker(
+            colors: _colorOptions,
+            selected: _selectedColor,
+            onSelected: (color) => setState(() => _selectedColor = color),
           ),
           const SizedBox(height: 20),
 

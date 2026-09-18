@@ -209,26 +209,38 @@ class _CommitStepState extends State<CommitStep>
                     child: Container(color: _accent.withValues(alpha: 0.55)),
                   ),
                   Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.fingerprint_rounded,
-                          size: 22,
-                          color: fg.withValues(alpha: enabled ? 1 : 0.35),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          enabled
-                              ? 'routes.commitHold'.tr()
-                              : 'routes.commitChooseFirst'.tr(),
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: fg.withValues(alpha: enabled ? 1 : 0.4),
+                    child: Padding(
+                      // "Mantén presionado para comprometerte" no cabía en una
+                      // línea en pantallas estrechas —ni con la letra grande—
+                      // y se desbordaba por la derecha.
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.fingerprint_rounded,
+                            size: 22,
+                            color: fg.withValues(alpha: enabled ? 1 : 0.35),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              enabled
+                                  ? 'routes.commitHold'.tr()
+                                  : 'routes.commitChooseFirst'.tr(),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 15,
+                                height: 1.2,
+                                fontWeight: FontWeight.w800,
+                                color: fg.withValues(alpha: enabled ? 1 : 0.4),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
