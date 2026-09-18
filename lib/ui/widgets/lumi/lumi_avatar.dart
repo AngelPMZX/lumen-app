@@ -80,33 +80,37 @@ class _LumiAvatarState extends State<LumiAvatar> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final avatar = AnimatedBuilder(
-      animation: Listenable.merge([_idle, _bounce, _blink]),
-      builder: (context, _) {
-        final t = _idle.value;
-        final wave = math.sin(t * math.pi * 2);
-        // Rebote amortiguado: se estira hacia arriba y se aplasta al caer
-        final b = _bounce.value;
-        final bounce = b == 0 ? 0.0 : math.sin(b * math.pi * 3) * math.exp(-b * 3.2);
-        final jump = b == 0 ? 0.0 : -math.sin(b * math.pi).clamp(0.0, 1.0) * widget.size * 0.12;
+    // Lumi respira y parpadea siempre: sin RepaintBoundary, cada cuadro suyo
+    // obliga a repintar todo lo que la rodea (listas incluidas).
+    final avatar = RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_idle, _bounce, _blink]),
+        builder: (context, _) {
+          final t = _idle.value;
+          final wave = math.sin(t * math.pi * 2);
+          // Rebote amortiguado: se estira hacia arriba y se aplasta al caer
+          final b = _bounce.value;
+          final bounce = b == 0 ? 0.0 : math.sin(b * math.pi * 3) * math.exp(-b * 3.2);
+          final jump = b == 0 ? 0.0 : -math.sin(b * math.pi).clamp(0.0, 1.0) * widget.size * 0.12;
 
-        return Transform.translate(
-          offset: Offset(0, wave * widget.size * 0.03 + jump),
-          child: Transform(
-            alignment: Alignment.bottomCenter,
-            transform: Matrix4.diagonal3Values(1 - bounce * 0.12, 1 + bounce * 0.14, 1),
-            child: CustomPaint(
-              size: Size.square(widget.size),
-              painter: _LumiPainter(
-                mood: widget.mood,
-                time: t,
-                blink: _blink.value,
-                excitement: b,
+          return Transform.translate(
+            offset: Offset(0, wave * widget.size * 0.03 + jump),
+            child: Transform(
+              alignment: Alignment.bottomCenter,
+              transform: Matrix4.diagonal3Values(1 - bounce * 0.12, 1 + bounce * 0.14, 1),
+              child: CustomPaint(
+                size: Size.square(widget.size),
+                painter: _LumiPainter(
+                  mood: widget.mood,
+                  time: t,
+                  blink: _blink.value,
+                  excitement: b,
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
 
     return Semantics(

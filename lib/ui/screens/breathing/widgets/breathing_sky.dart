@@ -49,15 +49,17 @@ class _BreathingSkyState extends State<BreathingSky> with SingleTickerProviderSt
     final breath = widget.breath;
     final listenable = breath == null ? _ctrl : Listenable.merge([_ctrl, breath]);
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: listenable,
-        builder: (_, _) => CustomPaint(
-          size: Size.infinite,
-          painter: _SkyPainter(
-            stars: _stars,
-            t: _ctrl.value,
-            breath: breath?.value ?? 0,
-            tint: widget.tint,
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: listenable,
+          builder: (_, _) => CustomPaint(
+            size: Size.infinite,
+            painter: _SkyPainter(
+              stars: _stars,
+              t: _ctrl.value,
+              breath: breath?.value ?? 0,
+              tint: widget.tint,
+            ),
           ),
         ),
       ),

@@ -9,6 +9,7 @@ import '../../../../data/models/medals.dart';
 import '../../../../domain/services/motion_service.dart';
 import '../../../../domain/services/sound_service.dart';
 import '../../../widgets/journal/journal_style.dart';
+import '../../../widgets/entrance.dart';
 import '../../../widgets/lumi/lumi_avatar.dart';
 import '../../../widgets/medal_badge.dart';
 import '../../routes/widgets/route_progress_ring.dart';
@@ -87,7 +88,6 @@ class ProfileHero extends StatelessWidget {
     final progress = xpForNext == 0 ? 0.0 : (xpInLevel / xpForNext).clamp(0.0, 1.0);
     final top = colors.first;
     final bottom = Color.lerp(colors.last, Colors.black, isDark ? 0.35 : 0.15)!;
-    final reduced = MotionService.reduced(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -272,8 +272,11 @@ class ProfileHero extends StatelessWidget {
                                 decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(6)),
                               ),
                               TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0, end: progress),
-                                duration: reduced ? Duration.zero : const Duration(milliseconds: 1100),
+                                tween: Tween(
+                                    begin: entranceFrom(context, progress),
+                                    end: progress),
+                                duration: entranceDuration(
+                                    context, const Duration(milliseconds: 1100)),
                                 curve: Curves.easeOutCubic,
                                 builder: (_, v, _) => Container(
                                   width: c.maxWidth * v,
@@ -376,7 +379,6 @@ class ProfileStatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reduced = MotionService.reduced(context);
     return LayoutBuilder(
       builder: (context, c) {
         const gap = 10.0;
@@ -415,8 +417,11 @@ class ProfileStatsGrid extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0, end: s.value.toDouble()),
-                        duration: reduced ? Duration.zero : Duration(milliseconds: 900 + i * 90),
+                        tween: Tween(
+                            begin: entranceFrom(context, s.value.toDouble()),
+                            end: s.value.toDouble()),
+                        duration: entranceDuration(
+                            context, Duration(milliseconds: 900 + i * 90)),
                         curve: Curves.easeOutCubic,
                         builder: (_, v, _) => Text(
                           '${v.round()}',
@@ -614,7 +619,6 @@ class NextMedalRow extends StatelessWidget {
     final ink = isDark ? Colors.white : AppColors.textPrimary;
     final color = medal.achievement.color;
     final title = medal.achievement.titleKey?.tr() ?? medal.achievement.title;
-    final reduced = MotionService.reduced(context);
     return Semantics(
       button: true,
       label: '${'profileScreen.nextMedal'.tr()}: $title. ${medal.current}/${medal.requirement}',
@@ -646,8 +650,11 @@ class NextMedalRow extends StatelessWidget {
                         children: [
                           Container(height: 7, decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4))),
                           TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0, end: medal.progress),
-                            duration: reduced ? Duration.zero : const Duration(milliseconds: 900),
+                            tween: Tween(
+                                begin: entranceFrom(context, medal.progress),
+                                end: medal.progress),
+                            duration: entranceDuration(
+                                context, const Duration(milliseconds: 900)),
                             curve: Curves.easeOutCubic,
                             builder: (_, v, _) => Container(
                               width: c.maxWidth * v,

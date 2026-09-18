@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../domain/services/motion_service.dart';
+import '../../../widgets/entrance.dart';
 
 /// Anillo de progreso que se llena animado alrededor de [child].
 class RouteProgressRing extends StatelessWidget {
@@ -25,22 +25,29 @@ class RouteProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
-      duration: MotionService.reduced(context)
-          ? Duration.zero
-          : const Duration(milliseconds: 1100),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) => CustomPaint(
-        painter: _RingPainter(
-          progress: value,
-          color: color,
-          track: track,
-          stroke: stroke,
+    // El anillo se llena al abrir la pantalla. Si la tarjeta se creó de nuevo
+    // solo porque entró a la vista al desplazarse, se dibuja ya lleno: antes
+    // cada ruta que aparecía volvía a empezar de cero y parecía que cargaba.
+    final value = progress.clamp(0.0, 1.0);
+
+    return RepaintBoundary(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: entranceFrom(context, value), end: value),
+        duration:
+            entranceDuration(context, const Duration(milliseconds: 1100)),
+        curve: Curves.easeOutCubic,
+        builder: (context, value, child) => CustomPaint(
+          painter: _RingPainter(
+            progress: value,
+            color: color,
+            track: track,
+            stroke: stroke,
+          ),
+          child:
+              SizedBox(width: size, height: size, child: Center(child: child)),
         ),
-        child: SizedBox(width: size, height: size, child: Center(child: child)),
+        child: child,
       ),
-      child: child,
     );
   }
 }

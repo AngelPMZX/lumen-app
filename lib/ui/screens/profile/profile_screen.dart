@@ -1,7 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -15,6 +14,7 @@ import '../../../domain/providers/garden_provider.dart';
 import '../../../domain/providers/theme_provider.dart';
 import '../../../domain/services/motion_service.dart';
 import '../../../domain/services/sound_service.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/journal/journal_style.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import '../auth/widgets/auth_widgets.dart' show openExternal, openMail;
@@ -299,12 +299,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       const SizedBox(height: 22),
-      MedalShowcaseCard(
-        medals: medals,
-        isDark: isDark,
-        onOpen: () => _openAchievements(stats),
-        onMedal: _openMedal,
-      ).animate().fadeIn(delay: 300.ms, duration: 400.ms).slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic),
+      Entrance(
+        delay: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 400),
+        slideY: 0.08,
+        child: MedalShowcaseCard(
+          medals: medals,
+          isDark: isDark,
+          onOpen: () => _openAchievements(stats),
+          onMedal: _openMedal,
+        ),
+      ),
       const SizedBox(height: 24),
       SettingsGroup(
         title: 'profileScreen.groupYou'.tr(),
@@ -421,17 +426,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: isDark ? const Color(0xFF0F0F23) : const Color(0xFFF6F3FF),
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _loadExtras,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 40),
-            children: [
-              for (final (i, w) in sections.indexed)
-                i < 2
-                    ? w
-                    : w.animate().fadeIn(delay: (180 + i * 30).ms, duration: 350.ms),
-            ],
+        child: EntranceScope(
+          child: RefreshIndicator(
+            onRefresh: _loadExtras,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 40),
+              // Construir un poco antes de que entren a la vista: así al
+              // desplazarse rápido no se ve el hueco mientras se arman.
+              cacheExtent: 900,
+              children: [
+                for (final (i, w) in sections.indexed)
+                  i < 2
+                      ? w
+                      : ListEntrance(
+                          index: i,
+                          base: const Duration(milliseconds: 180),
+                          step: const Duration(milliseconds: 30),
+                          child: w,
+                        ),
+              ],
+            ),
           ),
         ),
       ),

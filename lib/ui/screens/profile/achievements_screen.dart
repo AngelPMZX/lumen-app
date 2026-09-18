@@ -10,6 +10,7 @@ import '../../../data/models/lumi.dart';
 import '../../../data/models/medals.dart';
 import '../../../domain/services/motion_service.dart';
 import '../../../domain/services/sound_service.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/journal/journal_style.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/medal_badge.dart';
@@ -75,69 +76,82 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
     return Scaffold(
       backgroundColor: bg,
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: _Header(
-              unlocked: unlocked,
-              total: _medals.length,
-              tiers: tiers,
-              isDark: isDark,
-              line: _lumiLine(unlocked, next),
-            ),
-          ),
-          if (next != null)
+      body: EntranceScope(
+        // Al cambiar de categoría la cuadrícula se rehace: ahí sí escalona.
+        restartOn: _filter,
+        child: CustomScrollView(
+          slivers: [
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: NextMedalRow(medal: next, isDark: isDark, onTap: () => showMedalDetail(context, next))
-                    .animate()
-                    .fadeIn(delay: 250.ms, duration: 350.ms)
-                    .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic),
+              child: _Header(
+                unlocked: unlocked,
+                total: _medals.length,
+                tiers: tiers,
+                isDark: isDark,
+                line: _lumiLine(unlocked, next),
               ),
             ),
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 64,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-                children: [
-                  _FilterChip(label: 'medals.all'.tr(), emoji: '✨', selected: _filter == null, isDark: isDark, onTap: () => _setFilter(null)),
-                  for (final c in MedalCategory.values)
-                    _FilterChip(
-                      label: 'medals.category.${c.name}'.tr(),
-                      emoji: _categoryEmoji(c),
-                      selected: _filter == c,
-                      isDark: isDark,
-                      onTap: () => _setFilter(c),
-                    ),
-                ],
+            if (next != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Entrance(
+                    delay: const Duration(milliseconds: 250),
+                    slideY: 0.2,
+                    child: NextMedalRow(
+                        medal: next,
+                        isDark: isDark,
+                        onTap: () => showMedalDetail(context, next)),
+                  ),
+                ),
+              ),
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 64,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                  children: [
+                    _FilterChip(label: 'medals.all'.tr(), emoji: '✨', selected: _filter == null, isDark: isDark, onTap: () => _setFilter(null)),
+                    for (final c in MedalCategory.values)
+                      _FilterChip(
+                        label: 'medals.category.${c.name}'.tr(),
+                        emoji: _categoryEmoji(c),
+                        selected: _filter == c,
+                        isDark: isDark,
+                        onTap: () => _setFilter(c),
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-          SliverPadding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.viewPaddingOf(context).bottom),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 130,
-                mainAxisExtent: 158,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 10,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, i) {
-                  final m = visible[i];
-                  return _MedalTile(medal: m, isDark: isDark, ink: ink)
-                      .animate(key: ValueKey('${_filter?.name}_${m.id}'))
-                      .fadeIn(delay: (40 * i).ms, duration: 300.ms)
-                      .scale(begin: const Offset(0.8, 0.8), end: const Offset(1, 1), duration: 450.ms, curve: Curves.easeOutBack);
-                },
-                childCount: visible.length,
+            SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.viewPaddingOf(context).bottom),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 130,
+                  mainAxisExtent: 158,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 10,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) {
+                    final m = visible[i];
+                    return ListEntrance(
+                      key: ValueKey('${_filter?.name}_${m.id}'),
+                      index: i,
+                      step: const Duration(milliseconds: 40),
+                      duration: const Duration(milliseconds: 300),
+                      scaleFrom: 0.8,
+                      scaleCurve: Curves.easeOutBack,
+                      child: _MedalTile(medal: m, isDark: isDark, ink: ink),
+                    );
+                  },
+                  childCount: visible.length,
+                ),
               ),
             ),
-          ),
         ],
+        ),
       ),
     );
   }
@@ -553,8 +567,11 @@ class MedalDetailSheet extends StatelessWidget {
                 children: [
                   Container(height: 10, decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(6))),
                   TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: medal.progress),
-                    duration: reduced ? Duration.zero : const Duration(milliseconds: 900),
+                    tween: Tween(
+                        begin: entranceFrom(context, medal.progress),
+                        end: medal.progress),
+                    duration: entranceDuration(
+                        context, const Duration(milliseconds: 900)),
                     curve: Curves.easeOutCubic,
                     builder: (_, v, _) => Container(
                       width: c.maxWidth * v,

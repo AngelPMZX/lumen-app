@@ -15,6 +15,7 @@ import '../../../domain/services/motion_service.dart';
 import '../../../domain/services/routes_service.dart';
 import '../../../domain/services/sound_service.dart';
 import '../../widgets/animated_particles_background.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/route_complete_dialog.dart';
 import 'lesson_screen.dart';
@@ -229,104 +230,122 @@ class _RoutesScreenState extends State<RoutesScreen> {
     final visible = overview.filtered(_filter);
     final ink = isDark ? Colors.white : AppColors.textPrimary;
 
-    return RefreshIndicator(
-      onRefresh: _loadProgress,
-      child: CustomScrollView(
-        key: const PageStorageKey('routes_menu'),
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            sliver: SliverList.list(
-              children: [
-                // Encabezado con Lumi
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Semantics(
-                            header: true,
-                            child: Text(
-                              'routes.title'.tr(),
-                              style: TextStyle(
-                                fontSize: 26,
-                                height: 1.15,
-                                fontWeight: FontWeight.w900,
-                                color: ink,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'routes.chooseRoute'.tr(),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDark ? Colors.white60 : AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    LumiAvatar(
-                      mood: overview.allDone ? LumiMood.proud : LumiMood.happy,
-                      size: 62,
-                    ),
-                  ],
-                ).animate().fadeIn(duration: 350.ms).slideY(begin: -0.1, end: 0),
-                const SizedBox(height: 16),
-                _buildStats(overview, isDark),
-                const SizedBox(height: 18),
-                if (suggested != null)
-                  ContinueRouteCard(
-                    progress: suggested,
-                    onContinue: () => _continue(suggested),
-                  )
-                      .animate()
-                      .fadeIn(delay: 120.ms, duration: 450.ms)
-                      .slideY(begin: 0.08, end: 0, curve: Curves.easeOutCubic)
-                else
-                  _buildAllDone(isDark),
-                const SizedBox(height: 24),
-                Semantics(
-                  header: true,
-                  child: Text(
-                    'routes.allRoutes'.tr(),
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: ink),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                _buildFilters(overview, isDark),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-          if (visible.isEmpty)
-            SliverToBoxAdapter(child: _buildEmptyFilter(isDark))
-          else
+    return EntranceScope(
+      // Al cambiar de filtro la lista se rehace: ahí sí vuelve a escalonarse.
+      restartOn: _filter,
+      child: RefreshIndicator(
+        onRefresh: _loadProgress,
+        child: CustomScrollView(
+          key: const PageStorageKey('routes_menu'),
+          physics: const AlwaysScrollableScrollPhysics(),
+          // Construir un poco antes de que entren a la vista: al desplazarse
+          // rápido no se ve el hueco mientras la tarjeta se arma.
+          cacheExtent: 900,
+          slivers: [
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-              sliver: SliverList.builder(
-                itemCount: visible.length,
-                itemBuilder: (context, i) {
-                  final progress = visible[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: RouteCard(
-                      key: ValueKey('${_filter.name}_${progress.route.id}'),
-                      progress: progress,
-                      isDark: isDark,
-                      onTap: () => _selectRoute(progress.route),
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              sliver: SliverList.list(
+                children: [
+                  // Encabezado con Lumi
+                  Entrance(
+                    slideY: -0.1,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Semantics(
+                                header: true,
+                                child: Text(
+                                  'routes.title'.tr(),
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    height: 1.15,
+                                    fontWeight: FontWeight.w900,
+                                    color: ink,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'routes.chooseRoute'.tr(),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? Colors.white60 : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        LumiAvatar(
+                          mood: overview.allDone ? LumiMood.proud : LumiMood.happy,
+                          size: 62,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildStats(overview, isDark),
+                  const SizedBox(height: 18),
+                  if (suggested != null)
+                    Entrance(
+                      delay: const Duration(milliseconds: 120),
+                      duration: const Duration(milliseconds: 450),
+                      slideY: 0.08,
+                      child: ContinueRouteCard(
+                        progress: suggested,
+                        onContinue: () => _continue(suggested),
+                      ),
                     )
-                        .animate()
-                        .fadeIn(delay: (60 * i).ms, duration: 380.ms)
-                        .slideY(begin: 0.06, end: 0, curve: Curves.easeOutCubic),
-                  );
-                },
+                  else
+                    Entrance(
+                      delay: const Duration(milliseconds: 120),
+                      duration: const Duration(milliseconds: 450),
+                      child: _buildAllDone(isDark),
+                    ),
+                  const SizedBox(height: 24),
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      'routes.allRoutes'.tr(),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: ink),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  _buildFilters(overview, isDark),
+                  const SizedBox(height: 8),
+                ],
               ),
             ),
-        ],
+            if (visible.isEmpty)
+              SliverToBoxAdapter(child: _buildEmptyFilter(isDark))
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                sliver: SliverList.builder(
+                  itemCount: visible.length,
+                  itemBuilder: (context, i) {
+                    final progress = visible[i];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: ListEntrance(
+                        index: i,
+                        duration: const Duration(milliseconds: 380),
+                        slideY: 0.06,
+                        child: RouteCard(
+                          key: ValueKey('${_filter.name}_${progress.route.id}'),
+                          progress: progress,
+                          isDark: isDark,
+                          onTap: () => _selectRoute(progress.route),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -357,63 +376,63 @@ class _RoutesScreenState extends State<RoutesScreen> {
         for (int i = 0; i < tiles.length; i++) ...[
           if (i > 0) const SizedBox(width: 10),
           Expanded(
-            child: Semantics(
-              label: '${tiles[i].$2} ${tiles[i].$3}',
-              excludeSemantics: true,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: tiles[i].$4.withValues(alpha: isDark ? 0.25 : 0.15),
+            child: ListEntrance(
+              index: i,
+              base: const Duration(milliseconds: 60),
+              scaleFrom: 0.92,
+              scaleCurve: Curves.easeOutBack,
+              child: Semantics(
+                label: '${tiles[i].$2} ${tiles[i].$3}',
+                excludeSemantics: true,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: tiles[i].$4.withValues(alpha: isDark ? 0.25 : 0.15),
+                    ),
+                    boxShadow: isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: tiles[i].$4.withValues(alpha: 0.07),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                   ),
-                  boxShadow: isDark
-                      ? null
-                      : [
-                          BoxShadow(
-                            color: tiles[i].$4.withValues(alpha: 0.07),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
+                  child: Column(
+                    children: [
+                      Text(tiles[i].$1, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          tiles[i].$2,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
                           ),
-                        ],
-                ),
-                child: Column(
-                  children: [
-                    Text(tiles[i].$1, style: const TextStyle(fontSize: 20)),
-                    const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        tiles[i].$2,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: isDark ? Colors.white : AppColors.textPrimary,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      tiles[i].$3,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white54 : AppColors.textSecondary,
+                      const SizedBox(height: 2),
+                      Text(
+                        tiles[i].$3,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white54 : AppColors.textSecondary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ).animate().fadeIn(delay: (60 + 60 * i).ms, duration: 350.ms).scale(
-                  begin: const Offset(0.92, 0.92),
-                  end: const Offset(1, 1),
-                  delay: (60 + 60 * i).ms,
-                  duration: 350.ms,
-                  curve: Curves.easeOutBack,
-                ),
+            ),
           ),
         ],
       ],
@@ -515,7 +534,7 @@ class _RoutesScreenState extends State<RoutesScreen> {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 120.ms, duration: 450.ms);
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

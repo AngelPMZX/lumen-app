@@ -355,16 +355,20 @@ class _FloatingEmoji extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bucle infinito y decorativo: dentro de un RepaintBoundary para que su
+    // vaivén no obligue a repintar la tarjeta entera en cada cuadro.
     return IgnorePointer(
-      child: Opacity(
-        opacity: opacity,
-        child: Transform.rotate(
-          angle: turns * 6.283,
-          child: Text(emoji, style: TextStyle(fontSize: size)),
-        ),
-      )
-          .animate(delay: delayMs.ms, onPlay: MotionService.loop(context, reverse: true))
-          .moveY(begin: -3, end: 3, duration: 2600.ms, curve: Curves.easeInOut),
+      child: RepaintBoundary(
+        child: Opacity(
+          opacity: opacity,
+          child: Transform.rotate(
+            angle: turns * 6.283,
+            child: Text(emoji, style: TextStyle(fontSize: size)),
+          ),
+        )
+            .animate(delay: delayMs.ms, onPlay: MotionService.loop(context, reverse: true))
+            .moveY(begin: -3, end: 3, duration: 2600.ms, curve: Curves.easeInOut),
+      ),
     );
   }
 }

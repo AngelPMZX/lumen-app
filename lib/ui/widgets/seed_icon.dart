@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/utils/image_sizing.dart';
 import '../../domain/services/motion_service.dart';
 
 /// Icono reutilizable de las "Semillas de Luz" (moneda del jardín).
@@ -67,6 +68,7 @@ class _SeedIconState extends State<SeedIcon>
       width: widget.size,
       height: widget.size,
       fit: BoxFit.contain,
+      cacheWidth: decodePixels(context, widget.size),
       errorBuilder: (_, _, _) => Text(
         '✨',
         style: TextStyle(fontSize: widget.size * 0.9),

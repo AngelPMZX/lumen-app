@@ -12,6 +12,7 @@ import '../../../data/models/mood_entry.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/services/motion_service.dart';
 import '../../../domain/services/sound_service.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/journal/journal_style.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/min_tap_target.dart';
@@ -162,52 +163,70 @@ class _DiaryScreenState extends State<DiaryScreen> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: JournalStyle.accent))
-            : RefreshIndicator(
-                color: JournalStyle.accent,
-                onRefresh: _loadEntries,
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
-                      sliver: SliverToBoxAdapter(child: _buildHeader(s)),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                      sliver: SliverList.list(children: [
-                        LumiNote(
-                          text: insights.wroteToday
-                              ? 'journal.lumiThanks'.tr()
-                              : promptKey.tr(),
-                          mood: insights.wroteToday ? LumiMood.proud : LumiMood.curious,
-                          onTap: insights.wroteToday ? null : () => _write(promptKey: promptKey),
-                        ).animate().fadeIn(delay: 80.ms, duration: 400.ms).slideX(begin: -0.04, end: 0),
-                        const SizedBox(height: 18),
-                        _buildTodayPage(s, insights, promptKey),
-                        const SizedBox(height: 18),
-                        _buildStats(s, insights),
-                        const SizedBox(height: 18),
-                        _buildCalendar(s),
-                        const SizedBox(height: 22),
-                        _buildSectionHeader(s),
-                        const SizedBox(height: 6),
-                      ]),
-                    ),
-                    if (_entries.isEmpty)
-                      SliverToBoxAdapter(child: _buildEmpty(s))
-                    else if (groups.isEmpty)
-                      SliverToBoxAdapter(child: _buildEmptyDay(s))
-                    else
+            : EntranceScope(
+                child: RefreshIndicator(
+                  color: JournalStyle.accent,
+                  onRefresh: _loadEntries,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    // Construir un poco antes de que entren a la vista.
+                    cacheExtent: 900,
+                    slivers: [
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
-                        sliver: SliverList.builder(
-                          itemCount: groups.length,
-                          itemBuilder: (context, gi) => _buildDayGroup(s, groups[gi], gi),
-                        ),
+                        padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
+                        sliver: SliverToBoxAdapter(child: _buildHeader(s)),
                       ),
-                    if (_entries.isEmpty || groups.isEmpty)
-                      const SliverToBoxAdapter(child: SizedBox(height: 110)),
-                  ],
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                        sliver: SliverList.list(children: [
+                          Entrance(
+                            delay: const Duration(milliseconds: 80),
+                            duration: const Duration(milliseconds: 400),
+                            slideX: -0.04,
+                            child: LumiNote(
+                              text: insights.wroteToday
+                                  ? 'journal.lumiThanks'.tr()
+                                  : promptKey.tr(),
+                              mood: insights.wroteToday ? LumiMood.proud : LumiMood.curious,
+                              onTap: insights.wroteToday ? null : () => _write(promptKey: promptKey),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Entrance(
+                            delay: const Duration(milliseconds: 140),
+                            duration: const Duration(milliseconds: 450),
+                            slideY: 0.06,
+                            child: _buildTodayPage(s, insights, promptKey),
+                          ),
+                          const SizedBox(height: 18),
+                          _buildStats(s, insights),
+                          const SizedBox(height: 18),
+                          Entrance(
+                            delay: const Duration(milliseconds: 260),
+                            duration: const Duration(milliseconds: 400),
+                            child: _buildCalendar(s),
+                          ),
+                          const SizedBox(height: 22),
+                          _buildSectionHeader(s),
+                          const SizedBox(height: 6),
+                        ]),
+                      ),
+                      if (_entries.isEmpty)
+                        SliverToBoxAdapter(child: _buildEmpty(s))
+                      else if (groups.isEmpty)
+                        SliverToBoxAdapter(child: _buildEmptyDay(s))
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
+                          sliver: SliverList.builder(
+                            itemCount: groups.length,
+                            itemBuilder: (context, gi) => _buildDayGroup(s, groups[gi], gi),
+                          ),
+                        ),
+                      if (_entries.isEmpty || groups.isEmpty)
+                        const SliverToBoxAdapter(child: SizedBox(height: 110)),
+                    ],
+                  ),
                 ),
               ),
       ),
@@ -268,7 +287,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           ),
         ),
       ],
-    ).animate().fadeIn(duration: 350.ms);
+    );
   }
 
   /// La hoja de hoy: invita a escribir, o muestra lo que ya escribió.
@@ -349,7 +368,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           child: WashiTape(color: latest?.mood.color ?? JournalStyle.accent),
         ),
       ],
-    ).animate().fadeIn(delay: 140.ms, duration: 450.ms).slideY(begin: 0.06, end: 0, curve: Curves.easeOutCubic);
+    );
   }
 
   Widget _buildStats(JournalStyle s, DiaryInsights insights) {
@@ -364,44 +383,44 @@ class _DiaryScreenState extends State<DiaryScreen> {
         for (int i = 0; i < tiles.length; i++) ...[
           if (i > 0) const SizedBox(width: 10),
           Expanded(
-            child: Semantics(
-              label: '${tiles[i].$2} ${tiles[i].$3}',
-              excludeSemantics: true,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                decoration: BoxDecoration(
-                  color: s.paper,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: s.paperEdge),
-                  boxShadow: s.paperShadow,
-                ),
-                child: Column(
-                  children: [
-                    Text(tiles[i].$1, style: const TextStyle(fontSize: 20)),
-                    const SizedBox(height: 2),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        tiles[i].$2,
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: s.ink),
+            child: ListEntrance(
+              index: i,
+              base: const Duration(milliseconds: 200),
+              scaleFrom: 0.92,
+              scaleCurve: Curves.easeOutBack,
+              child: Semantics(
+                label: '${tiles[i].$2} ${tiles[i].$3}',
+                excludeSemantics: true,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: s.paper,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: s.paperEdge),
+                    boxShadow: s.paperShadow,
+                  ),
+                  child: Column(
+                    children: [
+                      Text(tiles[i].$1, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          tiles[i].$2,
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: s.ink),
+                        ),
                       ),
-                    ),
-                    Text(
-                      tiles[i].$3,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: s.inkSoft),
-                    ),
-                  ],
+                      Text(
+                        tiles[i].$3,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: s.inkSoft),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ).animate().fadeIn(delay: (200 + 60 * i).ms, duration: 350.ms).scale(
-                  begin: const Offset(0.92, 0.92),
-                  end: const Offset(1, 1),
-                  delay: (200 + 60 * i).ms,
-                  duration: 350.ms,
-                  curve: Curves.easeOutBack,
-                ),
+            ),
           ),
         ],
       ],
@@ -524,7 +543,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
           ),
         ],
       ),
-    ).animate().fadeIn(delay: 260.ms, duration: 400.ms);
+    );
   }
 
   Widget _buildSectionHeader(JournalStyle s) {
@@ -570,39 +589,44 @@ class _DiaryScreenState extends State<DiaryScreen> {
   }
 
   Widget _buildDayGroup(JournalStyle s, (DateTime, List<DiaryEntry>) group, int index) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                _dayLabel(group.$1),
-                style: JournalStyle.hand(const TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w700,
-                  color: JournalStyle.accentDeep,
-                )),
-              ),
-              const SizedBox(width: 10),
-              Expanded(child: Container(height: 1, color: s.paperEdge)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          for (final entry in group.$2)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _EntryCard(
-                entry: entry,
-                moodLabel: _moodLabel(entry.mood),
-                time: DateFormat.jm(_locale).format(entry.createdAt),
-                onTap: () => _openEntry(entry),
-              ),
+    return ListEntrance(
+      index: index,
+      duration: const Duration(milliseconds: 380),
+      slideY: 0.05,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  _dayLabel(group.$1),
+                  style: JournalStyle.hand(const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w700,
+                    color: JournalStyle.accentDeep,
+                  )),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: Container(height: 1, color: s.paperEdge)),
+              ],
             ),
-        ],
+            const SizedBox(height: 8),
+            for (final entry in group.$2)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _EntryCard(
+                  entry: entry,
+                  moodLabel: _moodLabel(entry.mood),
+                  time: DateFormat.jm(_locale).format(entry.createdAt),
+                  onTap: () => _openEntry(entry),
+                ),
+              ),
+          ],
+        ),
       ),
-    ).animate().fadeIn(delay: (60 * index.clamp(0, 6)).ms, duration: 380.ms).slideY(begin: 0.05, end: 0);
+    );
   }
 
   Widget _buildEmpty(JournalStyle s) {
@@ -832,38 +856,42 @@ class _WriteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'diary.newEntry'.tr(),
-      onTap: onTap,
-      excludeSemantics: true,
-      child: GestureDetector(
+    // El botón late siempre y va encima de la lista: sin RepaintBoundary,
+    // cada latido repinta el diario entero.
+    return RepaintBoundary(
+      child: Semantics(
+        button: true,
+        label: 'diary.newEntry'.tr(),
         onTap: onTap,
-        child: Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF34D399), JournalStyle.accentDeep]),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(color: JournalStyle.accentDeep.withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6)),
-            ],
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(colors: [Color(0xFF34D399), JournalStyle.accentDeep]),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(color: JournalStyle.accentDeep.withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6)),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.draw_rounded, color: Colors.white, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  'journal.write'.tr(),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                ),
+              ],
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.draw_rounded, color: Colors.white, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                'journal.write'.tr(),
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
-              ),
-            ],
-          ),
-        ),
-      )
-          .animate(onPlay: MotionService.loop(context, reverse: true))
-          .scale(begin: const Offset(1, 1), end: const Offset(1.04, 1.04), duration: 1600.ms, curve: Curves.easeInOut),
+        )
+            .animate(onPlay: MotionService.loop(context, reverse: true))
+            .scale(begin: const Offset(1, 1), end: const Offset(1.04, 1.04), duration: 1600.ms, curve: Curves.easeInOut),
+      ),
     );
   }
 }

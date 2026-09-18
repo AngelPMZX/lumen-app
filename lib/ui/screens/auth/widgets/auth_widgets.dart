@@ -37,11 +37,13 @@ class _AuthBackgroundState extends State<AuthBackground> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (_, _) => CustomPaint(
-          size: Size.infinite,
-          painter: _AuthBgPainter(t: _ctrl.value, colors: widget.colors),
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _ctrl,
+          builder: (_, _) => CustomPaint(
+            size: Size.infinite,
+            painter: _AuthBgPainter(t: _ctrl.value, colors: widget.colors),
+          ),
         ),
       ),
     );

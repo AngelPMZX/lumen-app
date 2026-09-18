@@ -229,14 +229,16 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
           ),
 
           // Partículas de fondo
-          AnimatedBuilder(
-            animation: _bgController,
-            builder: (context, _) {
-              return CustomPaint(
-                size: MediaQuery.of(context).size,
-                painter: _VerifyBgPainter(progress: _bgController.value),
-              );
-            },
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _bgController,
+              builder: (context, _) {
+                return CustomPaint(
+                  size: MediaQuery.of(context).size,
+                  painter: _VerifyBgPainter(progress: _bgController.value),
+                );
+              },
+            ),
           ),
 
           SafeArea(

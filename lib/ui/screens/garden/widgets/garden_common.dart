@@ -10,6 +10,7 @@ import '../../../../domain/services/motion_service.dart';
 import '../../../widgets/aura_container.dart';
 import '../../../widgets/journal/journal_style.dart';
 import '../../../widgets/seed_icon.dart';
+import '../../../../core/utils/image_sizing.dart';
 import '../garden_defs.dart';
 
 /// Ilustración de un item (planta, decoración o booster) con su aura de
@@ -44,6 +45,7 @@ class GardenItemImage extends StatelessWidget {
       child: Image.asset(
         GardenAssets.preview(item, stage: stage),
         fit: BoxFit.contain,
+        cacheWidth: decodePixels(context, size),
         errorBuilder: (_, _, _) => Center(
           child: Text(
             item.type == ItemType.plant ? (item.stageEmojis?[stage] ?? item.emoji) : item.emoji,
@@ -394,11 +396,13 @@ class LightRays extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: CustomPaint(painter: _RaysPainter(color: color)),
-      ).animate(onPlay: MotionService.loop(context)).rotate(begin: 0, end: 1, duration: 24.seconds),
+      child: RepaintBoundary(
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: CustomPaint(painter: _RaysPainter(color: color)),
+        ).animate(onPlay: MotionService.loop(context)).rotate(begin: 0, end: 1, duration: 24.seconds),
+      ),
     );
   }
 }

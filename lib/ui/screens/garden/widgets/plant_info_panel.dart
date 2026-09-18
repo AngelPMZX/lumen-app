@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../core/utils/image_sizing.dart';
 import '../../../../data/models/garden_item.dart';
 import '../../../../data/models/garden_mechanics.dart';
 import '../../../../data/models/garden_state.dart';
@@ -234,6 +235,7 @@ class _StageDot extends StatelessWidget {
             child: Image.asset(
               GardenAssets.plant(item.id, stage),
               fit: BoxFit.contain,
+              cacheWidth: decodePixels(context, 42),
               errorBuilder: (_, _, _) => Center(
                 child: Text(item.stageEmojis?[stage] ?? '🌱', style: const TextStyle(fontSize: 14)),
               ),

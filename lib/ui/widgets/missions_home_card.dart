@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../domain/services/mission_service.dart';
 import '../screens/missions/missions_screen.dart';
+import 'entrance.dart';
 import '../../domain/services/motion_service.dart';
 
 /// Resumen de las misiones en el Home: tres anillos de progreso y un aviso
@@ -101,8 +102,11 @@ class MissionsHomeCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: m.fraction),
-                    duration: const Duration(milliseconds: 900),
+                    tween: Tween(
+                        begin: entranceFrom(context, m.fraction),
+                        end: m.fraction),
+                    duration: entranceDuration(
+                        context, const Duration(milliseconds: 900)),
                     curve: Curves.easeOutCubic,
                     builder: (context, v, _) => CustomPaint(
                       painter: _MiniRing(

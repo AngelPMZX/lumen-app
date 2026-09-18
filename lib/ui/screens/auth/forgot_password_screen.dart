@@ -144,14 +144,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
           ),
 
           // Partículas
-          AnimatedBuilder(
-            animation: _bgController,
-            builder: (context, _) {
-              return CustomPaint(
-                size: MediaQuery.of(context).size,
-                painter: _ForgotBgPainter(progress: _bgController.value),
-              );
-            },
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _bgController,
+              builder: (context, _) {
+                return CustomPaint(
+                  size: MediaQuery.of(context).size,
+                  painter: _ForgotBgPainter(progress: _bgController.value),
+                );
+              },
+            ),
           ),
 
           SafeArea(

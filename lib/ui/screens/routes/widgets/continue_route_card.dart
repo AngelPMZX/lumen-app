@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../data/models/routes_overview.dart';
 import '../../../../domain/services/motion_service.dart';
+import '../../../widgets/entrance.dart';
 import '../route_theme.dart';
 
 /// Tarjeta destacada del menú: "Continúa donde te quedaste" (o "Empieza tu
@@ -191,8 +192,12 @@ class ContinueRouteCard extends StatelessWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: TweenAnimationBuilder<double>(
-                                tween: Tween(begin: 0, end: progress.fraction),
-                                duration: reduced ? Duration.zero : const Duration(milliseconds: 1100),
+                                tween: Tween(
+                                    begin: entranceFrom(
+                                        context, progress.fraction),
+                                    end: progress.fraction),
+                                duration: entranceDuration(
+                                    context, const Duration(milliseconds: 1100)),
                                 curve: Curves.easeOutCubic,
                                 builder: (context, v, _) => LinearProgressIndicator(
                                   value: v,

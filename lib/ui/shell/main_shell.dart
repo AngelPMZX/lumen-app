@@ -71,7 +71,14 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: [
+          // Las 4 pestañas viven a la vez en el IndexedStack (para no perder
+          // su estado al cambiar). Sin TickerMode, las que no se ven siguen
+          // animando —Lumi, fondos, brillos— y se comen cuadros de la que sí
+          // se está usando: la app entera se siente lenta.
+          for (int i = 0; i < _screens.length; i++)
+            TickerMode(enabled: _currentIndex == i, child: _screens[i]),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

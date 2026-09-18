@@ -129,6 +129,12 @@ void main() {
     for (var i = 0; i < 14; i++) {
       await tester.pump(const Duration(milliseconds: 220));
     }
+    // Las imágenes se decodifican al tamaño en que se ven (`cacheWidth`), así
+    // que el precache de arriba no basta: hay que darles tiempo real.
+    await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 600)));
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 220));
+    }
     if (scroll > 0) {
       // Sin gestos: la pantalla vive dentro de un FittedBox y los punteros de
       // prueba no caen donde se ven.

@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_routes.dart';
+import '../../../core/utils/image_sizing.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../domain/services/motion_service.dart';
 
@@ -205,14 +206,16 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
 
           // Partículas flotantes
-          AnimatedBuilder(
-            animation: _bgCtrl,
-            builder: (context, _) {
-              return CustomPaint(
-                size: MediaQuery.of(context).size,
-                painter: _OnboardingBgPainter(progress: _bgCtrl.value),
-              );
-            },
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _bgCtrl,
+              builder: (context, _) {
+                return CustomPaint(
+                  size: MediaQuery.of(context).size,
+                  painter: _OnboardingBgPainter(progress: _bgCtrl.value),
+                );
+              },
+            ),
           ),
 
           SafeArea(
@@ -361,6 +364,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               width: 280,
               height: 280,
               fit: BoxFit.contain,
+              cacheWidth: decodePixels(context, 280),
               errorBuilder: (_, _, _) => Container(
                 width: 280,
                 height: 280,

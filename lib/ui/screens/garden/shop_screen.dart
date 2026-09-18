@@ -4,12 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/utils/image_sizing.dart';
 import '../../../data/models/garden_item.dart';
 import '../../../data/models/garden_state.dart';
 import '../../../data/models/lumi.dart';
 import '../../../domain/providers/garden_provider.dart';
 import '../../../domain/services/analytics_service.dart';
 import '../../../domain/services/sound_service.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/journal/journal_style.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import 'garden_defs.dart';
@@ -107,19 +109,24 @@ class _ShopScreenState extends State<ShopScreen> {
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 230, mainAxisSpacing: 12, crossAxisSpacing: 12, mainAxisExtent: 238),
         delegate: SliverChildBuilderDelegate((context, i) {
           final item = list[i];
-          return ShopItemCard(
-                key: ValueKey(item.id),
-                item: item,
-                owned: state.quantityOf(item.id),
-                seeds: state.seeds,
-                isDark: isDark,
-                purchaseBurst: _bursts[item.id] ?? 0,
-                onOpen: () => _open(item),
-                onBuy: () => _buy(item, context.read<GardenProvider>()),
-              )
-              .animate(key: ValueKey('in_${_category.name}_${item.id}'))
-              .fadeIn(delay: (50 * i + 40 * sectionIndex).ms, duration: 320.ms)
-              .slideY(begin: 0.12, end: 0, curve: Curves.easeOutCubic);
+          return ListEntrance(
+            key: ValueKey('in_${_category.name}_${item.id}'),
+            index: i,
+            step: const Duration(milliseconds: 50),
+            base: Duration(milliseconds: 40 * sectionIndex),
+            duration: const Duration(milliseconds: 320),
+            slideY: 0.12,
+            child: ShopItemCard(
+              key: ValueKey(item.id),
+              item: item,
+              owned: state.quantityOf(item.id),
+              seeds: state.seeds,
+              isDark: isDark,
+              purchaseBurst: _bursts[item.id] ?? 0,
+              onOpen: () => _open(item),
+              onBuy: () => _buy(item, context.read<GardenProvider>()),
+            ),
+          );
         }, childCount: list.length),
       ),
     );
@@ -129,80 +136,84 @@ class _ShopScreenState extends State<ShopScreen> {
 
     return Scaffold(
       backgroundColor: background,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: _ShopHeader(seeds: state.seeds, isDark: isDark, line: _lumiLine(state.seeds)),
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _PinnedCategories(
-                  background: background,
-                  topInset: top,
-                  child: ShopCategoryBar(
-                    isDark: isDark,
-                    selected: _category,
-                    onSelect: _select,
-                    categories: [
-                      (ItemType.plant, _categoryIcons[ItemType.plant]!, 'garden.categories.plants'.tr()),
-                      (ItemType.decoration, _categoryIcons[ItemType.decoration]!, 'garden.categories.decorations'.tr()),
-                      (ItemType.booster, _categoryIcons[ItemType.booster]!, 'garden.categories.boosters'.tr()),
-                    ],
-                  ),
-                ),
-              ),
-              if (forSeeds.isNotEmpty) ...[
+      body: EntranceScope(
+        // Al cambiar de categoría la cuadrícula se rehace: ahí sí escalona.
+        restartOn: _category,
+        child: Stack(
+          children: [
+            CustomScrollView(
+              slivers: [
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
-                    child: ShopSectionTitle(kicker: 'garden.shopSeedsKicker'.tr(), title: 'garden.shopSeedsTitle'.tr(), isDark: isDark),
-                  ),
+                  child: _ShopHeader(seeds: state.seeds, isDark: isDark, line: _lumiLine(state.seeds)),
                 ),
-                grid(forSeeds, 0),
-              ],
-              if (premium.isNotEmpty) ...[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
-                    child: ShopSectionTitle(
-                      kicker: 'garden.shopPremiumKicker'.tr(),
-                      title: 'garden.categories.premium'.tr(),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _PinnedCategories(
+                    background: background,
+                    topInset: top,
+                    child: ShopCategoryBar(
                       isDark: isDark,
-                      color: GardenPalette.violet,
+                      selected: _category,
+                      onSelect: _select,
+                      categories: [
+                        (ItemType.plant, _categoryIcons[ItemType.plant]!, 'garden.categories.plants'.tr()),
+                        (ItemType.decoration, _categoryIcons[ItemType.decoration]!, 'garden.categories.decorations'.tr()),
+                        (ItemType.booster, _categoryIcons[ItemType.booster]!, 'garden.categories.boosters'.tr()),
+                      ],
                     ),
                   ),
                 ),
-                grid(premium, 1),
-              ],
-              if (seasonal.isNotEmpty) ...[
+                if (forSeeds.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                      child: ShopSectionTitle(kicker: 'garden.shopSeedsKicker'.tr(), title: 'garden.shopSeedsTitle'.tr(), isDark: isDark),
+                    ),
+                  ),
+                  grid(forSeeds, 0),
+                ],
+                if (premium.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+                      child: ShopSectionTitle(
+                        kicker: 'garden.shopPremiumKicker'.tr(),
+                        title: 'garden.categories.premium'.tr(),
+                        isDark: isDark,
+                        color: GardenPalette.violet,
+                      ),
+                    ),
+                  ),
+                  grid(premium, 1),
+                ],
+                if (seasonal.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+                      child: ShopSectionTitle(
+                        kicker: 'garden.shopSeasonalKicker'.tr(),
+                        title: 'garden.seasonal'.tr(),
+                        isDark: isDark,
+                        color: const Color(0xFFEC4899),
+                      ),
+                    ),
+                  ),
+                  grid(seasonal, 2),
+                ],
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
-                    child: ShopSectionTitle(
-                      kicker: 'garden.shopSeasonalKicker'.tr(),
-                      title: 'garden.seasonal'.tr(),
-                      isDark: isDark,
-                      color: const Color(0xFFEC4899),
+                    padding: EdgeInsets.fromLTRB(24, 24, 24, 28 + MediaQuery.viewPaddingOf(context).bottom),
+                    child: Text(
+                      'garden.shopFooter'.tr(),
+                      textAlign: TextAlign.center,
+                      style: JournalStyle.hand(TextStyle(fontSize: 18, color: p.inkSoft)),
                     ),
                   ),
                 ),
-                grid(seasonal, 2),
               ],
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(24, 24, 24, 28 + MediaQuery.viewPaddingOf(context).bottom),
-                  child: Text(
-                    'garden.shopFooter'.tr(),
-                    textAlign: TextAlign.center,
-                    style: JournalStyle.hand(TextStyle(fontSize: 18, color: p.inkSoft)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
         ],
+        ),
       ),
     );
   }
@@ -244,6 +255,8 @@ class _ShopHeader extends StatelessWidget {
               GardensCatalog.greenhouse.assetPath,
               fit: BoxFit.cover,
               alignment: const Alignment(0, -0.2),
+              cacheWidth:
+                  decodePixels(context, MediaQuery.sizeOf(context).width),
               errorBuilder: (_, _, _) => Container(color: GardensCatalog.greenhouse.tint),
             ),
             DecoratedBox(

@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../core/utils/image_sizing.dart';
 import '../../../../data/models/achievement.dart';
 import '../../../../data/models/garden_item.dart';
 import '../../../../domain/services/motion_service.dart';
@@ -104,6 +105,8 @@ class _GardenCard extends StatelessWidget {
                 child: Image.asset(
                   garden.assetPath,
                   fit: BoxFit.cover,
+                  // Miniatura: el ancho de la hoja, no los 1536 px del archivo.
+                  cacheWidth: decodePixels(context, 360),
                   errorBuilder: (_, _, _) => Container(color: garden.tint),
                 ),
               ),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:provider/provider.dart';
+import '../../core/utils/image_sizing.dart';
 import '../../domain/providers/auth_provider.dart';
 import '../../domain/providers/garden_provider.dart';
 import 'seed_icon.dart';
@@ -98,7 +99,7 @@ class DiscoveryDialog extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildHero(style),
+          _buildHero(context, style),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
             child: Column(
@@ -194,7 +195,7 @@ class DiscoveryDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildHero(_FeatureStyle style) {
+  Widget _buildHero(BuildContext context, _FeatureStyle style) {
     final fallback = Center(
       child: Text(style.emoji, style: const TextStyle(fontSize: 72)),
     );
@@ -216,6 +217,7 @@ class DiscoveryDialog extends StatelessWidget {
           : Image.asset(
               style.image!,
               fit: BoxFit.contain,
+              cacheWidth: decodePixels(context, 340),
               errorBuilder: (_, _, _) => fallback,
             ),
     );

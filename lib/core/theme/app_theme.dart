@@ -3,7 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
-  static ThemeData get lightTheme => ThemeData(
+  // `final`, no `get`: con un getter se rehacía el tema completo —incluida la
+  // familia Poppins entera— en cada build de LumenApp.
+  static final ThemeData lightTheme = ThemeData(
         useMaterial3: true,
         colorSchemeSeed: AppColors.primary,
         brightness: Brightness.light,
@@ -62,7 +64,7 @@ class AppTheme {
         ),
       );
 
-  static ThemeData get darkTheme => ThemeData(
+  static final ThemeData darkTheme = ThemeData(
         useMaterial3: true,
         colorSchemeSeed: AppColors.primary,
         brightness: Brightness.dark,

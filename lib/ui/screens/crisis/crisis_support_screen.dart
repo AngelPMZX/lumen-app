@@ -149,12 +149,14 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
   /// despacio. Nada de MaskFilter.blur — crashea WebGL en Flutter web.
   Widget _buildAura(bool isDark) {
     return Positioned.fill(
-      child: AnimatedBuilder(
-        animation: _auraCtrl,
-        builder: (_, _) => CustomPaint(
-          painter: _AuraPainter(
-            progress: _auraCtrl.value,
-            color: isDark ? _soft : _mist,
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _auraCtrl,
+          builder: (_, _) => CustomPaint(
+            painter: _AuraPainter(
+              progress: _auraCtrl.value,
+              color: isDark ? _soft : _mist,
+            ),
           ),
         ),
       ),

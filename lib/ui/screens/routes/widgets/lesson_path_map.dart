@@ -339,36 +339,39 @@ class _LessonPathMapState extends State<LessonPathMap>
     }
 
     // Nodo actual: anillo punteado que gira + latido
-    return AnimatedBuilder(
-      animation: Listenable.merge([_flow, _pulse]),
-      builder: (context, child) {
-        return SizedBox(
-          width: _box,
-          height: _box,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Transform.rotate(
-                angle: _flow.value * math.pi * 2,
-                child: CustomPaint(
-                  size: Size.square(_nodeSize + 24),
-                  painter: _DashedRingPainter(
-                    color: color.withValues(alpha: 0.55 + _pulse.value * 0.35),
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: Listenable.merge([_flow, _pulse]),
+        builder: (context, child) {
+          return SizedBox(
+            width: _box,
+            height: _box,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Transform.rotate(
+                  angle: _flow.value * math.pi * 2,
+                  child: CustomPaint(
+                    size: Size.square(_nodeSize + 24),
+                    painter: _DashedRingPainter(
+                      color: color.withValues(alpha: 0.55 + _pulse.value * 0.35),
+                    ),
                   ),
                 ),
-              ),
-              Transform.scale(scale: 1 + _pulse.value * 0.05, child: child),
-            ],
-          ),
-        );
-      },
-      child: face,
+                Transform.scale(scale: 1 + _pulse.value * 0.05, child: child),
+              ],
+            ),
+          );
+        },
+        child: face,
+      ),
     );
   }
 
   Widget _buildStartBubble() {
     final color = widget.route.color;
-    return Padding(
+    return RepaintBoundary(
+      child: Padding(
       padding: const EdgeInsets.only(bottom: 2),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -397,8 +400,9 @@ class _LessonPathMapState extends State<LessonPathMap>
         ],
       ),
     )
-        .animate(onPlay: MotionService.loop(context, reverse: true))
-        .moveY(begin: 0, end: -5, duration: 900.ms, curve: Curves.easeInOut);
+          .animate(onPlay: MotionService.loop(context, reverse: true))
+          .moveY(begin: 0, end: -5, duration: 900.ms, curve: Curves.easeInOut),
+    );
   }
 
   Widget _buildLabel(Lesson lesson, bool completed, bool unlocked, bool isCurrent) {
@@ -493,14 +497,16 @@ class _LessonPathMapState extends State<LessonPathMap>
     return Column(
       children: [
         done
-            ? trophy
-                .animate(onPlay: MotionService.loop(context, reverse: true))
-                .scale(
-                  begin: const Offset(1, 1),
-                  end: const Offset(1.07, 1.07),
-                  duration: 1200.ms,
-                  curve: Curves.easeInOut,
-                )
+            ? RepaintBoundary(
+                child: trophy
+                    .animate(onPlay: MotionService.loop(context, reverse: true))
+                    .scale(
+                      begin: const Offset(1, 1),
+                      end: const Offset(1.07, 1.07),
+                      duration: 1200.ms,
+                      curve: Curves.easeInOut,
+                    ),
+              )
             : trophy,
         const SizedBox(height: 8),
         Text(
@@ -595,14 +601,16 @@ class _LessonPathMapState extends State<LessonPathMap>
         top: midY - size / 2,
         left: leftSide ? edge : null,
         right: leftSide ? null : edge,
-        child: IgnorePointer(
-          child: Opacity(
-            opacity: opacity,
-            child: Text(emoji, style: TextStyle(fontSize: size)),
-          )
-              .animate(onPlay: MotionService.loop(context, reverse: true))
-              .moveY(begin: -4, end: 4, duration: floatMs.ms, curve: Curves.easeInOut)
-              .rotate(begin: -0.02, end: 0.02, duration: floatMs.ms),
+        child: RepaintBoundary(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: opacity,
+              child: Text(emoji, style: TextStyle(fontSize: size)),
+            )
+                .animate(onPlay: MotionService.loop(context, reverse: true))
+                .moveY(begin: -4, end: 4, duration: floatMs.ms, curve: Curves.easeInOut)
+                .rotate(begin: -0.02, end: 0.02, duration: floatMs.ms),
+          ),
         ),
       ));
 
@@ -612,14 +620,16 @@ class _LessonPathMapState extends State<LessonPathMap>
           top: midY + 20,
           left: leftSide ? null : 18 + rnd.nextDouble() * 20,
           right: leftSide ? 18 + rnd.nextDouble() * 20 : null,
-          child: IgnorePointer(
-            child: Icon(
-              Icons.auto_awesome,
-              size: 12 + rnd.nextDouble() * 6,
-              color: widget.route.color.withValues(alpha: 0.35),
-            )
-                .animate(onPlay: MotionService.loop(context, reverse: true))
-                .fade(begin: 0.2, end: 1, duration: (1200 + rnd.nextInt(900)).ms),
+          child: RepaintBoundary(
+            child: IgnorePointer(
+              child: Icon(
+                Icons.auto_awesome,
+                size: 12 + rnd.nextDouble() * 6,
+                color: widget.route.color.withValues(alpha: 0.35),
+              )
+                  .animate(onPlay: MotionService.loop(context, reverse: true))
+                  .fade(begin: 0.2, end: 1, duration: (1200 + rnd.nextInt(900)).ms),
+            ),
           ),
         ));
       }

@@ -12,6 +12,7 @@ import '../../../domain/services/routes_service.dart';
 import '../../../domain/services/sound_service.dart';
 import '../../../domain/services/weekly_summary_service.dart';
 import '../../widgets/crisis_support_card.dart';
+import '../../widgets/entrance.dart';
 import '../routes/lesson_screen.dart';
 import '../../../domain/services/motion_service.dart';
 
@@ -178,56 +179,63 @@ class _WeeklySummaryScreenState extends State<WeeklySummaryScreen> {
     var delay = 0;
     Widget reveal(Widget child) {
       delay += 90;
-      return child.animate().fadeIn(delay: delay.ms, duration: 450.ms).slideY(begin: 0.08, end: 0);
+      return Entrance(
+        delay: Duration(milliseconds: delay),
+        duration: const Duration(milliseconds: 450),
+        slideY: 0.08,
+        child: child,
+      );
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
-      children: [
-        Row(
-          children: [
-            IconButton(
-              icon: Icon(Icons.arrow_back_rounded, color: text),
-              onPressed: () => Navigator.pop(context),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('summary.title'.tr(),
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: text)),
-                  Text(range, style: TextStyle(fontSize: 13, color: sub)),
-                ],
+    return EntranceScope(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.arrow_back_rounded, color: text),
+                onPressed: () => Navigator.pop(context),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        reveal(_buildHero(s, isDark)),
-        const SizedBox(height: 16),
-        reveal(_buildMoodStrip(s, isDark, text, sub)),
-        const SizedBox(height: 22),
-        reveal(_sectionTitle('summary.activityTitle'.tr(), text)),
-        const SizedBox(height: 10),
-        reveal(_buildStats(s, isDark, text, sub)),
-        const SizedBox(height: 22),
-        reveal(_sectionTitle('summary.insightsTitle'.tr(), text)),
-        const SizedBox(height: 10),
-        ..._buildInsights(s, isDark, text, sub).map(reveal),
-        if (_recommendation != null) ...[
+              const SizedBox(width: 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('summary.title'.tr(),
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: text)),
+                    Text(range, style: TextStyle(fontSize: 13, color: sub)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          reveal(_buildHero(s, isDark)),
+          const SizedBox(height: 16),
+          reveal(_buildMoodStrip(s, isDark, text, sub)),
           const SizedBox(height: 22),
-          reveal(_sectionTitle('summary.recommendationTitle'.tr(), text)),
+          reveal(_sectionTitle('summary.activityTitle'.tr(), text)),
           const SizedBox(height: 10),
-          reveal(_buildRecommendation(s, isDark, text, sub)),
-        ],
-        if (s.negativeDays >= 4) ...[
+          reveal(_buildStats(s, isDark, text, sub)),
           const SizedBox(height: 22),
-          reveal(CrisisSupportCard(isDark: isDark)),
+          reveal(_sectionTitle('summary.insightsTitle'.tr(), text)),
+          const SizedBox(height: 10),
+          ..._buildInsights(s, isDark, text, sub).map(reveal),
+          if (_recommendation != null) ...[
+            const SizedBox(height: 22),
+            reveal(_sectionTitle('summary.recommendationTitle'.tr(), text)),
+            const SizedBox(height: 10),
+            reveal(_buildRecommendation(s, isDark, text, sub)),
+          ],
+          if (s.negativeDays >= 4) ...[
+            const SizedBox(height: 22),
+            reveal(CrisisSupportCard(isDark: isDark)),
+          ],
+          const SizedBox(height: 22),
+          reveal(_buildClosing(s, text, sub)),
         ],
-        const SizedBox(height: 22),
-        reveal(_buildClosing(s, text, sub)),
-      ],
+      ),
     );
   }
 
@@ -509,8 +517,10 @@ class _WeeklySummaryScreenState extends State<WeeklySummaryScreen> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: fraction),
-              duration: const Duration(milliseconds: 900),
+              tween: Tween(
+                  begin: entranceFrom(context, fraction), end: fraction),
+              duration:
+                  entranceDuration(context, const Duration(milliseconds: 900)),
               curve: Curves.easeOutCubic,
               builder: (context, v, _) => LinearProgressIndicator(
                 value: v,

@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../data/models/daily_challenge.dart';
 import '../../../../domain/services/motion_service.dart';
+import '../../../widgets/entrance.dart';
 import '../../../widgets/journal/journal_style.dart';
 import '../../routes/widgets/route_progress_ring.dart';
 
@@ -155,6 +156,7 @@ class HomeProgressCard extends StatelessWidget {
     const flame = Color(0xFFF97316);
     final todayIndex = DateTime.now().weekday - 1;
     const dayKeys = ['days.monMini', 'days.tueMini', 'days.wedMini', 'days.thuMini', 'days.friMini', 'days.satMini', 'days.sunMini'];
+    final xpFraction = xpForNext == 0 ? 0.0 : xpInLevel / xpForNext;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -281,8 +283,11 @@ class HomeProgressCard extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: xpForNext == 0 ? 0 : xpInLevel / xpForNext),
-                          duration: MotionService.reduced(context) ? Duration.zero : const Duration(milliseconds: 1100),
+                          tween: Tween(
+                              begin: entranceFrom(context, xpFraction),
+                              end: xpFraction),
+                          duration: entranceDuration(
+                              context, const Duration(milliseconds: 1100)),
                           curve: Curves.easeOutCubic,
                           builder: (context, v, _) => LinearProgressIndicator(
                             value: v,

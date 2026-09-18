@@ -13,6 +13,7 @@ import '../../../domain/providers/garden_provider.dart';
 import '../../../domain/services/analytics_service.dart';
 import '../../../domain/services/mission_service.dart';
 import '../../../domain/services/sound_service.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/reward_dialog.dart';
 import '../../widgets/treasure_chest.dart';
@@ -222,9 +223,11 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
           ),
           ..._twinkles(),
           SafeArea(
-            child: _loading || _state == null
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFFBBF24)))
-                : _buildContent(_state!),
+            child: EntranceScope(
+              child: _loading || _state == null
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFFFBBF24)))
+                  : _buildContent(_state!),
+            ),
           ),
           Align(
             alignment: Alignment.center,
@@ -249,9 +252,11 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
           left: rng.nextDouble() * 400,
           top: rng.nextDouble() * 820,
           child: IgnorePointer(
-            child: Icon(Icons.auto_awesome, size: 6 + rng.nextDouble() * 8, color: Colors.white.withValues(alpha: 0.5))
-                .animate(onPlay: MotionService.loop(context, reverse: true))
-                .fade(begin: 0.1, end: 0.9, duration: (1200 + rng.nextInt(1800)).ms),
+            child: RepaintBoundary(
+              child: Icon(Icons.auto_awesome, size: 6 + rng.nextDouble() * 8, color: Colors.white.withValues(alpha: 0.5))
+                  .animate(onPlay: MotionService.loop(context, reverse: true))
+                  .fade(begin: 0.1, end: 0.9, duration: (1200 + rng.nextInt(1800)).ms),
+            ),
           ),
         ),
     ];
@@ -325,10 +330,16 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
         ),
         const SizedBox(height: 18),
         for (final (i, m) in state.missions.indexed)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _missionCard(m),
-          ).animate(delay: (120 * i).ms).fadeIn(duration: 400.ms).slideX(begin: 0.08, end: 0),
+          ListEntrance(
+            index: i,
+            step: const Duration(milliseconds: 120),
+            duration: const Duration(milliseconds: 400),
+            slideX: 0.08,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _missionCard(m),
+            ),
+          ),
         const SizedBox(height: 16),
         _chestSection(state),
       ],
@@ -408,8 +419,11 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0, end: m.fraction),
-                        duration: const Duration(milliseconds: 900),
+                        tween: Tween(
+                            begin: entranceFrom(context, m.fraction),
+                            end: m.fraction),
+                        duration: entranceDuration(
+                            context, const Duration(milliseconds: 900)),
                         curve: Curves.easeOutCubic,
                         builder: (context, v, _) => LinearProgressIndicator(
                           value: v,
@@ -502,27 +516,29 @@ class _MissionsScreenState extends State<MissionsScreen> with TickerProviderStat
           const SizedBox(height: 8),
           GestureDetector(
             onTap: ready ? _openChest : null,
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_rays, _open, _shake]),
-              builder: (context, _) {
-                final s = _shake.value;
-                final dx = s == 0 ? 0.0 : math.sin(s * math.pi * 8) * 6 * (1 - s);
-                final tilt = s == 0 ? 0.0 : math.sin(s * math.pi * 8) * 0.04 * (1 - s);
-                return Transform.translate(
-                  offset: Offset(dx, 0),
-                  child: Transform.rotate(
-                    angle: tilt,
-                    child: TreasureChest(
-                      size: 210,
-                      unlocked: state.claimedCount,
-                      locks: state.missions.length,
-                      open: Curves.easeOutBack.transform(_open.value.clamp(0.0, 1.0)).clamp(0.0, 1.0),
-                      rays: _rays.value,
-                      glowing: ready,
+            child: RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_rays, _open, _shake]),
+                builder: (context, _) {
+                  final s = _shake.value;
+                  final dx = s == 0 ? 0.0 : math.sin(s * math.pi * 8) * 6 * (1 - s);
+                  final tilt = s == 0 ? 0.0 : math.sin(s * math.pi * 8) * 0.04 * (1 - s);
+                  return Transform.translate(
+                    offset: Offset(dx, 0),
+                    child: Transform.rotate(
+                      angle: tilt,
+                      child: TreasureChest(
+                        size: 210,
+                        unlocked: state.claimedCount,
+                        locks: state.missions.length,
+                        open: Curves.easeOutBack.transform(_open.value.clamp(0.0, 1.0)).clamp(0.0, 1.0),
+                        rays: _rays.value,
+                        glowing: ready,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
           if (ready)

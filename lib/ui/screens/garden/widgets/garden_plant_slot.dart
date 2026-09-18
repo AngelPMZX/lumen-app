@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../core/utils/image_sizing.dart';
 import '../../../../data/models/garden_item.dart';
 import '../../../../data/models/garden_mechanics.dart';
 import '../../../../data/models/garden_state.dart';
@@ -414,6 +415,7 @@ class _AdultPlantState extends State<AdultPlant> with TickerProviderStateMixin {
               child: Image.asset(
                 widget.assetPath,
                 fit: BoxFit.contain,
+                cacheWidth: decodePixels(context, size),
                 errorBuilder: (_, _, _) => Center(
                   child: Text(item.stageEmojis?[PlantStage.adult] ?? item.emoji, style: TextStyle(fontSize: size * 0.4)),
                 ),

@@ -13,6 +13,7 @@ import '../../../domain/services/analytics_service.dart';
 import '../../../domain/services/notification_service.dart';
 import '../../../domain/services/sound_service.dart';
 import '../../widgets/discovery_dialog.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/journal/journal_style.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/min_tap_target.dart';
@@ -343,76 +344,85 @@ class _RemindersScreenState extends State<RemindersScreen> {
             : RefreshIndicator(
                 color: JournalStyle.accent,
                 onRefresh: _loadAll,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-                  children: [
-                    _buildTopBar(s),
-                    const SizedBox(height: 12),
-                    _buildHabitsHero(s),
-                    const SizedBox(height: 16),
-                    if (_habits.isEmpty)
-                      _buildEmpty(
-                        s,
-                        mood: LumiMood.curious,
-                        title: 'habits.emptyState'.tr(),
-                        body: 'journal.habitsEmptyBody'.tr(),
-                      )
-                    else
-                      for (int i = 0; i < _habits.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Dismissible(
-                            key: Key(_habits[i].id),
-                            direction: DismissDirection.endToStart,
-                            background: _deleteBackground(),
-                            confirmDismiss: (_) async {
-                              _deleteHabit(_habits[i]);
-                              return false;
-                            },
-                            child: _buildHabitCard(s, _habits[i], i),
-                          ),
-                        ),
-                    _AddButton(
-                      label: 'habits.addHabit'.tr(),
-                      color: JournalStyle.accent,
-                      onTap: _addHabit,
-                    ),
-                    if (_habits.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Text(
-                          'habits.swipeToDelete'.tr(),
-                          style: TextStyle(fontSize: 11.5, color: s.inkSoft, fontStyle: FontStyle.italic),
-                        ),
+                child: EntranceScope(
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
+                    // Construir un poco antes de que entren a la vista.
+                    cacheExtent: 900,
+                    children: [
+                      _buildTopBar(s),
+                      const SizedBox(height: 12),
+                      Entrance(
+                        delay: const Duration(milliseconds: 80),
+                        duration: const Duration(milliseconds: 400),
+                        slideY: 0.06,
+                        child: _buildHabitsHero(s),
                       ),
-                    ],
-                    const SizedBox(height: 30),
-                    _buildRemindersHeader(s),
-                    const SizedBox(height: 12),
-                    if (_reminders.isEmpty)
-                      _buildEmpty(
-                        s,
-                        mood: LumiMood.sleepy,
-                        title: 'reminders.emptyState'.tr(),
-                        body: 'journal.remindersEmptyBody'.tr(),
-                      )
-                    else
-                      for (int i = 0; i < _reminders.length; i++)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Dismissible(
-                            key: Key(_reminders[i].id),
-                            direction: DismissDirection.endToStart,
-                            background: _deleteBackground(),
-                            confirmDismiss: (_) async {
-                              _deleteReminder(_reminders[i]);
-                              return false;
-                            },
-                            child: _buildReminderCard(s, _reminders[i], i),
+                      const SizedBox(height: 16),
+                      if (_habits.isEmpty)
+                        _buildEmpty(
+                          s,
+                          mood: LumiMood.curious,
+                          title: 'habits.emptyState'.tr(),
+                          body: 'journal.habitsEmptyBody'.tr(),
+                        )
+                      else
+                        for (int i = 0; i < _habits.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Dismissible(
+                              key: Key(_habits[i].id),
+                              direction: DismissDirection.endToStart,
+                              background: _deleteBackground(),
+                              confirmDismiss: (_) async {
+                                _deleteHabit(_habits[i]);
+                                return false;
+                              },
+                              child: _buildHabitCard(s, _habits[i], i),
+                            ),
+                          ),
+                      _AddButton(
+                        label: 'habits.addHabit'.tr(),
+                        color: JournalStyle.accent,
+                        onTap: _addHabit,
+                      ),
+                      if (_habits.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            'habits.swipeToDelete'.tr(),
+                            style: TextStyle(fontSize: 11.5, color: s.inkSoft, fontStyle: FontStyle.italic),
                           ),
                         ),
-                  ],
+                      ],
+                      const SizedBox(height: 30),
+                      _buildRemindersHeader(s),
+                      const SizedBox(height: 12),
+                      if (_reminders.isEmpty)
+                        _buildEmpty(
+                          s,
+                          mood: LumiMood.sleepy,
+                          title: 'reminders.emptyState'.tr(),
+                          body: 'journal.remindersEmptyBody'.tr(),
+                        )
+                      else
+                        for (int i = 0; i < _reminders.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Dismissible(
+                              key: Key(_reminders[i].id),
+                              direction: DismissDirection.endToStart,
+                              background: _deleteBackground(),
+                              confirmDismiss: (_) async {
+                                _deleteReminder(_reminders[i]);
+                                return false;
+                              },
+                              child: _buildReminderCard(s, _reminders[i], i),
+                            ),
+                          ),
+                    ],
+                  ),
                 ),
               ),
       ),
@@ -523,7 +533,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
           LumiAvatar(mood: lumi, size: 58),
         ],
       ),
-    ).animate().fadeIn(delay: 80.ms, duration: 400.ms).slideY(begin: 0.06, end: 0);
+    );
   }
 
   Widget _buildHabitCard(JournalStyle s, Habit habit, int index) {
@@ -542,160 +552,164 @@ class _RemindersScreenState extends State<RemindersScreen> {
     final color = habit.color;
     const dayKeys = ['days.monMini', 'days.tueMini', 'days.wedMini', 'days.thuMini', 'days.friMini', 'days.satMini', 'days.sunMini'];
 
-    return Semantics(
-      button: true,
-      checked: checked,
-      label: '$title${description == null ? '' : ', $description'}',
-      hint: streak >= 2 ? 'journal.streakDays'.plural(streak) : null,
-      onTap: () => _toggleHabit(habit),
-      excludeSemantics: true,
-      child: GestureDetector(
+    return ListEntrance(
+      index: index,
+      slideY: 0.06,
+      child: Semantics(
+        button: true,
+        checked: checked,
+        label: '$title${description == null ? '' : ', $description'}',
+        hint: streak >= 2 ? 'journal.streakDays'.plural(streak) : null,
         onTap: () => _toggleHabit(habit),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
-          decoration: BoxDecoration(
-            color: checked
-                ? Color.lerp(s.paper, color, s.isDark ? 0.16 : 0.1)
-                : s.paper,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: checked ? color.withValues(alpha: 0.5) : s.paperEdge,
-              width: checked ? 1.6 : 1,
-            ),
-            boxShadow: s.paperShadow,
-          ),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      alignment: Alignment.center,
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 280),
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(17),
-                            color: checked ? color : color.withValues(alpha: s.isDark ? 0.18 : 0.12),
-                          ),
-                          child: Center(
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 260),
-                              transitionBuilder: (child, a) => ScaleTransition(scale: a, child: child),
-                              child: checked
-                                  ? const Icon(Icons.check_rounded, key: ValueKey('c'), color: Colors.white, size: 30)
-                                  : Text(habit.emoji, key: const ValueKey('e'), style: const TextStyle(fontSize: 26)),
-                            ),
-                          ),
-                        ),
-                        if (_burstHabit == habit.id && checked)
-                          Positioned(
-                            child: SparkleBurst(key: ValueKey('burst_$_burstSeed'), color: color, size: 110, seed: _burstSeed),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: s.ink),
-                        ),
-                        if (description != null && description.isNotEmpty)
-                          Text(
-                            description,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12.5, color: s.inkSoft),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  if (streak >= 2)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF97316).withValues(alpha: s.isDark ? 0.2 : 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '🔥 $streak',
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w900,
-                          color: s.isDark ? const Color(0xFFFDBA74) : const Color(0xFFC2410C),
-                        ),
-                      ),
-                    )
-                  else if (!checked)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        'habits.checkInXp'.tr(),
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color.lerp(color, s.isDark ? Colors.white : Colors.black, 0.2)),
-                      ),
-                    ),
-                ],
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () => _toggleHabit(habit),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.fromLTRB(12, 12, 14, 12),
+            decoration: BoxDecoration(
+              color: checked
+                  ? Color.lerp(s.paper, color, s.isDark ? 0.16 : 0.1)
+                  : s.paper,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: checked ? color.withValues(alpha: 0.5) : s.paperEdge,
+                width: checked ? 1.6 : 1,
               ),
-              const SizedBox(height: 10),
-              // Semana: 7 puntos, hoy a la derecha
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  for (int i = 0; i < 7; i++)
-                    () {
-                      final (day, done) = week[i];
-                      final isToday = i == 6;
-                      return Column(
+              boxShadow: s.paperShadow,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 56,
+                      height: 56,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
                         children: [
-                          Text(
-                            dayKeys[day.weekday - 1].tr(),
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
-                              color: isToday ? s.ink : s.inkSoft,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 280),
-                            width: isToday ? 22 : 18,
-                            height: isToday ? 22 : 18,
+                            width: 52,
+                            height: 52,
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: done ? color : Colors.transparent,
-                              border: Border.all(
-                                color: done ? color : s.inkSoft.withValues(alpha: 0.3),
-                                width: isToday ? 2 : 1.3,
+                              borderRadius: BorderRadius.circular(17),
+                              color: checked ? color : color.withValues(alpha: s.isDark ? 0.18 : 0.12),
+                            ),
+                            child: Center(
+                              child: AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 260),
+                                transitionBuilder: (child, a) => ScaleTransition(scale: a, child: child),
+                                child: checked
+                                    ? const Icon(Icons.check_rounded, key: ValueKey('c'), color: Colors.white, size: 30)
+                                    : Text(habit.emoji, key: const ValueKey('e'), style: const TextStyle(fontSize: 26)),
                               ),
                             ),
-                            child: done ? const Icon(Icons.check_rounded, size: 12, color: Colors.white) : null,
                           ),
+                          if (_burstHabit == habit.id && checked)
+                            Positioned(
+                              child: SparkleBurst(key: ValueKey('burst_$_burstSeed'), color: color, size: 110, seed: _burstSeed),
+                            ),
                         ],
-                      );
-                    }(),
-                ],
-              ),
-            ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800, color: s.ink),
+                          ),
+                          if (description != null && description.isNotEmpty)
+                            Text(
+                              description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12.5, color: s.inkSoft),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    if (streak >= 2)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF97316).withValues(alpha: s.isDark ? 0.2 : 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '🔥 $streak',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w900,
+                            color: s.isDark ? const Color(0xFFFDBA74) : const Color(0xFFC2410C),
+                          ),
+                        ),
+                      )
+                    else if (!checked)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'habits.checkInXp'.tr(),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color.lerp(color, s.isDark ? Colors.white : Colors.black, 0.2)),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Semana: 7 puntos, hoy a la derecha
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    for (int i = 0; i < 7; i++)
+                      () {
+                        final (day, done) = week[i];
+                        final isToday = i == 6;
+                        return Column(
+                          children: [
+                            Text(
+                              dayKeys[day.weekday - 1].tr(),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: isToday ? FontWeight.w900 : FontWeight.w600,
+                                color: isToday ? s.ink : s.inkSoft,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 280),
+                              width: isToday ? 22 : 18,
+                              height: isToday ? 22 : 18,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: done ? color : Colors.transparent,
+                                border: Border.all(
+                                  color: done ? color : s.inkSoft.withValues(alpha: 0.3),
+                                  width: isToday ? 2 : 1.3,
+                                ),
+                              ),
+                              child: done ? const Icon(Icons.check_rounded, size: 12, color: Colors.white) : null,
+                            ),
+                          ],
+                        );
+                      }(),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ).animate().fadeIn(delay: (60 * index).ms, duration: 350.ms).slideY(begin: 0.06, end: 0);
+    );
   }
 
   Widget _buildRemindersHeader(JournalStyle s) {
@@ -752,106 +766,110 @@ class _RemindersScreenState extends State<RemindersScreen> {
     // Sin días de repetición = una sola vez
     final onceOnly = reminder.repeatDays.isEmpty;
 
-    return Semantics(
-      button: true,
-      label: '$time, ${reminder.title}',
-      child: GestureDetector(
-        onTap: () => _editReminder(reminder),
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 250),
-          opacity: enabled ? 1 : 0.55,
-          child: Container(
-            decoration: BoxDecoration(
-              color: s.paper,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: enabled ? sky.colors.last.withValues(alpha: 0.35) : s.paperEdge),
-              boxShadow: s.paperShadow,
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: Row(
-                children: [
-                  ReminderSkyTile(sky: sky, width: 78, height: 110, enabled: enabled),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            time,
-                            style: TextStyle(fontSize: 24, height: 1.1, fontWeight: FontWeight.w900, color: s.ink),
-                          ),
-                          Text(
-                            reminder.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: s.ink),
-                          ),
-                          if (reminder.message != null && reminder.message!.isNotEmpty)
+    return ListEntrance(
+      index: index,
+      slideY: 0.06,
+      child: Semantics(
+        button: true,
+        label: '$time, ${reminder.title}',
+        child: GestureDetector(
+          onTap: () => _editReminder(reminder),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 250),
+            opacity: enabled ? 1 : 0.55,
+            child: Container(
+              decoration: BoxDecoration(
+                color: s.paper,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: enabled ? sky.colors.last.withValues(alpha: 0.35) : s.paperEdge),
+                boxShadow: s.paperShadow,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Row(
+                  children: [
+                    ReminderSkyTile(sky: sky, width: 78, height: 110, enabled: enabled),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              reminder.message!,
+                              time,
+                              style: TextStyle(fontSize: 24, height: 1.1, fontWeight: FontWeight.w900, color: s.ink),
+                            ),
+                            Text(
+                              reminder.title,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: JournalStyle.hand(TextStyle(fontSize: 16, color: s.inkSoft)),
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: s.ink),
                             ),
-                          const SizedBox(height: 6),
-                          if (onceOnly)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: sky.accent.withValues(alpha: s.isDark ? 0.3 : 0.16),
-                                borderRadius: BorderRadius.circular(8),
+                            if (reminder.message != null && reminder.message!.isNotEmpty)
+                              Text(
+                                reminder.message!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: JournalStyle.hand(TextStyle(fontSize: 16, color: s.inkSoft)),
                               ),
-                              child: Text(
-                                'reminders.once'.tr(),
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: s.ink),
-                              ),
-                            )
-                          else
-                            Row(
-                              children: [
-                                for (int d = 1; d <= 7; d++)
-                                  Container(
-                                    margin: const EdgeInsets.only(right: 3),
-                                    width: 19,
-                                    height: 19,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: reminder.repeatDays.contains(d)
-                                          ? sky.accent.withValues(alpha: s.isDark ? 0.4 : 0.22)
-                                          : Colors.transparent,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        dayKeys[d - 1].tr(),
-                                        style: TextStyle(
-                                          fontSize: 9.5,
-                                          fontWeight: FontWeight.w800,
-                                          color: reminder.repeatDays.contains(d) ? s.ink : s.inkSoft.withValues(alpha: 0.45),
+                            const SizedBox(height: 6),
+                            if (onceOnly)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: sky.accent.withValues(alpha: s.isDark ? 0.3 : 0.16),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'reminders.once'.tr(),
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: s.ink),
+                                ),
+                              )
+                            else
+                              Row(
+                                children: [
+                                  for (int d = 1; d <= 7; d++)
+                                    Container(
+                                      margin: const EdgeInsets.only(right: 3),
+                                      width: 19,
+                                      height: 19,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: reminder.repeatDays.contains(d)
+                                            ? sky.accent.withValues(alpha: s.isDark ? 0.4 : 0.22)
+                                            : Colors.transparent,
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          dayKeys[d - 1].tr(),
+                                          style: TextStyle(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: reminder.repeatDays.contains(d) ? s.ink : s.inkSoft.withValues(alpha: 0.45),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                        ],
+                                ],
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  Switch.adaptive(
-                    value: enabled,
-                    onChanged: (_) => _toggleReminder(reminder),
-                    activeThumbColor: sky.accent,
-                  ),
-                  const SizedBox(width: 6),
-                ],
+                    Switch.adaptive(
+                      value: enabled,
+                      onChanged: (_) => _toggleReminder(reminder),
+                      activeThumbColor: sky.accent,
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ).animate().fadeIn(delay: (60 * index).ms, duration: 350.ms).slideY(begin: 0.06, end: 0);
+    );
   }
 
   Widget _buildEmpty(JournalStyle s, {required LumiMood mood, required String title, required String body}) {

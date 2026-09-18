@@ -8,6 +8,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/utils/image_sizing.dart';
 import '../../../data/models/garden_item.dart';
 import '../../../data/models/garden_state.dart';
 import '../../../domain/providers/auth_provider.dart';
@@ -279,17 +280,19 @@ class _GardenScreenState extends State<GardenScreen> {
                   top: y - s / 2,
                   width: s,
                   height: s,
-                  child: _PlacedDecoView(
-                    deco: deco,
-                    item: item,
-                    size: s,
-                    burst: _bursts[deco.instanceId] ?? 0,
-                    onDragStarted: () => setState(() {
-                      _draggingDeco = true;
-                      _selectedId = null;
-                    }),
-                    onDragEnded: () => setState(() => _draggingDeco = false),
-                    onTap: () => _openDecoOptions(deco, item, garden),
+                  child: RepaintBoundary(
+                    child: _PlacedDecoView(
+                      deco: deco,
+                      item: item,
+                      size: s,
+                      burst: _bursts[deco.instanceId] ?? 0,
+                      onDragStarted: () => setState(() {
+                        _draggingDeco = true;
+                        _selectedId = null;
+                      }),
+                      onDragEnded: () => setState(() => _draggingDeco = false),
+                      onTap: () => _openDecoOptions(deco, item, garden),
+                    ),
                   ),
                 ),
               ));
@@ -333,7 +336,10 @@ class _GardenScreenState extends State<GardenScreen> {
                   top: y - size / 2,
                   width: size,
                   height: size,
-                  child: child,
+                  // Cada planta se mece, brilla y suelta destellos sin parar.
+                  // Sin RepaintBoundary, cada cuadro suyo repinta la escena
+                  // entera, ilustración de fondo a pantalla completa incluida.
+                  child: RepaintBoundary(child: child),
                 ),
               ));
             }
@@ -352,6 +358,13 @@ class _GardenScreenState extends State<GardenScreen> {
                     fit: BoxFit.cover,
                     width: w,
                     height: h,
+                    // Con `cover` el recorte lo decide el alto: decodificar
+                    // solo por el ancho dejaría la ilustración pixelada.
+                    cacheWidth: decodePixels(
+                      context,
+                      math.max(w, h * GardenLayout.bgWidth / GardenLayout.bgHeight),
+                      max: GardenLayout.bgWidth.round(),
+                    ),
                     errorBuilder: (_, _, _) => Container(color: _garden.tint),
                   ),
                 ),
@@ -815,31 +828,35 @@ class _NightVeil extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reduced = MotionService.reduced(context);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Container(color: const Color(0xFF0B1030).withValues(alpha: 0.32)),
-        for (int i = 0; i < 12; i++)
-          Align(
-            alignment: Alignment(
-              math.sin(i * 2.4) * 0.9,
-              -0.3 + math.cos(i * 1.7) * 0.6,
-            ),
-            child: Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFDE68A),
-                boxShadow: [BoxShadow(color: const Color(0xFFFDE68A).withValues(alpha: 0.7), blurRadius: 8, spreadRadius: 2)],
+    // Las 12 luciérnagas parpadean siempre: aisladas, para no repintar la
+    // ilustración del jardín con cada guiño.
+    return RepaintBoundary(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(color: const Color(0xFF0B1030).withValues(alpha: 0.32)),
+          for (int i = 0; i < 12; i++)
+            Align(
+              alignment: Alignment(
+                math.sin(i * 2.4) * 0.9,
+                -0.3 + math.cos(i * 1.7) * 0.6,
               ),
-            )
-                .animate(onPlay: reduced ? null : (c) => c.repeat(reverse: true), delay: (i * 230).ms)
-                .fadeIn(duration: (1400 + i * 90).ms)
-                .moveY(begin: 6, end: -10, duration: (2600 + i * 150).ms, curve: Curves.easeInOut)
-                .moveX(begin: -4, end: 4, duration: (2600 + i * 150).ms, curve: Curves.easeInOut),
-          ),
-      ],
+              child: Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFFDE68A),
+                  boxShadow: [BoxShadow(color: const Color(0xFFFDE68A).withValues(alpha: 0.7), blurRadius: 8, spreadRadius: 2)],
+                ),
+              )
+                  .animate(onPlay: reduced ? null : (c) => c.repeat(reverse: true), delay: (i * 230).ms)
+                  .fadeIn(duration: (1400 + i * 90).ms)
+                  .moveY(begin: 6, end: -10, duration: (2600 + i * 150).ms, curve: Curves.easeInOut)
+                  .moveX(begin: -4, end: 4, duration: (2600 + i * 150).ms, curve: Curves.easeInOut),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -853,7 +870,21 @@ class _Loading extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.asset(garden.assetPath, fit: BoxFit.cover, errorBuilder: (_, _, _) => Container(color: garden.tint)),
+        Image.asset(
+          garden.assetPath,
+          fit: BoxFit.cover,
+          cacheWidth: decodePixels(
+            context,
+            math.max(
+              MediaQuery.sizeOf(context).width,
+              MediaQuery.sizeOf(context).height *
+                  GardenLayout.bgWidth /
+                  GardenLayout.bgHeight,
+            ),
+            max: GardenLayout.bgWidth.round(),
+          ),
+          errorBuilder: (_, _, _) => Container(color: garden.tint),
+        ),
         Container(color: Colors.black.withValues(alpha: 0.35)),
         Center(
           child: Column(
