@@ -114,7 +114,8 @@
     "privacyPoint1": "Tu diario, tus ánimos y tus notas son privados: nadie más los ve.",
     "privacyPoint2": "Se guardan en tu cuenta de Firebase para que no los pierdas al cambiar de teléfono.",
     "privacyPoint3": "Las estadísticas de uso son anónimas: nunca enviamos lo que escribes ni cómo te sientes.",
-    "privacyPoint4": "Puedes borrar tu cuenta y todos tus datos cuando quieras desde Editar perfil."
+    "privacyPoint4": "Puedes borrar tu cuenta y todos tus datos cuando quieras desde Editar perfil.",
+    "privacyFull": "Leer la política completa"
   },
   "validation": {
     "required": "Este campo es obligatorio",
@@ -1459,7 +1460,10 @@
       "streak": "{days} días seguidos cuidándote. Eso dice mucho de ti.",
       "start": "Aquí se irá guardando todo lo que logres. ¡Empecemos este camino!",
       "journey": "Mira todo lo que has avanzado. Cada paso cuenta."
-    }
+    },
+    "privacyPolicy": "Política de privacidad",
+    "terms": "Términos de uso",
+    "contact": "Escríbenos"
   },
   "moodHistory": {
     "title": "Historial de ánimo",

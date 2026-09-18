@@ -114,7 +114,8 @@
     "privacyPoint1": "Your journal, moods and notes are private: nobody else sees them.",
     "privacyPoint2": "They are stored in your Firebase account so you do not lose them when you change phones.",
     "privacyPoint3": "Usage stats are anonymous: we never send what you write or how you feel.",
-    "privacyPoint4": "You can delete your account and all your data anytime from Edit profile."
+    "privacyPoint4": "You can delete your account and all your data anytime from Edit profile.",
+    "privacyFull": "Read the full policy"
   },
   "validation": {
     "required": "This field is required",
@@ -1459,7 +1460,10 @@
       "streak": "{days} days in a row taking care of yourself. That says a lot.",
       "start": "Everything you achieve will be kept here. Let us begin together!",
       "journey": "Look how far you have come. Every step counts."
-    }
+    },
+    "privacyPolicy": "Privacy policy",
+    "terms": "Terms of use",
+    "contact": "Write to us"
   },
   "moodHistory": {
     "title": "Mood history",

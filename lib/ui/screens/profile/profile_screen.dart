@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_links.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../data/models/garden_item.dart';
 import '../../../data/models/lumi.dart';
@@ -16,6 +17,7 @@ import '../../../domain/services/motion_service.dart';
 import '../../../domain/services/sound_service.dart';
 import '../../widgets/journal/journal_style.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
+import '../auth/widgets/auth_widgets.dart' show openExternal, openMail;
 import '../garden/widgets/garden_common.dart' show GardenSheet;
 import '../summary/weekly_summary_screen.dart';
 import 'achievements_screen.dart';
@@ -222,6 +224,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 14),
+              _AboutLink(
+                icon: Icons.privacy_tip_rounded,
+                label: 'profileScreen.privacyPolicy'.tr(),
+                onTap: () => openExternal(AppLinks.privacy(context.locale.languageCode)),
+                isDark: isDark,
+              ),
+              _AboutLink(
+                icon: Icons.gavel_rounded,
+                label: 'profileScreen.terms'.tr(),
+                onTap: () => openExternal(AppLinks.terms),
+                isDark: isDark,
+              ),
+              _AboutLink(
+                icon: Icons.mail_rounded,
+                label: 'profileScreen.contact'.tr(),
+                onTap: () => openMail(AppLinks.supportMail('Lumen 1.0.0')),
+                isDark: isDark,
+              ),
+              const SizedBox(height: 12),
               Text(
                 'profileScreen.aboutStudio'.tr(),
                 style: JournalStyle.hand(TextStyle(fontSize: 19, color: isDark ? AppColors.primaryLight : AppColors.primary)),
@@ -412,6 +433,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _editProfile() async {
     final result = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
     if (result == true && mounted) setState(() {});
+  }
+}
+
+/// Fila de "Acerca de": abre una página fuera de la app.
+class _AboutLink extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool isDark;
+
+  const _AboutLink({required this.icon, required this.label, required this.onTap, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = isDark ? Colors.white : AppColors.textPrimary;
+    return Semantics(
+      button: true,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ink))),
+              Icon(Icons.open_in_new_rounded, size: 15, color: ink.withValues(alpha: 0.4)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

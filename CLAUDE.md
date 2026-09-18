@@ -317,6 +317,12 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Accesos: Perfil → "¿Necesitas ayuda ahora?", icono en la cabecera del Diario, y tarjeta automática en Home cuando hay 3+ días de ánimo negativo en la semana (`_shouldOfferCrisisSupport`, ocultable por día).
 - Usa `url_launcher` (`tel:`, `sms:`, `https:`); Android 11+ exige los `<intent>` declarados en `<queries>` del AndroidManifest.
 
+### Páginas públicas y ficha de Play
+- **`docs/`** (se publica con GitHub Pages desde `main` → carpeta `/docs`, en https://angelpmzx.github.io/lumen-app/): `index.html`, `privacidad.html` (ES), `privacy.html` (EN), `terminos.html` y `eliminar-cuenta.html`, con `assets/lumen.css` (claro y oscuro). **Google Play exige la URL de la política y una URL de eliminación de cuenta**; ambas salen de aquí.
+- La política declara lo que de verdad se guarda: cuenta (nombre, correo, usuario, y opcionales edad, género, gustos y arquetipo), bienestar (ánimo, diario, hábitos, recordatorios, progreso, jardín) como **dato de salud**, analítica anónima y reportes de fallos. Deja claro que no hay anuncios, no se venden datos y que la analítica nunca incluye lo que escribes. Si se agrega una colección o un SDK nuevo, **actualizar la política y `store/seguridad-de-datos.md`**.
+- **`lib/core/constants/app_links.dart`** guarda las URLs y el correo de soporte; `AppLinks.privacy(locale)` elige idioma. La nota de privacidad del registro abre la política y Perfil → "Acerca de" enlaza política, términos y correo (`mailto:` declarado en `<queries>` del AndroidManifest).
+- **`store/`**: `ficha-play-es.md` y `ficha-play-en.md` (nombre, descripción breve y completa, notas de versión, categoría), `seguridad-de-datos.md` (respuestas del formulario y del cuestionario IARC), `capturas-y-graficos.md` (qué capturas tomar y tamaños) y `pasos-para-publicar.md` (checklist completo, incluido el **SHA-1 de Play App Signing**, que hay que agregar a Firebase o Google Sign-In falla solo en la versión de Play).
+
 ## Bugs importantes resueltos (no volver a introducir)
 
 1. **Timezone bug**: `tz.initializeTimeZones()` no configura `tz.local`. Debe usarse `FlutterTimezone.getLocalTimezone()` + `tz.setLocalLocation()` en `NotificationService.initialize()`.
@@ -369,7 +375,7 @@ flutter clean; flutter pub get
 - **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
 - **Panel admin** de rutas de bienestar (sin script Node.js).
 - **Guía de batería para Xiaomi/Huawei/Oppo** al detectar el fabricante.
-- **Pre-publicación**: generar keystore de release + `key.properties` + registrar su SHA-1 en Firebase, íconos, screenshots, política de privacidad.
+- **Pre-publicación**: ver `store/pasos-para-publicar.md`. Pendientes reales: activar GitHub Pages, activar *Email enumeration protection* y **App Check** en Firebase, íconos y capturas, y registrar el **SHA-1 de Play App Signing**. La política de privacidad, la ficha y el formulario de seguridad de datos ya están escritos.
 - **Spam del email de reset**: requiere plan Blaze + dominio propio + SPF/DKIM.
 
 ### Ideas aprobadas (roadmap, 2026-09-16)

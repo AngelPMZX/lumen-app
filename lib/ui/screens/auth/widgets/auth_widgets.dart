@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_links.dart';
 import '../../../../data/models/password_strength.dart';
 import '../../../../domain/services/motion_service.dart';
 import '../../../widgets/journal/journal_style.dart';
@@ -561,6 +564,21 @@ class PrivacyNote extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () => openExternal(AppLinks.privacy(ctx.locale.languageCode)),
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: Text('auth.privacyFull'.tr(), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: BorderSide(color: AppColors.primary.withValues(alpha: 0.4)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
                 child: FilledButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: FilledButton.styleFrom(
@@ -576,4 +594,19 @@ class PrivacyNote extends StatelessWidget {
       },
     );
   }
+}
+
+/// Abre un enlace fuera de la app (política, términos, correo de soporte).
+/// Si el teléfono no puede abrirlo, no truena: simplemente no pasa nada.
+Future<void> openExternal(String url) async {
+  try {
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  } catch (_) {}
+}
+
+/// Igual que [openExternal] pero para un `mailto:` ya armado.
+Future<void> openMail(Uri uri) async {
+  try {
+    await launchUrl(uri);
+  } catch (_) {}
 }
