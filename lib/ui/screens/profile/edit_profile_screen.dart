@@ -258,6 +258,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
     setState(() => _isChangingPass = true);
+
+    // Cuenta de Google que todavía no tiene contraseña: se le pone una (mismo
+    // usuario, no se pierde nada) en vez de cambiar la que no existe.
+    final auth = context.read<AuthProvider>();
+    if (!auth.hasPassword) {
+      final (ok, error) =
+          await auth.setPasswordOnCurrentAccount(_newPassController.text);
+      if (!mounted) return;
+      _currentPassController.clear();
+      _newPassController.clear();
+      _confirmPassController.clear();
+      setState(() {
+        _isChangingPass = false;
+        _showPassForm = !ok;
+      });
+      if (ok) {
+        SoundService.instance.play(Sfx.save, volume: 0.5);
+        _toast('editProfile.setPasswordDone'.tr(), icon: Icons.lock_rounded);
+      } else if (error != null) {
+        SoundService.instance.play(Sfx.wrong, volume: 0.45);
+        _toast(error, color: _danger, icon: Icons.error_outline_rounded);
+      }
+      return;
+    }
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null || user.email == null) {
@@ -444,37 +469,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           isDark: isDark,
                         ).animate().fadeIn(delay: (60 * i).ms, duration: 300.ms).slideX(begin: 0.06, end: 0, curve: Curves.easeOutCubic),
                       ),
-                    if (!auth.isGoogleOnly) ...[
-                      const SizedBox(height: 14),
-                      EditSectionTitle(kicker: 'editProfile.securityKicker'.tr(), title: 'editProfile.security'.tr(), isDark: isDark),
-                      const SizedBox(height: 10),
-                      LinkGoogleCard(
-                        isDark: isDark,
-                        isLinked: auth.isGoogleUser,
-                        busy: _isLinkingGoogle,
-                        onLink: _linkGoogle,
-                      ),
-                      const SizedBox(height: 10),
-                      PasswordCard(
-                        isDark: isDark,
-                        strength: _newPassStrength,
-                        onNewPasswordChanged: (v) => setState(() => _newPassStrength = PasswordStrength.check(v, personal: _personalData)),
-                        expanded: _showPassForm,
-                        busy: _isChangingPass,
-                        currentController: _currentPassController,
-                        newController: _newPassController,
-                        confirmController: _confirmPassController,
-                        obscureCurrent: _obscureCurrent,
-                        obscureNew: _obscureNew,
-                        onToggleExpanded: () {
-                          SoundService.instance.play(_showPassForm ? Sfx.toggleOff : Sfx.toggleOn, volume: 0.35);
-                          setState(() => _showPassForm = !_showPassForm);
-                        },
-                        onToggleObscureCurrent: () => setState(() => _obscureCurrent = !_obscureCurrent),
-                        onToggleObscureNew: () => setState(() => _obscureNew = !_obscureNew),
-                        onSubmit: _changePassword,
-                      ),
-                    ],
+                    // La sección sale siempre: quien entró con Google también
+                    // puede ponerse una contraseña y usar las dos formas.
+                    const SizedBox(height: 14),
+                    EditSectionTitle(kicker: 'editProfile.securityKicker'.tr(), title: 'editProfile.security'.tr(), isDark: isDark),
+                    const SizedBox(height: 10),
+                    LinkGoogleCard(
+                      isDark: isDark,
+                      isLinked: auth.isGoogleUser,
+                      busy: _isLinkingGoogle,
+                      onLink: _linkGoogle,
+                    ),
+                    const SizedBox(height: 10),
+                    PasswordCard(
+                      isDark: isDark,
+                      hasPassword: auth.hasPassword,
+                      strength: _newPassStrength,
+                      onNewPasswordChanged: (v) => setState(() => _newPassStrength = PasswordStrength.check(v, personal: _personalData)),
+                      expanded: _showPassForm,
+                      busy: _isChangingPass,
+                      currentController: _currentPassController,
+                      newController: _newPassController,
+                      confirmController: _confirmPassController,
+                      obscureCurrent: _obscureCurrent,
+                      obscureNew: _obscureNew,
+                      onToggleExpanded: () {
+                        SoundService.instance.play(_showPassForm ? Sfx.toggleOff : Sfx.toggleOn, volume: 0.35);
+                        setState(() => _showPassForm = !_showPassForm);
+                      },
+                      onToggleObscureCurrent: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                      onToggleObscureNew: () => setState(() => _obscureNew = !_obscureNew),
+                      onSubmit: _changePassword,
+                    ),
                     const SizedBox(height: 22),
                     DangerZoneCard(isDark: isDark, onDelete: _confirmDeleteAccount),
                   ],

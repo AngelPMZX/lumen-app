@@ -15,6 +15,7 @@ import 'ui/screens/auth/verify_email_screen.dart';
 import 'ui/screens/crisis/crisis_support_screen.dart';
 import 'domain/services/analytics_service.dart';
 import 'domain/services/motion_service.dart';
+import 'ui/widgets/theme_fade.dart';
 
 class LumenApp extends StatelessWidget {
   const LumenApp({super.key});
@@ -45,12 +46,19 @@ class LumenApp extends StatelessWidget {
         listenable: MotionService.instance,
         builder: (context, _) {
           final media = MediaQuery.of(context);
+          final brightness = switch (themeProvider.themeMode) {
+            ThemeMode.dark => Brightness.dark,
+            ThemeMode.light => Brightness.light,
+            ThemeMode.system => media.platformBrightness,
+          };
           return MediaQuery(
             data: media.copyWith(
               disableAnimations:
                   media.disableAnimations || MotionService.instance.userReduce,
             ),
-            child: child!,
+            // Claro ↔ oscuro sin dar un salto de luz (ver ThemeFade). Va aquí
+            // dentro para que lea el "reducir animaciones" ya inyectado.
+            child: ThemeFade(brightness: brightness, child: child!),
           );
         },
       ),

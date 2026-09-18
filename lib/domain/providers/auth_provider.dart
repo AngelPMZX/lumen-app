@@ -106,6 +106,79 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Desde Editar perfil: le agrega Google a la cuenta con sesión abierta.
+  /// Le pone contraseña a una cuenta que entró con Google.
+  ///
+  /// Firebase lo hace vinculando el proveedor `password` al mismo usuario, así
+  /// que **no se pierde nada**: mismo uid, misma racha, mismo jardín y mismo
+  /// diario. A partir de ahí puede entrar con Google o con correo y
+  /// contraseña, y cambiarla desde aquí como cualquier otra cuenta.
+  ///
+  /// Si Firebase pide una sesión reciente, se vuelve a entrar con Google (que
+  /// es como esta persona inicia sesión) y se reintenta.
+  Future<(bool, String?)> setPasswordOnCurrentAccount(String password) async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    if (user == null || email == null || email.isEmpty) {
+      return (false, 'errors.noSession'.tr());
+    }
+    final credential =
+        EmailAuthProvider.credential(email: email, password: password);
+    try {
+      await user.linkWithCredential(credential);
+      await user.reload();
+      notifyListeners();
+      return (true, null);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        final reauthenticated = await _reauthenticateWithGoogle();
+        if (!reauthenticated) return (false, 'errors.sessionExpired'.tr());
+        try {
+          await _auth.currentUser!.linkWithCredential(credential);
+          await _auth.currentUser!.reload();
+          notifyListeners();
+          return (true, null);
+        } on FirebaseAuthException catch (e2) {
+          debugPrint('setPasswordOnCurrentAccount retry error: ${e2.code}');
+          return (false, _getErrorMessage(e2.code));
+        }
+      }
+      debugPrint('setPasswordOnCurrentAccount error: ${e.code}');
+      return switch (e.code) {
+        // Ya tenía contraseña: la cambia, no la crea.
+        'provider-already-linked' => (false, 'editProfile.alreadyHasPassword'.tr()),
+        'weak-password' => (false, 'errors.weakPassword'.tr()),
+        'requires-recent-login' => (false, 'errors.sessionExpired'.tr()),
+        _ => (false, _getErrorMessage(e.code)),
+      };
+    } catch (e) {
+      debugPrint('setPasswordOnCurrentAccount error: $e');
+      return (false, 'editProfile.setPasswordError'.tr());
+    }
+  }
+
+  /// Vuelve a entrar con Google para refrescar la sesión, sin cambiar de
+  /// cuenta: si elige otra, no sirve.
+  Future<bool> _reauthenticateWithGoogle() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    try {
+      try { await _googleSignIn.signOut(); } catch (_) {}
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return false;
+      if (googleUser.email.toLowerCase() != (user.email ?? '').toLowerCase()) {
+        try { await _googleSignIn.signOut(); } catch (_) {}
+        return false;
+      }
+      final googleAuth = await googleUser.authentication;
+      await user.reauthenticateWithCredential(GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken));
+      return true;
+    } catch (e) {
+      debugPrint('_reauthenticateWithGoogle error: $e');
+      return false;
+    }
+  }
+
   Future<(bool, String?)> linkGoogleToCurrentAccount() async {
     final user = _auth.currentUser;
     if (user == null) return (false, 'errors.noSession'.tr());

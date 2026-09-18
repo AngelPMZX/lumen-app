@@ -1422,7 +1422,13 @@
     "linkGoogleLinked": "Your Google account is already linked",
     "linkGoogleOtherEmail": "That Google account uses a different email. Pick the one that matches your account.",
     "linkGoogleTaken": "That Google account already belongs to another Lumen user.",
-    "linkGoogleAction": "Link"
+    "linkGoogleAction": "Link",
+    "setPassword": "Create a password",
+    "setPasswordHint": "So you can sign in with your email too",
+    "setPasswordExplain": "You signed in with Google. If you create a password you can use either way, with the same account and without losing anything.",
+    "setPasswordDone": "Done: you can sign in with your email and password now",
+    "setPasswordError": "Couldn't create the password. Please try again.",
+    "alreadyHasPassword": "This account already has a password"
   },
   "profileScreen": {
     "currentStreakStat": "Current\nstreak",

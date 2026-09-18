@@ -1422,7 +1422,13 @@
     "linkGoogleLinked": "Tu cuenta de Google ya está vinculada",
     "linkGoogleOtherEmail": "Esa cuenta de Google tiene otro correo. Elige la que coincide con el de tu cuenta.",
     "linkGoogleTaken": "Esa cuenta de Google ya pertenece a otro usuario de Lumen.",
-    "linkGoogleAction": "Vincular"
+    "linkGoogleAction": "Vincular",
+    "setPassword": "Crear contraseña",
+    "setPasswordHint": "Para entrar también con tu correo",
+    "setPasswordExplain": "Entraste con Google. Si creas una contraseña podrás entrar de las dos formas, con la misma cuenta y sin perder nada.",
+    "setPasswordDone": "Listo: ya puedes entrar con tu correo y contraseña",
+    "setPasswordError": "No se pudo crear la contraseña. Inténtalo de nuevo.",
+    "alreadyHasPassword": "Esta cuenta ya tiene contraseña"
   },
   "profileScreen": {
     "currentStreakStat": "Racha\nactual",

@@ -381,8 +381,15 @@ class ArchetypeRow extends StatelessWidget {
   }
 }
 
+/// Contraseña de la cuenta: la cambia si ya tiene, y la **crea** si entró con
+/// Google y nunca puso una. Es el mismo usuario de Firebase, así que ponerle
+/// contraseña no pierde racha, jardín ni diario.
 class PasswordCard extends StatelessWidget {
   final bool isDark;
+
+  /// `false` en una cuenta de Google que todavía no tiene contraseña: entonces
+  /// no se pide la actual (no hay) y la tarjeta habla de crearla.
+  final bool hasPassword;
 
   /// Fuerza de la contraseña nueva mientras se escribe.
   final PasswordStrength? strength;
@@ -402,6 +409,7 @@ class PasswordCard extends StatelessWidget {
   const PasswordCard({
     super.key,
     required this.isDark,
+    this.hasPassword = true,
     required this.onNewPasswordChanged,
     this.strength,
     required this.expanded,
@@ -420,6 +428,9 @@ class PasswordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = isDark ? Colors.white : AppColors.textPrimary;
+    final title = hasPassword
+        ? 'profile.changePassword'.tr()
+        : 'editProfile.setPassword'.tr();
     return EditCard(
       isDark: isDark,
       child: Column(
@@ -427,7 +438,7 @@ class PasswordCard extends StatelessWidget {
           Semantics(
             button: true,
             expanded: expanded,
-            label: 'profile.changePassword'.tr(),
+            label: title,
             onTap: onToggleExpanded,
             excludeSemantics: true,
             child: GestureDetector(
@@ -446,9 +457,11 @@ class PasswordCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('profile.changePassword'.tr(), style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: ink)),
+                        Text(title, style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800, color: ink)),
                         Text(
-                          'editProfile.changePasswordHint'.tr(),
+                          hasPassword
+                              ? 'editProfile.changePasswordHint'.tr()
+                              : 'editProfile.setPasswordHint'.tr(),
                           style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : AppColors.textSecondary),
                         ),
                       ],
@@ -471,15 +484,27 @@ class PasswordCard extends StatelessWidget {
                 ? Column(
                     children: [
                       const SizedBox(height: 14),
-                      EditField(
-                        controller: currentController,
-                        label: 'profile.currentPassword'.tr(),
-                        icon: Icons.password_rounded,
-                        isDark: isDark,
-                        onChanged: (_) {},
-                        suffix: EyeButton(obscure: obscureCurrent, onTap: onToggleObscureCurrent),
-                      ),
-                      const SizedBox(height: 12),
+                      if (hasPassword) ...[
+                        EditField(
+                          controller: currentController,
+                          label: 'profile.currentPassword'.tr(),
+                          icon: Icons.password_rounded,
+                          isDark: isDark,
+                          onChanged: (_) {},
+                          suffix: EyeButton(obscure: obscureCurrent, onTap: onToggleObscureCurrent),
+                        ),
+                        const SizedBox(height: 12),
+                      ] else ...[
+                        Text(
+                          'editProfile.setPasswordExplain'.tr(),
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            height: 1.4,
+                            color: isDark ? Colors.white60 : AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       EditField(
                         controller: newController,
                         label: 'profile.newPassword'.tr(),
@@ -512,7 +537,7 @@ class PasswordCard extends StatelessWidget {
                           ),
                           child: busy
                               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : Text('profile.changePassword'.tr(), style: const TextStyle(fontWeight: FontWeight.w800)),
+                              : Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
                         ),
                       ),
                     ],
