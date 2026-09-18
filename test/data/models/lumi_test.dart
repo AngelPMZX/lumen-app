@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gimnasio_emocional/data/models/lumi.dart';
 
@@ -85,5 +88,67 @@ void main() {
     expect(LumiDialog.tap(0).key, 'lumi.tap.0');
     expect(LumiDialog.tap(LumiDialog.tapLineCount).key, 'lumi.tap.0');
     expect(LumiDialog.tap(1).key, isNot(LumiDialog.tap(0).key));
+  });
+
+  group('cuando propone algo, lleva a algún lado', () {
+    test('de noche ofrece respirar', () {
+      final line = LumiDialog.forHome(ctx(hour: 23));
+      expect(line.key, 'lumi.night');
+      expect(line.action, LumiAction.breathing);
+    });
+
+    test('un día difícil también ofrece respirar', () {
+      final line = LumiDialog.forHome(ctx(mood: 'negative'));
+      expect(line.key, 'lumi.hardDay');
+      expect(line.action, LumiAction.breathing);
+    });
+
+    test('si falta el check-in, lleva al check-in', () {
+      expect(LumiDialog.forHome(ctx(mood: null)).action, LumiAction.checkIn);
+      expect(LumiDialog.forHome(ctx(mood: null, hour: 8)).action,
+          LumiAction.checkIn);
+    });
+
+    test('la lección y el repaso llevan a lo suyo', () {
+      expect(LumiDialog.forHome(ctx()).action, LumiAction.lesson);
+      expect(LumiDialog.forHome(ctx(lessonDone: true)).action,
+          LumiAction.review);
+    });
+
+    test('el reto de ayer lleva a contestarlo', () {
+      expect(LumiDialog.forHome(ctx(commitment: true)).action,
+          LumiAction.commitment);
+    });
+
+    test('cuando solo acompaña, no propone nada', () {
+      // Con todo hecho no hay nada que ofrecer: solo celebra.
+      final done = LumiDialog.forHome(ctx(lessonDone: true, reviewDone: true));
+      expect(done.key, 'lumi.allDone');
+      expect(done.action, isNull);
+      expect(done.actionLabelKey, isNull);
+
+      expect(LumiDialog.forHome(ctx(streak: 7)).action, isNull);
+      expect(LumiDialog.forHome(ctx(introSeen: false)).action, isNull);
+      // Las frases al tocarla nunca proponen nada.
+      for (var i = 0; i < LumiDialog.tapLineCount; i++) {
+        expect(LumiDialog.tap(i).action, isNull);
+      }
+    });
+
+    test('cada acción tiene su etiqueta, en los dos idiomas', () {
+      for (final locale in ['es', 'en']) {
+        final json = jsonDecode(
+          File('assets/translations/$locale.json').readAsStringSync(),
+        ) as Map<String, dynamic>;
+        for (final action in LumiAction.values) {
+          final line = LumiLine('x', LumiMood.happy, const {}, action);
+          final key = line.actionLabelKey!;
+          expect(key, startsWith('lumi.go.'));
+          final label = (json['lumi'] as Map)['go'][key.split('.').last];
+          expect(label, isA<String>(), reason: 'falta $key en $locale');
+          expect(label as String, isNotEmpty);
+        }
+      }
+    });
   });
 }

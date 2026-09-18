@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../../data/models/lumi.dart';
 import '../../../domain/services/sound_service.dart';
+import '../min_tap_target.dart';
 import 'lumi_avatar.dart';
 
 /// Lumi en el Home: la personaje y un globo de diálogo que se escribe letra
@@ -16,6 +17,10 @@ class LumiCompanionCard extends StatefulWidget {
   /// Se llama cuando el usuario leyó la presentación (para no repetirla).
   final VoidCallback? onIntroSeen;
 
+  /// Qué hacer cuando Lumi propone algo y el usuario acepta. Si es null, el
+  /// botoncito no sale y tocarla solo cambia de frase.
+  final ValueChanged<LumiAction>? onAction;
+
   /// Sin fondo propio: para ponerla sobre otra escena (el cielo del Home).
   final bool transparent;
 
@@ -24,6 +29,7 @@ class LumiCompanionCard extends StatefulWidget {
     required this.line,
     required this.isDark,
     this.onIntroSeen,
+    this.onAction,
     this.transparent = false,
   });
 
@@ -84,6 +90,10 @@ class _LumiCompanionCardState extends State<LumiCompanionCard> {
     _type();
   }
 
+  /// La propuesta de esta frase, si la hay y alguien sabe atenderla.
+  LumiAction? get _offer =>
+      widget.onAction == null ? null : _line.action;
+
   void _onTap() {
     // Si todavía está escribiendo, el toque completa la frase
     final total = _text.characters.length;
@@ -91,6 +101,29 @@ class _LumiCompanionCardState extends State<LumiCompanionCard> {
       _typer?.cancel();
       setState(() => _visibleChars = total);
       if (_line.key == 'lumi.intro') widget.onIntroSeen?.call();
+      return;
+    }
+    // Si Lumi está proponiendo algo, tocarla lleva ahí. Antes proponía una
+    // respiración y tocarla solo soltaba otra frase.
+    final offer = _offer;
+    if (offer != null) {
+      _act(offer);
+      return;
+    }
+    _say(LumiDialog.tap(_taps++));
+  }
+
+  void _act(LumiAction action) {
+    SoundService.instance.play(Sfx.tapNode, volume: 0.5);
+    widget.onAction!(action);
+  }
+
+  /// Tocar a Lumi en persona siempre suelta una frase, aunque esté
+  /// proponiendo algo: es parte de su encanto.
+  void _onTapLumi() {
+    final total = _text.characters.length;
+    if (_visibleChars < total) {
+      _onTap();
       return;
     }
     _say(LumiDialog.tap(_taps++));
@@ -129,7 +162,7 @@ class _LumiCompanionCardState extends State<LumiCompanionCard> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            LumiAvatar(mood: _line.mood, size: 92, onTap: _onTap),
+            LumiAvatar(mood: _line.mood, size: 92, onTap: _onTapLumi),
             const SizedBox(width: 4),
             Expanded(
               child: Stack(
@@ -175,6 +208,14 @@ class _LumiCompanionCardState extends State<LumiCompanionCard> {
                             Text(shown, style: _bubbleStyle(isDark)),
                           ],
                         ),
+                        // Lo que propone, cuando propone algo. Sale al
+                        // terminar de hablar, para no interrumpirla.
+                        if (_offer != null && _visibleChars >= text.characters.length)
+                          _ActionChip(
+                            labelKey: _line.actionLabelKey!,
+                            isDark: isDark,
+                            onTap: () => _act(_offer!),
+                          ),
                       ],
                     ),
                   ),
@@ -212,4 +253,64 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_TailPainter old) => old.color != color;
+}
+
+/// El "sí, vamos" del globo: pequeño, dorado y solo cuando Lumi propone algo.
+class _ActionChip extends StatelessWidget {
+  final String labelKey;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _ActionChip({
+    required this.labelKey,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const gold = Color(0xFFF59E0B);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Semantics(
+        button: true,
+        label: labelKey.tr(),
+        onTap: onTap,
+        excludeSemantics: true,
+        child: MinTapTarget(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: gold.withValues(alpha: isDark ? 0.22 : 0.14),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: gold.withValues(alpha: 0.45)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  labelKey.tr(),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 14,
+                  color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    )
+        .animate()
+        .fadeIn(duration: 260.ms)
+        .slideY(begin: 0.2, end: 0, curve: Curves.easeOutCubic);
+  }
 }

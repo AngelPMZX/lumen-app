@@ -16,6 +16,7 @@ import '../../../domain/providers/theme_provider.dart';
 import '../../widgets/animated_particles_background.dart';
 import '../../widgets/challenge_dialog.dart';
 import '../../widgets/reward_dialog.dart';
+import '../../../domain/services/motion_service.dart';
 import '../../widgets/crisis_support_card.dart';
 import '../../widgets/entrance.dart';
 import '../reminders/reminders_screen.dart';
@@ -58,6 +59,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   MoodType? _selectedMood;
+
+  /// Para poder bajar hasta ellas cuando Lumi las propone.
+  final GlobalKey _moodCardKey = GlobalKey();
+  final GlobalKey _commitmentKey = GlobalKey();
 
   /// Día que se cargó, para detectar que cambió mientras la app estaba
   /// en segundo plano.
@@ -679,6 +684,41 @@ Future<void> _scheduleDailyReminders() async {
     }
   }
 
+  /// Lumi proponía algo y tocarla solo cambiaba la frase. Ahora lleva a lo
+  /// que acaba de ofrecer.
+  Future<void> _followLumi(LumiAction action) async {
+    switch (action) {
+      case LumiAction.breathing:
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const BreathingScreen()),
+        );
+        if (mounted) _loadData();
+      case LumiAction.lesson:
+        await _openNextLesson();
+      case LumiAction.review:
+        await _openReview();
+      case LumiAction.checkIn:
+      case LumiAction.commitment:
+        // Están en esta misma pantalla: se baja hasta la tarjeta y se resalta.
+        _scrollTo(action == LumiAction.checkIn ? _moodCardKey : _commitmentKey);
+    }
+  }
+
+  /// Baja suave hasta una tarjeta del Home.
+  void _scrollTo(GlobalKey key) {
+    final context = key.currentContext;
+    if (context == null) return;
+    Scrollable.ensureVisible(
+      context,
+      duration: MotionService.reduced(this.context)
+          ? Duration.zero
+          : const Duration(milliseconds: 550),
+      curve: Curves.easeOutCubic,
+      alignment: 0.15,
+    );
+  }
+
   // ── Reto diario ────────────────────────────────────────────────────────────
 
   Future<void> _completeChallenge(DailyChallenge challenge) async {
@@ -984,6 +1024,7 @@ Future<void> _scheduleDailyReminders() async {
                               line: _lumiReady ? _lumiLine(authProvider) : null,
                               isDark: isDark,
                               onIntroSeen: _markLumiIntroSeen,
+                              onLumiAction: _followLumi,
                               checkInDone: _selectedMood != null,
                               lessonDone: _hasLessonToday,
                               diaryDone: _hasDiaryToday,
@@ -996,7 +1037,7 @@ Future<void> _scheduleDailyReminders() async {
                           if (_pendingCommitment != null) ...[
                             enter(
                               CommitmentCheckCard(
-                                key: ValueKey(_pendingCommitment!.id),
+                                key: _commitmentKey,
                                 commitment: _pendingCommitment!,
                                 isDark: isDark,
                                 onAnswer: _answerCommitment,
@@ -1022,6 +1063,7 @@ Future<void> _scheduleDailyReminders() async {
                           // ── Ánimo ──────────────────────────────────────────────
                           enter(
                             MoodCheckInCard(
+                              key: _moodCardKey,
                               selected: _selectedMood,
                               weeklyMoods: _weeklyMoods,
                               isDark: isDark,

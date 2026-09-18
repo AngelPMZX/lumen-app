@@ -4,13 +4,49 @@
 /// regaña y habla con lenguaje neutro en género.
 enum LumiMood { happy, excited, calm, sleepy, proud, caring, curious }
 
-/// Lo que Lumi dice: clave de traducción, argumentos y expresión.
+/// Lo que Lumi propone cuando su frase invita a hacer algo.
+///
+/// Existe porque Lumi decía "¿una respiración corta antes de dormir?" y
+/// tocarla solo cambiaba la frase: proponía algo y no llevaba a ningún lado.
+enum LumiAction {
+  /// Respiración guiada.
+  breathing,
+
+  /// El check-in de ánimo, que está en la misma pantalla: se baja hasta él.
+  checkIn,
+
+  /// La lección de hoy.
+  lesson,
+
+  /// El repaso diario.
+  review,
+
+  /// El reto de ayer, para contarle cómo fue.
+  commitment,
+}
+
+/// Lo que Lumi dice: clave de traducción, argumentos, expresión y —si su
+/// frase invita a algo— qué hacer al tocarla.
 class LumiLine {
   final String key;
   final Map<String, String> args;
   final LumiMood mood;
 
-  const LumiLine(this.key, this.mood, [this.args = const {}]);
+  /// Qué pasa al tocar el globo. Null = solo está acompañando.
+  final LumiAction? action;
+
+  const LumiLine(this.key, this.mood, [this.args = const {}, this.action]);
+
+  /// Clave del botoncito del globo ("Respirar contigo", "Vamos"). Null cuando
+  /// no hay nada que proponer.
+  String? get actionLabelKey => switch (action) {
+        LumiAction.breathing => 'lumi.go.breathing',
+        LumiAction.checkIn => 'lumi.go.checkIn',
+        LumiAction.lesson => 'lumi.go.lesson',
+        LumiAction.review => 'lumi.go.review',
+        LumiAction.commitment => 'lumi.go.commitment',
+        null => null,
+      };
 }
 
 /// Datos del día que Lumi usa para decidir qué decir en el Home.
@@ -57,7 +93,10 @@ class LumiDialog {
 
     if (!c.introSeen) return LumiLine('lumi.intro', LumiMood.excited, name);
 
-    if (c.hour >= 23 || c.hour < 5) return LumiLine('lumi.night', LumiMood.sleepy, name);
+    // De noche propone respirar, y tocarla lleva a la respiración.
+    if (c.hour >= 23 || c.hour < 5) {
+      return LumiLine('lumi.night', LumiMood.sleepy, name, LumiAction.breathing);
+    }
 
     if (c.streakBroken && c.todayMoodCategory == null) {
       return LumiLine('lumi.welcomeBack', LumiMood.caring, name);
@@ -65,22 +104,31 @@ class LumiDialog {
 
     if (c.todayMoodCategory == null) {
       final key = c.hour < 12 ? 'lumi.askMoodMorning' : 'lumi.askMood';
-      return LumiLine(key, LumiMood.curious, name);
+      return LumiLine(key, LumiMood.curious, name, LumiAction.checkIn);
     }
 
-    if (c.todayMoodCategory == 'negative') return LumiLine('lumi.hardDay', LumiMood.caring, name);
+    // Un día difícil: respirar es lo que de verdad ayuda ahora.
+    if (c.todayMoodCategory == 'negative') {
+      return LumiLine('lumi.hardDay', LumiMood.caring, name, LumiAction.breathing);
+    }
 
-    if (c.hasPendingCommitment) return const LumiLine('lumi.commitment', LumiMood.curious);
+    if (c.hasPendingCommitment) {
+      return const LumiLine(
+          'lumi.commitment', LumiMood.curious, {}, LumiAction.commitment);
+    }
 
     if (c.streak >= 3 && _isStreakMilestone(c.streak)) {
       return LumiLine('lumi.streak', LumiMood.proud, {'n': '${c.streak}'});
     }
 
     if (!c.lessonDoneToday && c.nextLessonTitle != null) {
-      return LumiLine('lumi.nextLesson', LumiMood.excited, {'lesson': c.nextLessonTitle!});
+      return LumiLine('lumi.nextLesson', LumiMood.excited,
+          {'lesson': c.nextLessonTitle!}, LumiAction.lesson);
     }
 
-    if (c.reviewAvailable && !c.reviewDoneToday) return const LumiLine('lumi.review', LumiMood.happy);
+    if (c.reviewAvailable && !c.reviewDoneToday) {
+      return const LumiLine('lumi.review', LumiMood.happy, {}, LumiAction.review);
+    }
 
     if (c.lessonDoneToday) return LumiLine('lumi.allDone', LumiMood.proud, name);
 

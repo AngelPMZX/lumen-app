@@ -2267,6 +2267,13 @@
       "9": "One thing to be grateful for today, even a tiny one. What would it be?",
       "10": "Remember: asking for help takes courage too.",
       "11": "I’m a small light, but next to you I feel huge."
+    },
+    "go": {
+      "breathing": "Breathe with you",
+      "checkIn": "Tell you how I am",
+      "commitment": "I'll tell you",
+      "lesson": "Let's go",
+      "review": "Review"
     }
   },
   "missions": {

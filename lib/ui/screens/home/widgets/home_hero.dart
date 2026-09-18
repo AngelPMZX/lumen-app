@@ -13,6 +13,9 @@ class HomeHero extends StatelessWidget {
   final LumiLine? line;
   final bool isDark;
   final VoidCallback? onIntroSeen;
+
+  /// Qué hacer cuando Lumi propone algo (respirar, el check-in, la lección…).
+  final ValueChanged<LumiAction>? onLumiAction;
   final bool checkInDone;
   final bool lessonDone;
   final bool diaryDone;
@@ -24,6 +27,7 @@ class HomeHero extends StatelessWidget {
     super.key,
     required this.line,
     required this.isDark,
+    this.onLumiAction,
     required this.checkInDone,
     required this.lessonDone,
     required this.diaryDone,
@@ -82,6 +86,7 @@ class HomeHero extends StatelessWidget {
                       line: line!,
                       isDark: isDark,
                       onIntroSeen: onIntroSeen,
+                      onAction: onLumiAction,
                       transparent: true,
                     )
                   else

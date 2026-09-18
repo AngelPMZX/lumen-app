@@ -2267,6 +2267,13 @@
       "9": "Una cosa que agradecer hoy, aunque sea pequeñita. ¿Cuál sería?",
       "10": "Recuerda: pedir ayuda también es de valientes.",
       "11": "Soy una luz pequeña, pero junto a ti me siento enorme."
+    },
+    "go": {
+      "breathing": "Respirar contigo",
+      "checkIn": "Contarte cómo estoy",
+      "commitment": "Te cuento",
+      "lesson": "Vamos",
+      "review": "Repasar"
     }
   },
   "missions": {
