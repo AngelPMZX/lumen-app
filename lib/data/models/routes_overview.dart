@@ -1,3 +1,4 @@
+import 'archetype.dart';
 import 'wellness_route.dart';
 
 enum RouteStatus { notStarted, inProgress, completed }
@@ -69,12 +70,21 @@ class RouteProgress {
 class RoutesOverview {
   final List<RouteProgress> routes;
 
-  const RoutesOverview(this.routes);
+  /// Arquetipo de la persona, si lo tiene. Solo decide **por dónde empezar**
+  /// cuando todavía no ha abierto ninguna ruta.
+  final Archetype? archetype;
 
-  factory RoutesOverview.compute(List<WellnessRoute> routes, Set<String> completedIds) {
-    return RoutesOverview([
-      for (final r in routes) RouteProgress.compute(r, completedIds),
-    ]);
+  const RoutesOverview(this.routes, {this.archetype});
+
+  factory RoutesOverview.compute(
+    List<WellnessRoute> routes,
+    Set<String> completedIds, {
+    String? archetypeId,
+  }) {
+    return RoutesOverview(
+      [for (final r in routes) RouteProgress.compute(r, completedIds)],
+      archetype: Archetype.fromId(archetypeId),
+    );
   }
 
   int get lessonsCompleted => routes.fold(0, (sum, r) => sum + r.completed);
@@ -85,8 +95,12 @@ class RoutesOverview {
   bool get allDone => routes.isNotEmpty && routesCompleted == routes.length;
 
   /// Ruta para "Continúa donde te quedaste": la que va más avanzada entre las
-  /// empezadas (a igualdad, la primera del orden). Si no hay ninguna empezada,
-  /// la primera sin empezar. Null si ya terminó todas.
+  /// empezadas (a igualdad, la primera del orden).
+  ///
+  /// Si no hay ninguna empezada manda el **arquetipo**: se propone la que le
+  /// sienta mejor a quien es (ver [Archetype.preferredRouteIds]) en vez de la
+  /// primera del catálogo, que era igual para todo el mundo. En cuanto empieza
+  /// cualquier ruta, manda su progreso. Null si ya terminó todas.
   RouteProgress? get suggested {
     RouteProgress? best;
     for (final r in routes) {
@@ -94,8 +108,24 @@ class RoutesOverview {
       if (best == null || r.fraction > best.fraction) best = r;
     }
     if (best != null) return best;
+    return firstForArchetype ?? _firstNotStarted;
+  }
+
+  RouteProgress? get _firstNotStarted {
     for (final r in routes) {
       if (r.status == RouteStatus.notStarted) return r;
+    }
+    return null;
+  }
+
+  /// La primera ruta sin empezar que le toca al arquetipo, si hay alguna.
+  /// Se expone para poder decirle a la persona por dónde va a empezar al
+  /// revelarle su arquetipo.
+  RouteProgress? get firstForArchetype {
+    for (final id in archetype?.preferredRouteIds ?? const <String>[]) {
+      for (final r in routes) {
+        if (r.route.id == id && r.status == RouteStatus.notStarted) return r;
+      }
     }
     return null;
   }

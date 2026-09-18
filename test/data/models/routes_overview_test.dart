@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gimnasio_emocional/data/models/archetype.dart';
 import 'package:gimnasio_emocional/data/models/routes_overview.dart';
 import 'package:gimnasio_emocional/data/models/wellness_route.dart';
 
@@ -26,6 +27,67 @@ void main() {
     expect(o.lessonsCompleted, 0);
     expect(o.lessonsTotal, 9);
     expect(o.count(RouteFilter.notStarted), 3);
+  });
+
+  group('el arquetipo decide por dónde empezar', () {
+    // Mente Serena empieza por mindfulness; Fuerza Resiliente, por resiliencia.
+    final catalogue = [
+      _route('emociones', 3),
+      _route('resiliencia', 3),
+      _route('mindfulness', 3),
+    ];
+
+    test('sin nada empezado propone la ruta de su arquetipo', () {
+      final sabio = RoutesOverview.compute(catalogue, {}, archetypeId: 'sabio');
+      expect(sabio.suggested!.route.id, 'mindfulness');
+
+      final guerrero =
+          RoutesOverview.compute(catalogue, {}, archetypeId: 'guerrero');
+      expect(guerrero.suggested!.route.id, 'resiliencia');
+    });
+
+    test('en cuanto empieza una ruta, manda su progreso', () {
+      final o = RoutesOverview.compute(
+        catalogue,
+        {'emociones_1'},
+        archetypeId: 'sabio',
+      );
+      expect(o.suggested!.route.id, 'emociones');
+    });
+
+    test('si ya terminó la suya, sigue por la primera sin empezar', () {
+      final o = RoutesOverview.compute(
+        catalogue,
+        {'mindfulness_1', 'mindfulness_2', 'mindfulness_3'},
+        archetypeId: 'sabio',
+      );
+      expect(o.suggested!.route.id, 'emociones');
+      expect(o.firstForArchetype, isNull);
+    });
+
+    test('sin arquetipo, o con uno desconocido, es como antes', () {
+      expect(RoutesOverview.compute(catalogue, {}).suggested!.route.id,
+          'emociones');
+      expect(
+        RoutesOverview.compute(catalogue, {}, archetypeId: 'no-existe')
+            .suggested!
+            .route
+            .id,
+        'emociones',
+      );
+    });
+
+    test('si su ruta no está en el catálogo no pasa nada', () {
+      // `WellnessRoute.all` (el respaldo viejo) no trae todas las rutas.
+      final short = [_route('emociones', 2)];
+      final o = RoutesOverview.compute(short, {}, archetypeId: 'sabio');
+      expect(o.suggested!.route.id, 'emociones');
+    });
+
+    test('Archetype se expone para que la pantalla pueda contarlo', () {
+      final o = RoutesOverview.compute(catalogue, {}, archetypeId: 'social');
+      expect(o.archetype, Archetype.social);
+    });
   });
 
   test('sugiere la ruta empezada más avanzada, no la primera', () {

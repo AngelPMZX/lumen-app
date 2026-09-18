@@ -225,7 +225,13 @@ class _RoutesScreenState extends State<RoutesScreen> {
   // MENÚ
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildMenu(bool isDark) {
-    final overview = RoutesOverview.compute(_routes, _completedLessons);
+    final overview = RoutesOverview.compute(
+      _routes,
+      _completedLessons,
+      archetypeId: _preview
+          ? null
+          : context.read<AuthProvider>().userModel?.archetype,
+    );
     final suggested = overview.suggested;
     final visible = overview.filtered(_filter);
     final ink = isDark ? Colors.white : AppColors.textPrimary;

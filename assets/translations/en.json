@@ -2427,5 +2427,36 @@
         "body": "Your journal and your garden are just as you left them. Come back when it feels good."
       }
     }
+  },
+  "archetypeQuiz": {
+    "a11yOption": "Option {n} of {total}: {text}",
+    "progress": "Question {n} of {total}",
+    "q1": "When something worries you, what comes first?",
+    "q1a": "Turning it over until I understand it",
+    "q1b": "Getting moving and doing something",
+    "q1c": "Telling someone I trust",
+    "q1d": "Stopping, breathing, looking at it calmly",
+    "q1e": "Getting some air and clearing my head",
+    "q2": "A hard day gets better with…",
+    "q2a": "Some time alone to sort out what I feel",
+    "q2b": "Moving: exercise, a task, anything",
+    "q2c": "Good time with the people who love me",
+    "q2d": "Quiet, something warm, and no rush",
+    "q2e": "Something new, however small",
+    "q3": "The hardest thing for you is…",
+    "q3a": "Getting out of my own head",
+    "q3b": "Stopping when I have nothing left",
+    "q3c": "Setting limits without feeling bad",
+    "q3d": "Letting what I feel show",
+    "q3e": "Staying in one place when I should",
+    "q4": "When something goes well, what do you do?",
+    "q4a": "I keep it and savour it quietly",
+    "q4b": "I go for the next challenge",
+    "q4c": "I share it, it is better that way",
+    "q4d": "I am grateful and carry on calmly",
+    "q4e": "I celebrate and go with it",
+    "startsWith": "You will start with \"{route}\"",
+    "subtitle": "Four questions. There are no right answers.",
+    "title": "A moment with yourself"
   }
 }

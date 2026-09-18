@@ -2427,5 +2427,36 @@
         "body": "Tu diario y tu jardín te esperan tal como los dejaste. Vuelve cuando te haga bien."
       }
     }
+  },
+  "archetypeQuiz": {
+    "a11yOption": "Opción {n} de {total}: {text}",
+    "progress": "Pregunta {n} de {total}",
+    "q1": "Cuando algo te preocupa, ¿qué te sale primero?",
+    "q1a": "Darle vueltas hasta entenderlo",
+    "q1b": "Ponerme en marcha y hacer algo",
+    "q1c": "Contárselo a alguien de confianza",
+    "q1d": "Parar, respirar y mirarlo con calma",
+    "q1e": "Cambiar de aire y despejarme",
+    "q2": "Un día difícil se te arregla con…",
+    "q2a": "Un rato a solas para ordenar lo que siento",
+    "q2b": "Moverme: ejercicio, tarea, lo que sea",
+    "q2c": "Un buen rato con quien me quiere",
+    "q2d": "Silencio, algo calentito y nada de prisa",
+    "q2e": "Algo nuevo, aunque sea pequeño",
+    "q3": "Lo que más te cuesta es…",
+    "q3a": "Salir de mi propia cabeza",
+    "q3b": "Parar cuando ya no puedo más",
+    "q3c": "Poner límites sin sentirme mal",
+    "q3d": "Dejar que se me note lo que siento",
+    "q3e": "Quedarme en un mismo sitio cuando toca",
+    "q4": "Cuando algo te sale bien, ¿qué haces?",
+    "q4a": "Lo guardo y lo saboreo por dentro",
+    "q4b": "Voy a por el siguiente reto",
+    "q4c": "Lo comparto, se disfruta más",
+    "q4d": "Lo agradezco y sigo con calma",
+    "q4e": "Lo celebro y me dejo llevar",
+    "startsWith": "Empezarás por «{route}»",
+    "subtitle": "Cuatro preguntas. No hay respuestas correctas.",
+    "title": "Un momento contigo"
   }
 }

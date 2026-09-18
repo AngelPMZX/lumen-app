@@ -624,7 +624,11 @@ Future<void> _scheduleDailyReminders() async {
   /// La lección sugerida: la misma que "Continúa donde te quedaste" en rutas.
   RouteProgress? get _suggested {
     final routes = _dynamicRoutes.isNotEmpty ? _dynamicRoutes : WellnessRoute.all;
-    return RoutesOverview.compute(routes, _completedLessons).suggested;
+    return RoutesOverview.compute(
+      routes,
+      _completedLessons,
+      archetypeId: context.read<AuthProvider>().userModel?.archetype,
+    ).suggested;
   }
 
   Future<void> _openNextLesson() async {

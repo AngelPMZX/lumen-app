@@ -1,14 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../data/models/archetype.dart';
+import '../../../data/models/routes_overview.dart';
+import '../../../domain/services/routes_service.dart';
 import '../../../domain/providers/auth_provider.dart';
 import 'steps/username_step.dart';
 import 'steps/about_you_step.dart';
 import 'steps/hobbies_step.dart';
 import 'steps/music_step.dart';
+import 'steps/archetype_quiz_step.dart';
 import 'steps/archetype_result_step.dart';
 import '../../widgets/animated_particles_background.dart';
 import '../profile/widgets/profile_widgets.dart' show ArchetypeStyle;
@@ -24,13 +29,20 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentStep = 0;
-  final int _totalSteps = 5;
+  // usuario, sobre ti, gustos, música, mini test y el resultado.
+  final int _totalSteps = 6;
 
   String _username = '';
   int? _age;
   String? _gender;
   List<String> _hobbies = [];
   List<String> _musicGenres = [];
+
+  /// Lo que respondió en el mini test: es lo que más pesa en el arquetipo.
+  List<Archetype> _quizAnswers = const [];
+
+  /// Ruta por la que va a empezar, cuando se sabe.
+  String? _startingRouteTitle;
 
   late AnimationController _progressController;
   late Animation<double> _progressAnimation;
@@ -95,7 +107,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
 
   Future<void> _completeProfile() async {
     final authProvider = context.read<AuthProvider>();
-    final archetype = ArchetypeQuiz.compute(hobbies: _hobbies, genres: _musicGenres).id;
+    final archetype = _archetype.id;
+    // Se pide en paralelo: que guardar el perfil no espere por esto.
+    unawaited(_loadStartingRoute());
 
     final (success, error) = await authProvider.updateUserProfile(
       username: _username,
@@ -302,12 +316,23 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
                         MusicStep(
                           onNext: (genres) {
                             _musicGenres = genres;
+                            _nextStep();
+                          },
+                        ),
+                        ArchetypeQuizStep(
+                          onNext: (answers) {
+                            _quizAnswers = answers;
                             _completeProfile();
                           },
                         ),
                         ArchetypeResultStep(
-                          archetype: ArchetypeQuiz.compute(hobbies: _hobbies, genres: _musicGenres),
-                          affinity: ArchetypeQuiz.affinity(hobbies: _hobbies, genres: _musicGenres),
+                          archetype: _archetype,
+                          affinity: ArchetypeQuiz.affinity(
+                            hobbies: _hobbies,
+                            genres: _musicGenres,
+                            answers: _quizAnswers,
+                          ),
+                          startingRouteTitle: _startingRouteTitle,
                           onContinue: () => Navigator.pushReplacementNamed(context, AppRoutes.onboardingIntro),
                         ),
                       ],
@@ -482,11 +507,38 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     );
   }
 
+  /// Busca por dónde le va a proponer empezar Lumen, para poder decírselo al
+  /// revelarle su arquetipo. Si el catálogo no llega a tiempo simplemente no
+  /// se promete nada: el resultado se ve igual de bien sin esta línea.
+  Future<void> _loadStartingRoute() async {
+    try {
+      final locale = context.locale.languageCode;
+      final routes = await RoutesService()
+          .getRoutes(locale)
+          .timeout(const Duration(seconds: 4));
+      if (!mounted || routes.isEmpty) return;
+      final overview = RoutesOverview.compute(
+        routes,
+        const {},
+        archetypeId: _archetype.id,
+      );
+      final title = overview.firstForArchetype?.route.title;
+      if (title != null) setState(() => _startingRouteTitle = title);
+    } catch (e) {
+      debugPrint('No se pudo saber por dónde empezar: $e');
+    }
+  }
+
+  /// El arquetipo con todo lo que ha respondido hasta ahora.
+  Archetype get _archetype => ArchetypeQuiz.compute(
+        hobbies: _hobbies,
+        genres: _musicGenres,
+        answers: _quizAnswers,
+      );
+
   /// Colores del arquetipo que va ganando (tiñen el fondo al revelarlo).
   (Color, Color) _getArchetypeColors() {
-    final colors = ArchetypeStyle.colors(
-      ArchetypeQuiz.compute(hobbies: _hobbies, genres: _musicGenres).id,
-    );
+    final colors = ArchetypeStyle.colors(_archetype.id);
     return (colors.first, colors.last);
   }
 }

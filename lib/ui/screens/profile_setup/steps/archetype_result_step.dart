@@ -14,11 +14,18 @@ import '../../profile/widgets/profile_widgets.dart' show ArchetypeStyle;
 
 /// El momento de descubrir tu arquetipo: el emblema aparece entre rayos de
 /// luz, se muestran tus fortalezas y un consejo de Lumi.
+/// Qué se lleva la persona de su arquetipo, además del emblema: por dónde va
+/// a empezar. Es lo que lo convierte en algo útil y no solo en un adorno.
 class ArchetypeResultStep extends StatefulWidget {
   final Archetype archetype;
 
   /// Qué tan marcado salió (0-1): se muestra como "afinidad".
   final double affinity;
+
+  /// Ruta por la que va a empezar, si se sabe: es el premio de haber hecho el
+  /// test, y lo que hace que el arquetipo cambie algo de verdad.
+  final String? startingRouteTitle;
+
   final VoidCallback onContinue;
 
   const ArchetypeResultStep({
@@ -26,6 +33,7 @@ class ArchetypeResultStep extends StatefulWidget {
     required this.archetype,
     required this.onContinue,
     this.affinity = 0,
+    this.startingRouteTitle,
   });
 
   @override
@@ -203,9 +211,40 @@ class _ArchetypeResultStepState extends State<ArchetypeResultStep> with TickerPr
                               bottomLeft: Radius.circular(4),
                             ),
                           ),
-                          child: Text(
-                            a.tipKey.tr(),
-                            style: const TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600, color: Color(0xFF2D2D3A)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                a.tipKey.tr(),
+                                style: const TextStyle(fontSize: 12.5, height: 1.35, fontWeight: FontWeight.w600, color: Color(0xFF2D2D3A)),
+                              ),
+                              if (widget.startingRouteTitle != null) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Text('🧭', style: TextStyle(fontSize: 13)),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'archetypeQuiz.startsWith'.tr(namedArgs: {
+                                          'route': widget.startingRouteTitle!,
+                                        }),
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          height: 1.3,
+                                          fontWeight: FontWeight.w800,
+                                          // El color del arquetipo, oscurecido
+                                          // para leerse sobre el globo blanco.
+                                          color: Color.lerp(
+                                              colors.first, Colors.black, 0.25),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),

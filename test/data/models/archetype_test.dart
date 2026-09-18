@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:io';
+
 import 'package:gimnasio_emocional/data/models/archetype.dart';
 
 void main() {
@@ -61,6 +63,85 @@ void main() {
     });
   });
 
+  group('Mini test emocional', () {
+    test('manda sobre los gustos y la música', () {
+      // Todo lo que elige tira a guerrero, pero responde como Mente Serena.
+      final a = ArchetypeQuiz.compute(
+        hobbies: ['Gym', 'Deportes', 'Artes marciales'],
+        genres: ['Rock', 'Metal'],
+        answers: const [
+          Archetype.sabio,
+          Archetype.sabio,
+          Archetype.sabio,
+          Archetype.sabio,
+        ],
+      );
+      expect(a, Archetype.sabio);
+    });
+
+    test('los gustos desempatan cuando el test sale repartido', () {
+      final a = ArchetypeQuiz.compute(
+        hobbies: ['Cocina', 'Fiestas'],
+        genres: ['Cumbia'],
+        answers: const [Archetype.social, Archetype.libre],
+      );
+      expect(a, Archetype.social);
+    });
+
+    test('sin responder el test sigue funcionando como antes', () {
+      expect(
+        ArchetypeQuiz.compute(hobbies: ['Yoga', 'Naturaleza'], genres: ['Ambient']),
+        Archetype.sabio,
+      );
+    });
+
+    test('cada respuesta suma lo suyo', () {
+      final points = ArchetypeQuiz.scores(
+        hobbies: const [],
+        genres: const [],
+        answers: const [Archetype.libre, Archetype.libre],
+      );
+      expect(points[Archetype.libre], ArchetypeQuiz.answerWeight * 2);
+      expect(points[Archetype.sabio], 0);
+    });
+
+    test('responder siempre igual da afinidad total', () {
+      expect(
+        ArchetypeQuiz.affinity(
+          hobbies: const [],
+          genres: const [],
+          answers: const [Archetype.guerrero, Archetype.guerrero],
+        ),
+        1.0,
+      );
+    });
+
+    group('las preguntas', () {
+      test('son cuatro y ninguna repite arquetipo', () {
+        expect(ArchetypeQuiz.questions.length, 4);
+        for (final q in ArchetypeQuiz.questions) {
+          final archetypes = q.options.map((o) => o.archetype).toList();
+          // Una opción por arquetipo: ninguno queda sin salida.
+          expect(archetypes.toSet(), Archetype.values.toSet());
+          expect(archetypes.length, Archetype.values.length);
+        }
+      });
+
+      test('todas tienen su texto y su emoji', () {
+        final keys = <String>{};
+        for (final q in ArchetypeQuiz.questions) {
+          expect(q.promptKey, startsWith('archetypeQuiz.'));
+          expect(keys.add(q.promptKey), isTrue, reason: 'clave repetida');
+          for (final o in q.options) {
+            expect(o.textKey, startsWith('archetypeQuiz.'));
+            expect(o.emoji, isNotEmpty);
+            expect(keys.add(o.textKey), isTrue, reason: 'clave repetida');
+          }
+        }
+      });
+    });
+  });
+
   group('Archetype', () {
     test('el id es el que se guarda en Firestore', () {
       expect(Archetype.explorador.id, 'explorador');
@@ -83,6 +164,25 @@ void main() {
         expect(a.strengthsKey, startsWith('archetype.'));
         expect(a.tipKey, startsWith('archetype.'));
         expect(a.emoji, isNotEmpty);
+      }
+    });
+
+    test('todos saben por dónde empezar, y esas rutas existen', () {
+      // El catálogo de verdad es `seed/routes/` (`WellnessRoute.all` es solo
+      // el respaldo viejo y le faltan rutas). Así una errata en un id se ve
+      // aquí y no cuando alguien se queda sin ruta sugerida.
+      final ids = Directory('seed/routes')
+          .listSync()
+          .whereType<File>()
+          .map((f) => f.uri.pathSegments.last.replaceAll('.js', ''))
+          .toSet();
+      expect(ids, isNotEmpty, reason: 'no se encontró seed/routes');
+
+      for (final a in Archetype.values) {
+        expect(a.preferredRouteIds, isNotEmpty);
+        for (final id in a.preferredRouteIds) {
+          expect(ids, contains(id), reason: '\${a.id} apunta a \$id');
+        }
       }
     });
   });
