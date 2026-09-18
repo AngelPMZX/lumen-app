@@ -22,7 +22,12 @@ class CrisisSupportScreen extends StatefulWidget {
 class _CrisisSupportScreenState extends State<CrisisSupportScreen>
     with TickerProviderStateMixin {
   late final AnimationController _auraCtrl;
-  late CrisisCountry _country;
+  /// País elegido (o detectado). Null = no tenemos líneas verificadas del
+  /// suyo y se le manda al directorio internacional.
+  CrisisCountry? _country;
+
+  /// El que se detectó solo, para poder decírselo sin dar por hecho nada.
+  CrisisCountry? _detected;
 
   static const _deep = Color(0xFF1E2A54);
   static const _soft = Color(0xFF6C8FE8);
@@ -36,13 +41,16 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
       vsync: this,
       duration: const Duration(seconds: 5),
     )..repeatUnlessReduced(reverse: true);
-    _country = CrisisResources.mexico;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _country = CrisisResources.forCountryCode(context.locale.countryCode);
+    // La región sale de los idiomas del **teléfono**, no del idioma de la app:
+    // el de Lumen es solo `es` o `en`, sin país, así que preguntarle a él
+    // nunca devolvía nada y todo el mundo veía las líneas de México.
+    // Si no reconocemos el país se queda en null a propósito: mejor mandar al
+    // directorio internacional que enseñar números de otro país como propios.
+    // Nada de esto sale del teléfono.
+    _country = CrisisResources.detect(
+      WidgetsBinding.instance.platformDispatcher.locales,
+    );
+    _detected = _country;
   }
 
   @override
@@ -99,7 +107,7 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryLine = _country.lines.first;
+    final country = _country;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0E1428) : const Color(0xFFF4F7FF),
@@ -116,15 +124,27 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildPrimaryCall(primaryLine, isDark),
+                        if (country != null)
+                          _buildPrimaryCall(country, country.lines.first, isDark)
+                        else
+                          _buildDirectoryHero(isDark),
                         const SizedBox(height: 26),
                         _sectionLabel('crisis.chooseCountry'.tr(), isDark, 0),
+                        if (country != null && country == _detected) ...[
+                          const SizedBox(height: 6),
+                          _buildDetectedNote(country, isDark),
+                        ],
                         const SizedBox(height: 10),
                         _buildCountryChips(isDark),
-                        const SizedBox(height: 18),
-                        _buildLines(isDark),
+                        if (country != null) ...[
+                          const SizedBox(height: 18),
+                          _buildLines(country, isDark),
+                        ],
                         const SizedBox(height: 14),
-                        _buildEmergencyCard(isDark),
+                        // Aunque no sepamos de qué país es: si hay riesgo
+                        // inmediato hay que llamar a emergencias. Sin país no
+                        // se inventa el número, solo se dice.
+                        _buildEmergencyCard(country, isDark),
                         const SizedBox(height: 26),
                         _sectionLabel('crisis.meanwhile'.tr(), isDark, 500),
                         const SizedBox(height: 10),
@@ -205,7 +225,7 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
   }
 
   /// Botón principal: llamar a la línea del país, con halo que late.
-  Widget _buildPrimaryCall(CrisisLine line, bool isDark) {
+  Widget _buildPrimaryCall(CrisisCountry country, CrisisLine line, bool isDark) {
     return AnimatedBuilder(
       animation: _auraCtrl,
       builder: (_, child) {
@@ -277,7 +297,7 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
                           ),
                         ),
                         Text(
-                          '${_country.flag}  ${line.name}',
+                          '${country.flag}  ${line.nameKey?.tr() ?? line.name}',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -321,7 +341,7 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final country = CrisisResources.all[i];
-          final selected = country.code == _country.code;
+          final selected = country.code == _country?.code;
           return GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
@@ -353,7 +373,7 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
                   Text(country.flag, style: const TextStyle(fontSize: 16)),
                   const SizedBox(width: 8),
                   Text(
-                    country.name,
+                    country.nameKey.tr(),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
@@ -373,7 +393,7 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
 
   /// Las líneas del país elegido. El AnimatedSwitcher hace que al cambiar de
   /// país la lista entre con un fundido en vez de saltar.
-  Widget _buildLines(bool isDark) {
+  Widget _buildLines(CrisisCountry country, bool isDark) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 350),
       switchInCurve: Curves.easeOut,
@@ -388,15 +408,94 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
         ),
       ),
       child: Column(
-        key: ValueKey(_country.code),
+        key: ValueKey(country.code),
         children: [
-          for (int i = 0; i < _country.lines.length; i++) ...[
+          for (int i = 0; i < country.lines.length; i++) ...[
             if (i > 0) const SizedBox(height: 10),
-            _buildLineCard(_country.lines[i], isDark, i),
+            _buildLineCard(country.lines[i], isDark, i),
           ],
         ],
       ),
     );
+  }
+
+  /// Cuando no sabemos de qué país es: el directorio internacional ocupa el
+  /// sitio de la llamada. Mismo peso visual, porque es lo que de verdad le
+  /// sirve.
+  Widget _buildDirectoryHero(bool isDark) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _web(CrisisResources.findAHelplineUrl),
+        borderRadius: BorderRadius.circular(26),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [_soft, _deep],
+            ),
+            borderRadius: BorderRadius.circular(26),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Row(
+              children: [
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.travel_explore_rounded,
+                      color: Colors.white, size: 26),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'crisis.unknownTitle'.tr(),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'crisis.unknownMessage'.tr(),
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.35,
+                          color: Colors.white.withValues(alpha: 0.88),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ).animate(delay: 250.ms).fadeIn(duration: 500.ms);
+  }
+
+  /// "Detectamos que estás en X. Si no es así, elige el tuyo." Se dice, no se
+  /// da por hecho: la detección viene del idioma del teléfono y puede fallar.
+  Widget _buildDetectedNote(CrisisCountry country, bool isDark) {
+    return Text(
+      'crisis.yourCountry'.tr(namedArgs: {'country': country.nameKey.tr()}),
+      style: TextStyle(
+        fontSize: 12.5,
+        height: 1.35,
+        color: isDark ? Colors.white54 : _deep.withValues(alpha: 0.55),
+      ),
+    ).animate(delay: 400.ms).fadeIn(duration: 400.ms);
   }
 
   Widget _buildLineCard(CrisisLine line, bool isDark, int index) {
@@ -453,7 +552,7 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      line.name,
+                      line.nameKey?.tr() ?? line.name,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -512,11 +611,11 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
         .slideY(begin: 0.08, end: 0);
   }
 
-  Widget _buildEmergencyCard(bool isDark) {
+  Widget _buildEmergencyCard(CrisisCountry? country, bool isDark) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _call(_country.emergencyNumber),
+        onTap: country == null ? null : () => _call(country.emergencyNumber),
         borderRadius: BorderRadius.circular(18),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -537,8 +636,10 @@ class _CrisisSupportScreenState extends State<CrisisSupportScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'crisis.emergencyTitle'
-                          .tr(namedArgs: {'number': _country.emergencyNumber}),
+                      country == null
+                          ? 'crisis.emergencyTitleGeneric'.tr()
+                          : 'crisis.emergencyTitle'
+                              .tr(namedArgs: {'number': country.emergencyNumber}),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,

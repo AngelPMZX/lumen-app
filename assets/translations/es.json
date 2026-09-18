@@ -2103,7 +2103,7 @@
     "timeShortDays": "{days}d {hours}h"
   },
   "crisis": {
-    "title": "No estás solo en esto",
+    "title": "No estás en esto a solas",
     "subtitle": "Hablar con alguien ayuda. Estas líneas son gratuitas, confidenciales y atienden las 24 horas.",
     "callNow": "LLAMAR AHORA",
     "chooseCountry": "TU PAÍS",
@@ -2133,8 +2133,21 @@
       "ar135Note": "Desde el resto del país usa el número largo de abajo.",
       "arNational": "Misma atención del Centro de Asistencia al Suicida, desde cualquier punto del país.",
       "cl4141": "Atención con psicólogos las 24 horas, gratuita desde celular.",
-      "cl4141Note": "Desde teléfono fijo marca 131."
-    }
+      "cl4141Note": "Desde teléfono fijo marca 131.",
+      "us988TextName": "988 — texto"
+    },
+    "countries": {
+      "ar": "Argentina",
+      "cl": "Chile",
+      "co": "Colombia",
+      "es": "España",
+      "mx": "México",
+      "us": "Estados Unidos"
+    },
+    "unknownTitle": "Busca la línea de tu país",
+    "unknownMessage": "Todavía no tenemos líneas verificadas del tuyo. En este directorio están las de más de 175 países.",
+    "yourCountry": "Detectamos que estás en {country}. Si no es así, elige el tuyo.",
+    "emergencyTitleGeneric": "Emergencias"
   },
   "commitments": {
     "questionYesterday": "¿Cumpliste tu reto de ayer?",

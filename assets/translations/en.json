@@ -2103,7 +2103,7 @@
     "timeShortDays": "{days}d {hours}h"
   },
   "crisis": {
-    "title": "You are not alone in this",
+    "title": "You are not going through this alone",
     "subtitle": "Talking to someone helps. These lines are free, confidential and open 24 hours a day.",
     "callNow": "CALL NOW",
     "chooseCountry": "YOUR COUNTRY",
@@ -2133,8 +2133,21 @@
       "ar135Note": "From elsewhere in the country use the long number below.",
       "arNational": "Same Centro de Asistencia al Suicida support, from anywhere in the country.",
       "cl4141": "24-hour support with psychologists, free from mobile phones.",
-      "cl4141Note": "From a landline dial 131."
-    }
+      "cl4141Note": "From a landline dial 131.",
+      "us988TextName": "988 — text"
+    },
+    "countries": {
+      "ar": "Argentina",
+      "cl": "Chile",
+      "co": "Colombia",
+      "es": "Spain",
+      "mx": "Mexico",
+      "us": "United States"
+    },
+    "unknownTitle": "Find the line for your country",
+    "unknownMessage": "We don't have verified lines for yours yet. This directory has them for over 175 countries.",
+    "yourCountry": "It looks like you are in {country}. If not, pick yours.",
+    "emergencyTitleGeneric": "Emergency services"
   },
   "commitments": {
     "questionYesterday": "Did you complete yesterday’s challenge?",

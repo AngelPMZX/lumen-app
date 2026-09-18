@@ -480,6 +480,11 @@ void main() {
 
   // ── 7. Ayuda en crisis ────────────────────────────────────────────────────
   testWidgets('07_crisis', (tester) async {
+    // La pantalla detecta el país por la región del teléfono, y en una prueba
+    // eso es en_US: sin esto la captura de la ficha (en español) saldría con
+    // las líneas de Estados Unidos.
+    tester.platformDispatcher.localesTestValue = const [Locale('es', 'MX')];
+    addTearDown(tester.platformDispatcher.clearLocalesTestValue);
     await shoot(
       tester,
       '07_crisis',

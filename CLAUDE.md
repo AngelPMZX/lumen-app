@@ -330,7 +330,11 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Pantalla `CrisisSupportScreen` (`lib/ui/screens/crisis/`) con líneas de ayuda gratuitas por país.
 - Datos en `lib/data/models/crisis_resource.dart`: México (Línea de la Vida), Colombia (106), Argentina (135), Chile (*4141), España (024), EE. UU. (988) + Find A Helpline como respaldo internacional.
 - **Los números son información de seguridad**: cada país lleva su `sourceUrl` oficial. No agregar ni cambiar un número sin verificarlo en la fuente oficial primero.
+- **El país se detecta con la región del teléfono** (`CrisisResources.detect(PlatformDispatcher.locales)`), **nunca con `context.locale`**: el idioma de la app es solo `es` o `en`, sin país, así que preguntarle a él devolvía siempre null y todo el mundo veía las líneas de México. Se recorren los idiomas preferidos y se toma la primera región de la que hay líneas verificadas. Nada de esto sale del teléfono (ni geolocalización ni red).
+- **Si el país no está en la lista, `detect` devuelve null** y el directorio internacional ocupa el sitio de la llamada: enseñarle a alguien de Perú los números de México como si fueran los suyos sería peor que mandarlo a Find A Helpline. El aviso de emergencias se queda (sin número inventado) y los chips siguen permitiendo elegir a mano.
+- **Los nombres de país van traducidos** (`crisis.countries.<código>`): en inglés es "Mexico" y "United States". Los nombres propios de las líneas no se traducen (así se llaman y así se oyen al otro lado); solo las etiquetas nuestras llevan `nameKey` (p. ej. "988 — texto"). Una prueba comprueba que toda clave del catálogo existe en ES y EN, así que un país nuevo sin traducir no pasa.
 - Accesos: Perfil → "¿Necesitas ayuda ahora?", icono en la cabecera del Diario, y tarjeta automática en Home cuando hay 3+ días de ánimo negativo en la semana (`_shouldOfferCrisisSupport`, ocultable por día).
+- La captura de Play de esta pantalla fija `localesTestValue` a `es_MX`: si no, la región de prueba es `en_US` y la ficha en español saldría con las líneas de Estados Unidos.
 - Usa `url_launcher` (`tel:`, `sms:`, `https:`); Android 11+ exige los `<intent>` declarados en `<queries>` del AndroidManifest.
 
 ### Volver a Lumen (notificaciones de regreso)
