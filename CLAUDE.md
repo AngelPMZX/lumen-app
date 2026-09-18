@@ -154,7 +154,7 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Assets ilustrados estilo watercolor children's book (WebP en `assets/images/plants/`, `decorations/`, `boosters/`, `currency/`).
 - **Auras de rareza (no quitar, lo pidió Ángel)**: cada item tiene `auraColor`/`auraOpacity`/`auraBlurRadius` en `GardenItem`. `AuraContainer` las dibuja como degradado radial (sin blur) y con `pulse` late despacio; `AuraContainer.pulsesFor` lo activa en épico, legendario y de temporada. Las plantas adultas tienen además halo del mismo color y destellos que suben.
 - **Siempre con nuestras ilustraciones**: `GardenAssets` (`garden_defs.dart`) da la ruta de cada planta por etapa, decoración, booster, semilla y fondo; `GardenItemImage` las muestra con su aura y cae en el emoji si falla. Una prueba verifica que existan todos los archivos.
-- Tienda con precios en semillas + premium ($0.99 vía RevenueCat futuro).
+- **Todo el jardín se gana con semillas** (2026-09-17): el pino navideño y la calabaza cuestan 150, el elixir 250 y el puente 50. Antes eran de pago ($0.99–1.99) y chocaban con la promesa de "Apoya a Lumen" (el bienestar es gratis). Las estacionales siguen apareciendo solo en su mes. El camino premium del modelo y de la tienda (`isPremium`, `registerPremiumPurchase`, sección Premium) se deja listo para los **cosméticos de Lumi**, que serán lo único de pago.
 - Escudos de racha: el home guarda la racha rota (`saveStreakBeforeBreak`, tras cargar las mecánicas) y el escudo solo se puede usar ese día (`streakBreakDate` en `garden/mechanics`), antes o después del check-in. Si ya hizo check-in, hoy también cuenta.
 - Múltiples jardines (meadow y mountain abiertos; forest, lake y greenhouse "próximamente"). El último elegido se guarda en SharedPreferences (`garden_active_id`).
 
@@ -317,6 +317,11 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Accesos: Perfil → "¿Necesitas ayuda ahora?", icono en la cabecera del Diario, y tarjeta automática en Home cuando hay 3+ días de ánimo negativo en la semana (`_shouldOfferCrisisSupport`, ocultable por día).
 - Usa `url_launcher` (`tel:`, `sms:`, `https:`); Android 11+ exige los `<intent>` declarados en `<queries>` del AndroidManifest.
 
+### Volver a Lumen (notificaciones de regreso)
+- `WinBack` (`lib/data/models/win_back.dart`, lógica pura con pruebas): dos avisos locales, a los **3 y 14 días** sin abrir la app, a las 19:00, con tres variantes del primer mensaje elegidas por día.
+- `NotificationService.scheduleWinBackReminders` (ids 6000 y 6001) los programa y `MainShell` **los reprograma al abrir la app y al volver de segundo plano** (`WidgetsBindingObserver`), así que solo suenan si de verdad pasan días sin entrar. Después del segundo, silencio: no se insiste más.
+- Tono: nunca regañar ni hablar de rachas perdidas ("Lumi te guardó tu lugar", "no hace falta ponerse al día con nada"). Los textos viven en `notifications.winBack` de las traducciones.
+
 ### Apoya a Lumen (mensaje y monetización)
 - `lib/ui/screens/support/support_screen.dart`, desde Perfil → "Ayuda y más" → **Apoya a Lumen**: encabezado rosa con Lumi cariñosa y corazones que suben, "hecha por una sola persona", qué logra el apoyo, y **tres formas de ayudar que funcionan hoy**: compartir (share_plus con el enlace de Play), calificar (`AppReviewService.openStoreListing`) y escribir una idea (`mailto:`).
 - Los **cosméticos de Lumi** se anuncian como "próximamente" y **no hay ningún pago todavía**. Cuando se active RevenueCat, va por **Google Play Billing**: Play no permite enlazar a pagos externos por contenido digital, y un "apoyo" con recompensa dentro de la app cuenta como contenido digital. Si algún día se quiere un donativo puro (sin nada a cambio), revisar antes la política de pagos de Play.
@@ -401,7 +406,7 @@ flutter clean; flutter pub get
 7. ~~Tarjeta para compartir al completar una ruta~~: hecho, ver "Compartir ruta y reseñas".
 8. ~~Pedir reseña en Play Store~~: hecho.
 10. **Personalización de Lumi como apoyo al proyecto** (pantalla "Apoya a Lumen" ya hecha, 2026-09-17; falta el pago) (idea de Ángel, 2026-09-16): colores, accesorios (gorrito, bufanda, lentes…) y quizá animaciones especiales, a precio bajo vía RevenueCat. Solo cosmético: nunca bloquear contenido de bienestar ni ayuda. El `LumiPainter` ya dibuja todo por código, así que los accesorios se pueden pintar como capas encima.
-9. ~~Rutas nuevas **Ansiedad y Estrés** y **Sueño**~~: hechas. Si se vuelven premium, revisar `WeeklySummary.recommendedLessons` (hoy recomienda `ans_*`/`sue_*`).
+9. ~~Rutas nuevas **Ansiedad y Estrés** y **Sueño**~~: hechas. **Decisión (2026-09-17): las rutas nunca serán premium.** La pantalla "Apoya a Lumen" promete que el contenido de bienestar y la ayuda en crisis son gratis siempre; lo de pago serán solo cosméticos.
 
 **Pulido**:
 - ~~Modo claro de la lección~~, ~~"Reducir animaciones"~~ y ~~dividir `lesson_screen.dart`~~: hechos (2026-09-16).

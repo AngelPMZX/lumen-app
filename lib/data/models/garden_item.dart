@@ -254,8 +254,7 @@ class GardenCatalog {
     type: ItemType.plant,
     rarity: ItemRarity.seasonal,
     emoji: '🎄',
-    seedCost: 0,
-    premiumCost: 0.99,
+    seedCost: 150,
     isSeasonal: true,
     availableMonth: 12,
     growthTime: Duration(hours: 48),
@@ -279,8 +278,7 @@ class GardenCatalog {
     type: ItemType.plant,
     rarity: ItemRarity.seasonal,
     emoji: '🎃',
-    seedCost: 0,
-    premiumCost: 0.99,
+    seedCost: 150,
     isSeasonal: true,
     availableMonth: 10,
     growthTime: Duration(hours: 36),
@@ -337,12 +335,11 @@ class GardenCatalog {
     rarity: ItemRarity.rare,
     emoji: '🌉',
     seedCost: 50,
-    premiumCost: 1.99,
   );
 
   // ── BOOSTERS ──────────────────────────────────────────────────────────────
-  // Ahora comprables con semillas — antes solo se ganaban como recompensa.
-  // El elixir sigue siendo solo premium por ser legendary.
+  // Todos comprables con semillas — antes algunos solo se ganaban o se
+  // pagaban. Nada del jardín cuesta dinero: se gana cuidándote.
 
   static const GardenItem waterDrop = GardenItem(
     id: 'boost_water',
@@ -384,8 +381,7 @@ class GardenCatalog {
     type: ItemType.booster,
     rarity: ItemRarity.legendary,
     emoji: '⚗️',
-    seedCost: 0,
-    premiumCost: 0.99,
+    seedCost: 250,
     boostDuration: Duration(days: 999),
   );
 

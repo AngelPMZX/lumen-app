@@ -2382,5 +2382,27 @@
     "soonBody": "Soon you will be able to give Lumi hats, scarves and colours. They will be cosmetic only, to support the project if you want to and can.",
     "promise": "A promise: wellbeing content and crisis help will always be free. We will never charge you for taking care of yourself.",
     "thanks": "Thank you for being here.\nIt really helps 🤍"
+  },
+  "notifications": {
+    "winBack": {
+      "first": {
+        "0": {
+          "title": "Your garden is still there 🌱",
+          "body": "A minute of breathing or one line in your journal. Whenever you like, I am here. — Lumi"
+        },
+        "1": {
+          "title": "Lumi kept your spot 🤍",
+          "body": "There is nothing to catch up on. Starting again counts too."
+        },
+        "2": {
+          "title": "How is everything? 🌤️",
+          "body": "A mood check-in takes ten seconds. Just that."
+        }
+      },
+      "second": {
+        "title": "We are still here, no rush 🤍",
+        "body": "Your journal and your garden are just as you left them. Come back when it feels good."
+      }
+    }
   }
 }

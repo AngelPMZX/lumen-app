@@ -8,7 +8,9 @@ import '../screens/routes/routes_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../widgets/celebration_dialog.dart';
 import '../widgets/discovery_dialog.dart';
+import '../../data/models/win_back.dart';
 import '../../domain/providers/auth_provider.dart';
+import '../../domain/services/notification_service.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -17,7 +19,7 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   int _currentIndex = 0;
   bool _isShowingCelebration = false;
 
@@ -27,6 +29,36 @@ class _MainShellState extends State<MainShell> {
     RoutesScreen(),
     ProfileScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scheduleWinBack());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Al volver a la app se corren los avisos de "te extrañamos": solo suenan
+    // si de verdad pasan días sin abrirla.
+    if (state == AppLifecycleState.resumed) _scheduleWinBack();
+  }
+
+  void _scheduleWinBack() {
+    final variant = WinBack.variantFor(DateTime.now());
+    NotificationService.instance.scheduleWinBackReminders(
+      firstTitle: WinBack.firstTitleKey(variant).tr(),
+      firstBody: WinBack.firstBodyKey(variant).tr(),
+      secondTitle: WinBack.secondTitleKey.tr(),
+      secondBody: WinBack.secondBodyKey.tr(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

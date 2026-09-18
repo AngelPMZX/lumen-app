@@ -2382,5 +2382,27 @@
     "soonBody": "Pronto podrás ponerle gorritos, bufandas y colores a Lumi. Serán solo cosméticos, para apoyar el proyecto si quieres y puedes.",
     "promise": "Promesa: el contenido de bienestar y la ayuda en crisis serán gratis siempre. Nunca vamos a cobrar por cuidarte.",
     "thanks": "Gracias por estar aquí.\nDe verdad ayuda 🤍"
+  },
+  "notifications": {
+    "winBack": {
+      "first": {
+        "0": {
+          "title": "Tu jardín sigue ahí 🌱",
+          "body": "Un minuto de respiración o una línea en tu diario. Cuando quieras, aquí estoy. — Lumi"
+        },
+        "1": {
+          "title": "Lumi te guardó tu lugar 🤍",
+          "body": "No hace falta ponerse al día con nada. Empezar otra vez también cuenta."
+        },
+        "2": {
+          "title": "¿Cómo va todo? 🌤️",
+          "body": "Un check-in de ánimo toma diez segundos. Nada más que eso."
+        }
+      },
+      "second": {
+        "title": "Aquí seguimos, sin prisa 🤍",
+        "body": "Tu diario y tu jardín te esperan tal como los dejaste. Vuelve cuando te haga bien."
+      }
+    }
   }
 }

@@ -4,6 +4,8 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../data/models/win_back.dart';
+
 /// Servicio singleton de notificaciones locales.
 /// Maneja recordatorios del usuario y notificaciones de cosecha de jardín.
 class NotificationService {
@@ -19,6 +21,8 @@ class NotificationService {
   static const int _streakNotificationId = 3000;
   static const int _commitmentNotificationId = 4000;
   static const int _weeklySummaryNotificationId = 5000;
+  static const int _winBackFirstId = 6000;
+  static const int _winBackSecondId = 6001;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // INICIALIZACIÓN
@@ -414,6 +418,51 @@ class NotificationService {
   Future<void> cancelCommitmentReminder() async {
     await initialize();
     await _plugin.cancel(_commitmentNotificationId);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VOLVER A LUMEN
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Dos avisos suaves por si pasan días sin abrir la app: a los 3 y a los 14.
+  /// **Se reprograman cada vez que se abre Lumen**, así que solo suenan si de
+  /// verdad se alejó. Después del segundo, silencio.
+  Future<void> scheduleWinBackReminders({
+    required String firstTitle,
+    required String firstBody,
+    required String secondTitle,
+    required String secondBody,
+  }) async {
+    await initialize();
+    await cancelWinBackReminders();
+
+    final now = tz.TZDateTime.now(tz.local);
+    for (final (id, days, title, body) in [
+      (_winBackFirstId, WinBack.firstDays, firstTitle, firstBody),
+      (_winBackSecondId, WinBack.secondDays, secondTitle, secondBody),
+    ]) {
+      final when = WinBack.dateFor(now, days);
+      try {
+        await _plugin.zonedSchedule(
+          id,
+          title,
+          body,
+          tz.TZDateTime(tz.local, when.year, when.month, when.day, when.hour),
+          _notificationDetails(importance: Importance.defaultImportance),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'win_back',
+        );
+      } catch (e) {
+        debugPrint('Win-back schedule error: $e');
+      }
+    }
+  }
+
+  Future<void> cancelWinBackReminders() async {
+    await initialize();
+    await _plugin.cancel(_winBackFirstId);
+    await _plugin.cancel(_winBackSecondId);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
