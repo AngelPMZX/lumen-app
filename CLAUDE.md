@@ -391,7 +391,8 @@ flutter clean; flutter pub get
 - **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
 - **Panel admin** de rutas de bienestar (sin script Node.js).
 - **Guía de batería para Xiaomi/Huawei/Oppo** al detectar el fabricante.
-- **Pre-publicación**: ver `store/pasos-para-publicar.md`. Pendientes reales: activar GitHub Pages, activar *Email enumeration protection* y **App Check** en Firebase, capturas de pantalla, y registrar el **SHA-1 de Play App Signing**. La política de privacidad, la ficha y el formulario de seguridad de datos ya están escritos.
+- **Pre-publicación**: ver `store/pasos-para-publicar.md`. Pendientes reales, todos en consolas: activar GitHub Pages, activar *Email enumeration protection* y **App Check** en Firebase, publicar `firestore.rules` y registrar el **SHA-1 de Play App Signing**. La política de privacidad, la ficha, el formulario de seguridad de datos, el ícono y las capturas ya están hechos.
+- **Material de la ficha, dibujado con código**: ícono y gráfico de funciones en `branding/` (`tool/branding/generate_branding_test.dart`); las 7 capturas de Play en `store/screenshots/` a 1080×2160 (`tool/store/store_shots_test.dart` + `store_shot.dart`, una por proceso: `flutter test tool/store/store_shots_test.dart --name '^01_home$'`). Carga Segoe UI, Segoe UI Emoji y los iconos de Material del SDK, o todo sale en cuadritos. Si cambia el diseño, se regeneran; no llevan datos reales de nadie.
 - **Spam del email de reset**: requiere plan Blaze + dominio propio + SPF/DKIM.
 
 ### Ideas aprobadas (roadmap, 2026-09-16)

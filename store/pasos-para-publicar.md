@@ -54,8 +54,9 @@ Lista para seguir de arriba abajo. Marca cada casilla al terminar.
       español (México), tipo **App**, **Gratuita**.
 - [ ] **Ficha principal**: copiar de `store/ficha-play-es.md`.
 - [ ] Agregar idioma **inglés (EE. UU.)** y copiar de `store/ficha-play-en.md`.
-- [ ] Subir ícono 512×512, gráfico de funciones 1024×500 y las capturas
-      (ver `store/capturas-y-graficos.md`).
+- [ ] Subir ícono 512×512 (`branding/icon_512.png`), gráfico de funciones
+      1024×500 (`branding/feature_graphic_es.png`) y las 7 capturas de
+      `store/screenshots/` en orden (ver `store/capturas-y-graficos.md`).
 - [ ] **Seguridad de los datos**: seguir `store/seguridad-de-datos.md`.
 - [ ] **Clasificación de contenido**: cuestionario IARC, respuestas en el mismo archivo.
 - [ ] **Público objetivo**: 13 años en adelante. No marcar "dirigida a niños".
