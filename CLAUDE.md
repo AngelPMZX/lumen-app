@@ -317,6 +317,12 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Accesos: Perfil → "¿Necesitas ayuda ahora?", icono en la cabecera del Diario, y tarjeta automática en Home cuando hay 3+ días de ánimo negativo en la semana (`_shouldOfferCrisisSupport`, ocultable por día).
 - Usa `url_launcher` (`tel:`, `sms:`, `https:`); Android 11+ exige los `<intent>` declarados en `<queries>` del AndroidManifest.
 
+### Apoya a Lumen (mensaje y monetización)
+- `lib/ui/screens/support/support_screen.dart`, desde Perfil → "Ayuda y más" → **Apoya a Lumen**: encabezado rosa con Lumi cariñosa y corazones que suben, "hecha por una sola persona", qué logra el apoyo, y **tres formas de ayudar que funcionan hoy**: compartir (share_plus con el enlace de Play), calificar (`AppReviewService.openStoreListing`) y escribir una idea (`mailto:`).
+- Los **cosméticos de Lumi** se anuncian como "próximamente" y **no hay ningún pago todavía**. Cuando se active RevenueCat, va por **Google Play Billing**: Play no permite enlazar a pagos externos por contenido digital, y un "apoyo" con recompensa dentro de la app cuenta como contenido digital. Si algún día se quiere un donativo puro (sin nada a cambio), revisar antes la política de pagos de Play.
+- **La promesa está escrita en la pantalla**: el contenido de bienestar y la ayuda en crisis son gratis siempre. Mantenerla al agregar cualquier cosa de pago.
+- `AppLinks.playStore` guarda el enlace de la ficha (existe a partir de la publicación).
+
 ### Ícono y arte de marca
 - **El ícono se genera con código**, no es un PNG dibujado aparte: `tool/branding/brand_art.dart` pinta el fondo verde, el resplandor, los destellos y a **Lumi** (con `LumiMark`, la versión quieta de `LumiAvatar`), así que el ícono siempre coincide con el personaje de la app.
 - `flutter test tool/branding/generate_branding_test.dart` exporta a `branding/`: `icon_512` (ficha de Play), `icon_1024`, las tres capas del ícono adaptativo de Android (`adaptive_foreground`, `adaptive_background`, `adaptive_monochrome`) y los `feature_graphic_es/en` (1024×500). El PNG se rasteriza con `RepaintBoundary.toImage` **dentro de `tester.runAsync`** (fuera de él, `toByteData` se queda colgado).
@@ -394,7 +400,7 @@ flutter clean; flutter pub get
 6. ~~Misiones semanales~~: hecho, ver "Misiones semanales" en Features.
 7. ~~Tarjeta para compartir al completar una ruta~~: hecho, ver "Compartir ruta y reseñas".
 8. ~~Pedir reseña en Play Store~~: hecho.
-10. **Personalización de Lumi como apoyo al proyecto** (idea de Ángel, 2026-09-16): colores, accesorios (gorrito, bufanda, lentes…) y quizá animaciones especiales, a precio bajo vía RevenueCat. Solo cosmético: nunca bloquear contenido de bienestar ni ayuda. El `LumiPainter` ya dibuja todo por código, así que los accesorios se pueden pintar como capas encima.
+10. **Personalización de Lumi como apoyo al proyecto** (pantalla "Apoya a Lumen" ya hecha, 2026-09-17; falta el pago) (idea de Ángel, 2026-09-16): colores, accesorios (gorrito, bufanda, lentes…) y quizá animaciones especiales, a precio bajo vía RevenueCat. Solo cosmético: nunca bloquear contenido de bienestar ni ayuda. El `LumiPainter` ya dibuja todo por código, así que los accesorios se pueden pintar como capas encima.
 9. ~~Rutas nuevas **Ansiedad y Estrés** y **Sueño**~~: hechas. Si se vuelven premium, revisar `WeeklySummary.recommendedLessons` (hoy recomienda `ans_*`/`sue_*`).
 
 **Pulido**:

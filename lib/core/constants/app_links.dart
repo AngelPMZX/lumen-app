@@ -12,6 +12,9 @@ class AppLinks {
 
   static const supportEmail = 'angelperez19663@gmail.com';
 
+  /// Ficha de Google Play (existe a partir de la publicación).
+  static const playStore = 'https://play.google.com/store/apps/details?id=com.thedarkingstudios.lumen';
+
   /// Política de privacidad en el idioma de la app.
   static String privacy(String languageCode) => languageCode == 'en' ? privacyEn : privacyEs;
 

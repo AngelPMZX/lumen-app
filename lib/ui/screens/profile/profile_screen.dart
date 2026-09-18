@@ -20,6 +20,7 @@ import '../../widgets/lumi/lumi_avatar.dart';
 import '../auth/widgets/auth_widgets.dart' show openExternal, openMail;
 import '../garden/widgets/garden_common.dart' show GardenSheet;
 import '../summary/weekly_summary_screen.dart';
+import '../support/support_screen.dart';
 import 'achievements_screen.dart';
 import 'edit_profile_screen.dart';
 import 'mood_history_screen.dart';
@@ -382,6 +383,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: 'profileScreen.groupHelp'.tr(),
         isDark: isDark,
         items: [
+          SettingsItem(
+            icon: Icons.favorite_rounded,
+            color: const Color(0xFFEC4899),
+            title: 'support.title'.tr(),
+            subtitle: 'support.menuSubtitle'.tr(),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen())),
+          ),
           SettingsItem(
             icon: Icons.volunteer_activism_rounded,
             color: const Color(0xFF6C8FE8),

@@ -2355,5 +2355,32 @@
     "suggestWater": "Have a glass of water 💧",
     "suggestDiary": "Write one line in your journal 📖",
     "previewLabel": "How it will look"
+  },
+  "support": {
+    "title": "Support Lumen",
+    "menuSubtitle": "How to help it keep growing",
+    "headerKicker": "Thanks for being here",
+    "madeByKicker": "Behind the app",
+    "madeByTitle": "Made by one person",
+    "madeByBody": "Lumen is made by Ángel, one person, in his free time. Every lesson, drawing, sound and even Lumi are handmade, with one simple idea: looking after your mind should not cost money or feel like a chore.",
+    "whatItDoesTitle": "What your support does",
+    "point1": "Keeps Lumen free for people who cannot pay.",
+    "point2": "New lessons and content, written slowly and carefully.",
+    "point3": "Keeps crisis help one tap away and always free.",
+    "point4": "Makes room for more projects like this one, made to help people.",
+    "freeWaysKicker": "Without spending a cent",
+    "freeWaysTitle": "How to help today",
+    "shareTitle": "Share Lumen",
+    "shareBody": "Maybe someone you love needs it today.",
+    "shareText": "I am using Lumen, an app to look after your mind a few minutes a day: lessons, a journal, breathing and a garden that grows with you 🌱",
+    "rateTitle": "Rate the app",
+    "rateBody": "An honest review helps more people find it.",
+    "ideaTitle": "Tell me an idea",
+    "ideaBody": "What you would like Lumen to do, or what is not working.",
+    "ideaSubject": "An idea for Lumen",
+    "soonTitle": "Lumi cosmetics",
+    "soonBody": "Soon you will be able to give Lumi hats, scarves and colours. They will be cosmetic only, to support the project if you want to and can.",
+    "promise": "A promise: wellbeing content and crisis help will always be free. We will never charge you for taking care of yourself.",
+    "thanks": "Thank you for being here.\nIt really helps 🤍"
   }
 }

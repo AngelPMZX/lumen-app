@@ -40,6 +40,16 @@ class AppReviewService {
     return true;
   }
 
+  /// Abre la ficha de la app en Play (desde "Apoya a Lumen").
+  Future<void> openStoreListing() async {
+    if (kIsWeb) return;
+    try {
+      await InAppReview.instance.openStoreListing();
+    } catch (e) {
+      debugPrint('Open store listing error: $e');
+    }
+  }
+
   Future<void> onHappyMoment(String moment, AuthProvider auth) async {
     if (kIsWeb) return;
     try {

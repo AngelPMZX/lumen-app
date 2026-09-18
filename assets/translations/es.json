@@ -2355,5 +2355,32 @@
     "suggestWater": "Toma un vaso de agua 💧",
     "suggestDiary": "Escribe una línea en tu diario 📖",
     "previewLabel": "Así se verá"
+  },
+  "support": {
+    "title": "Apoya a Lumen",
+    "menuSubtitle": "Cómo ayudar a que siga creciendo",
+    "headerKicker": "Gracias por estar aquí",
+    "madeByKicker": "Detrás de la app",
+    "madeByTitle": "Hecha por una sola persona",
+    "madeByBody": "Lumen la hace Ángel, una persona, en sus ratos libres. Cada lección, cada dibujo, cada sonido y hasta Lumi están hechos a mano, con una idea simple: cuidar tu mente no debería costar dinero ni sentirse como una tarea.",
+    "whatItDoesTitle": "Qué logra tu apoyo",
+    "point1": "Que Lumen siga siendo gratis para quien no puede pagar.",
+    "point2": "Lecciones y contenido nuevo, escritos con calma y con cuidado.",
+    "point3": "Que la ayuda en crisis siga siempre a un toque y sin costo.",
+    "point4": "Que existan más proyectos como este, hechos para ayudar a la gente.",
+    "freeWaysKicker": "Sin gastar un peso",
+    "freeWaysTitle": "Cómo ayudar hoy",
+    "shareTitle": "Comparte Lumen",
+    "shareBody": "Quizá alguien que quieres la necesita hoy.",
+    "shareText": "Estoy usando Lumen, una app para cuidar la mente un ratito al día: lecciones, diario, respiración y un jardín que crece contigo 🌱",
+    "rateTitle": "Califica la app",
+    "rateBody": "Una reseña honesta ayuda a que más gente la encuentre.",
+    "ideaTitle": "Cuéntame una idea",
+    "ideaBody": "Qué te gustaría que Lumen hiciera, o qué no funciona.",
+    "ideaSubject": "Una idea para Lumen",
+    "soonTitle": "Cosméticos de Lumi",
+    "soonBody": "Pronto podrás ponerle gorritos, bufandas y colores a Lumi. Serán solo cosméticos, para apoyar el proyecto si quieres y puedes.",
+    "promise": "Promesa: el contenido de bienestar y la ayuda en crisis serán gratis siempre. Nunca vamos a cobrar por cuidarte.",
+    "thanks": "Gracias por estar aquí.\nDe verdad ayuda 🤍"
   }
 }
