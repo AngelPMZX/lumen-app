@@ -115,7 +115,13 @@
     "privacyPoint2": "They are stored in your Firebase account so you do not lose them when you change phones.",
     "privacyPoint3": "Usage stats are anonymous: we never send what you write or how you feel.",
     "privacyPoint4": "You can delete your account and all your data anytime from Edit profile.",
-    "privacyFull": "Read the full policy"
+    "privacyFull": "Read the full policy",
+    "linkGoogle": {
+      "title": "Let's join your two ways in",
+      "body": "You already have an account with {email}. Type its password once and Google will be joined to it: you keep your streak, your garden and your journal.",
+      "action": "Join the accounts",
+      "note": "We only ask this once, to confirm the account is yours."
+    }
   },
   "validation": {
     "required": "This field is required",
@@ -1409,7 +1415,14 @@
     "discardTitle": "Leave without saving?",
     "discardBody": "You made changes that are not saved yet. You can go back and save them.",
     "discardLeave": "Leave without saving",
-    "discardStay": "Keep editing"
+    "discardStay": "Keep editing",
+    "linkGoogle": "Link with Google",
+    "linkGoogleDesc": "Sign in with one tap, no password needed.",
+    "linkGoogleDone": "Done: you can sign in with Google now",
+    "linkGoogleLinked": "Your Google account is already linked",
+    "linkGoogleOtherEmail": "That Google account uses a different email. Pick the one that matches your account.",
+    "linkGoogleTaken": "That Google account already belongs to another Lumen user.",
+    "linkGoogleAction": "Link"
   },
   "profileScreen": {
     "currentStreakStat": "Current\nstreak",

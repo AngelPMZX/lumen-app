@@ -32,6 +32,110 @@ class AuthProvider extends ChangeNotifier {
   /// Solo entra con Google: no hay contraseña que cambiar ni con qué confirmar.
   bool get isGoogleOnly => isGoogleUser && !hasPassword;
 
+  // ── Vincular Google con una cuenta de correo ───────────────────────────────
+  /// Firebase **no** fusiona solo una cuenta de correo verificada con Google
+  /// (permitiría entrar en cuentas ajenas): devuelve la credencial de Google
+  /// "pendiente" y la app debe pedir la contraseña una vez y vincularla.
+  AuthCredential? _pendingGoogleCredential;
+  String? _pendingLinkEmail;
+
+  /// Correo de la cuenta que hay que vincular, o null si no hay nada pendiente.
+  String? get pendingLinkEmail => _pendingLinkEmail;
+
+  void cancelPendingLink() {
+    _pendingGoogleCredential = null;
+    _pendingLinkEmail = null;
+    notifyListeners();
+  }
+
+  /// Entra con la contraseña de la cuenta de siempre y le pega Google encima:
+  /// mismo usuario, mismos datos, y a partir de ahora sirven los dos caminos.
+  Future<(bool, String?)> linkPendingGoogleWithPassword(String password) async {
+    final credential = _pendingGoogleCredential;
+    final email = _pendingLinkEmail;
+    if (credential == null || email == null) {
+      return (false, 'errors.sessionExpired'.tr());
+    }
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final result = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      await result.user!.linkWithCredential(credential);
+      await result.user!.reload();
+
+      _pendingGoogleCredential = null;
+      _pendingLinkEmail = null;
+
+      // Mismo trato que al entrar con correo: si la cuenta aún no estaba
+      // verificada, primero eso (no debería pasar, porque Firebase solo pide
+      // vincular cuando ya lo está, pero no se asume).
+      final user = _auth.currentUser;
+      if (user != null && !user.emailVerified) {
+        _needsEmailVerification = true;
+        _pendingVerificationEmail = email;
+        _isLoading = false;
+        notifyListeners();
+        return (true, null);
+      }
+
+      await loadUserData();
+      _isLoading = false;
+      notifyListeners();
+      return (true, null);
+    } on FirebaseAuthException catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return switch (e.code) {
+        // La cuenta ya tenía Google vinculado: no es un fallo, ya puede entrar.
+        'provider-already-linked' || 'credential-already-in-use' => (true, null),
+        'wrong-password' || 'invalid-credential' => (false, 'errors.wrongPassword'.tr()),
+        'too-many-requests' => (false, 'errors.tooManyRequests'.tr()),
+        _ => (false, _getErrorMessage(e.code)),
+      };
+    } catch (e) {
+      debugPrint('linkPendingGoogleWithPassword error: $e');
+      _isLoading = false;
+      notifyListeners();
+      return (false, 'errors.googleFailed'.tr());
+    }
+  }
+
+  /// Desde Editar perfil: le agrega Google a la cuenta con sesión abierta.
+  Future<(bool, String?)> linkGoogleToCurrentAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) return (false, 'errors.noSession'.tr());
+    try {
+      try { await _googleSignIn.signOut(); } catch (_) {}
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return (false, null);
+      // Solo la misma persona: vincular otro correo dejaría la cuenta con dos
+      // identidades distintas y sin forma de saber cuál es la buena.
+      if (googleUser.email.toLowerCase() != (user.email ?? '').toLowerCase()) {
+        try { await _googleSignIn.signOut(); } catch (_) {}
+        return (false, 'editProfile.linkGoogleOtherEmail'.tr());
+      }
+      final googleAuth = await googleUser.authentication;
+      await user.linkWithCredential(GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken));
+      await user.reload();
+      notifyListeners();
+      return (true, null);
+    } on FirebaseAuthException catch (e) {
+      debugPrint('linkGoogleToCurrentAccount error: ${e.code}');
+      return switch (e.code) {
+        'provider-already-linked' => (true, null),
+        'credential-already-in-use' => (false, 'editProfile.linkGoogleTaken'.tr()),
+        'requires-recent-login' => (false, 'errors.sessionExpired'.tr()),
+        _ => (false, _getErrorMessage(e.code)),
+      };
+    } catch (e) {
+      debugPrint('linkGoogleToCurrentAccount error: $e');
+      return (false, 'errors.googleFailed'.tr());
+    }
+  }
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -138,6 +242,13 @@ void clearVerificationState() {
           .get();
       if (doc.exists) {
         _userModel = UserModel.fromMap(doc.data()!);
+      } else {
+        // Cuenta nueva (o recién borrada): no dejar el perfil de quien estuvo
+        // antes en esta sesión, o se vería como si fuera suyo.
+        _userModel = null;
+        _diaryEntryCount = 0;
+        _habitsCompletedCount = 0;
+        _moodCheckInCount = 0;
       }
       await _loadUserProgress();
 
@@ -722,6 +833,10 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       _errorMessage = null;
       notifyListeners();
 
+      // Cerrar la sesión de Google antes de pedirla: si no, `signIn()` entra
+      // en silencio con la última cuenta usada en el teléfono, sin preguntar,
+      // y se puede acabar dentro de otra cuenta sin querer.
+      try { await _googleSignIn.signOut(); } catch (_) {}
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         _isLoading = false;
@@ -761,6 +876,18 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       // Si la sesión de Firebase falla, cerramos también la de Google para no
       // dejar la cuenta elegida "a medias" en el siguiente intento.
       try { await _googleSignIn.signOut(); } catch (_) {}
+      // Ya existe esa cuenta con contraseña: guardamos la credencial de Google
+      // para vincularla en cuanto confirme quién es (pantalla de login).
+      if (e.code == 'account-exists-with-different-credential' &&
+          e.credential != null &&
+          (e.email ?? '').isNotEmpty) {
+        _pendingGoogleCredential = e.credential;
+        _pendingLinkEmail = e.email;
+        _errorMessage = null;
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
       _errorMessage = switch (e.code) {
         'account-exists-with-different-credential' => 'errors.accountExistsWithEmail'.tr(),
         'invalid-credential' => 'errors.googleFailed'.tr(),
@@ -792,6 +919,9 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     _celebratedAchievementIds = {};
     _diaryVersion = 0;
     _discoveredFeatures = null;
+    _diaryEntryCount = 0;
+    _habitsCompletedCount = 0;
+    _moodCheckInCount = 0;
     _needsEmailVerification = false;
     _pendingVerificationEmail = null;
     _isLoading = false;
@@ -830,6 +960,9 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       // 1. Reautenticar primero: user.delete() exige login reciente, y así
       //    no se borra nada si la contraseña es incorrecta.
       if (isGoogleOnly) {
+        // Igual que al entrar: preguntar siempre con qué cuenta, que aquí se
+        // está borrando todo.
+        try { await _googleSignIn.signOut(); } catch (_) {}
         final googleUser = await _googleSignIn.signIn();
         if (googleUser == null) return (false, null);
         final googleAuth = await googleUser.authentication;

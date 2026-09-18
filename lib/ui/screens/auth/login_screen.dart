@@ -14,6 +14,7 @@ import '../../widgets/journal/journal_style.dart';
 import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/min_tap_target.dart';
 import 'widgets/auth_widgets.dart';
+import 'widgets/link_google_sheet.dart';
 
 /// Entrar a Lumen con correo o con Google.
 class LoginScreen extends StatefulWidget {
@@ -73,7 +74,20 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success) {
       SoundService.instance.play(Sfx.unlock, volume: 0.45);
       Navigator.pushReplacementNamed(context, AppRoutes.home);
-    } else if (auth.errorMessage != null) {
+      return;
+    }
+    // Ya tenía cuenta con ese correo y contraseña: se unen en una sola.
+    final pending = auth.pendingLinkEmail;
+    if (pending != null) {
+      final linked = await showLinkGoogleSheet(context, pending);
+      if (!mounted) return;
+      if (linked) {
+        Navigator.pushReplacementNamed(
+            context, auth.needsEmailVerification ? AppRoutes.verifyEmail : AppRoutes.home);
+      }
+      return;
+    }
+    if (auth.errorMessage != null) {
       SoundService.instance.play(Sfx.wrong, volume: 0.4);
     }
   }

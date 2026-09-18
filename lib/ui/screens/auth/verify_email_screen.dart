@@ -7,6 +7,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_routes.dart';
 import '../../../domain/providers/auth_provider.dart';
+import '../../../domain/providers/garden_provider.dart';
 import '../../../domain/services/motion_service.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
@@ -146,7 +147,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
 
   Future<void> _backToLogin() async {
     final auth = context.read<AuthProvider>();
+    final garden = context.read<GardenProvider>();
     await auth.logout();
+    garden.resetOnLogout();
     auth.clearVerificationState();
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(

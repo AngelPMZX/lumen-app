@@ -91,7 +91,19 @@ class GardenProvider extends ChangeNotifier {
         .doc('decorations');
   }
 
-  static const _kMultiplierKey = 'garden_xp_multiplier';
+  static const _kMultiplierPrefix = 'garden_xp_multiplier';
+
+  /// Por usuario: si no, el multiplicador de una cuenta se le aplicaba a la
+  /// siguiente que entrara en el mismo teléfono.
+  String get _kMultiplierKey {
+    final uid = _user?.uid;
+    return uid == null ? _kMultiplierPrefix : '${_kMultiplierPrefix}_$uid';
+  }
+
+  /// Usuario cuyo jardín está cargado en memoria. Si no coincide con la sesión
+  /// actual, no se guarda nada: así el jardín de una cuenta nunca se escribe
+  /// encima de otra al cambiar de usuario.
+  String? _loadedUid;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // LOAD
@@ -103,6 +115,7 @@ class GardenProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      _loadedUid = _user!.uid;
       final doc = await _gardenDoc!.get();
       if (doc.exists) {
         _state = GardenState.fromMap(doc.data() as Map<String, dynamic>);
@@ -122,6 +135,10 @@ class GardenProvider extends ChangeNotifier {
   }
 
   Future<void> _loadMechanics() async {
+    _streakShields = 0;
+    _lastStreakBeforeBreak = 0;
+    _streakBreakDate = null;
+    _activeMultiplier = null;
     try {
       if (_mechanicsDoc != null) {
         final doc = await _mechanicsDoc!.get();
@@ -620,8 +637,15 @@ class GardenProvider extends ChangeNotifier {
     _state = _state.copyWith(inventory: newInventory);
   }
 
+  /// true si lo que hay en memoria es del usuario con sesión abierta.
+  bool get _isOwnState => _user != null && _loadedUid == _user!.uid;
+
   Future<void> _saveToFirestore() async {
     if (_gardenDoc == null) return;
+    if (!_isOwnState) {
+      debugPrint('Garden save skipped: state belongs to $_loadedUid');
+      return;
+    }
     try {
       await _gardenDoc!.set(_state.toMap());
     } catch (e) {
@@ -631,6 +655,10 @@ class GardenProvider extends ChangeNotifier {
 
   Future<void> _saveMechanics() async {
     if (_mechanicsDoc == null) return;
+    if (!_isOwnState) {
+      debugPrint('Garden mechanics save skipped: state belongs to $_loadedUid');
+      return;
+    }
     try {
       await _mechanicsDoc!.set({
         'streakShields': _streakShields,
@@ -683,6 +711,7 @@ class GardenProvider extends ChangeNotifier {
 
   void resetOnLogout() {
     _state = const GardenState();
+    _loadedUid = null;
     _pendingReward = null;
     _isLoading = false;
     _errorMessage = null;

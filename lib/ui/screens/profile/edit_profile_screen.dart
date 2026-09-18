@@ -44,6 +44,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   bool _isSaving = false;
   bool _isChangingPass = false;
+  bool _isLinkingGoogle = false;
   bool _showPassForm = false;
   bool _obscureCurrent = true;
   bool _obscureNew = true;
@@ -225,6 +226,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // ═══════════════════════════════════════════════════════════════════════════
   // Contraseña y cuenta
   // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Le agrega Google a esta cuenta: el mismo usuario, sin perder nada, y a
+  /// partir de aquí se entra de las dos formas.
+  Future<void> _linkGoogle() async {
+    final auth = context.read<AuthProvider>();
+    setState(() => _isLinkingGoogle = true);
+    final (ok, error) = await auth.linkGoogleToCurrentAccount();
+    if (!mounted) return;
+    setState(() => _isLinkingGoogle = false);
+    if (ok) {
+      SoundService.instance.play(Sfx.unlock, volume: 0.5);
+      _toast('editProfile.linkGoogleDone'.tr());
+    } else if (error != null) {
+      SoundService.instance.play(Sfx.wrong, volume: 0.4);
+      _toast(error, color: _danger, icon: Icons.error_outline_rounded);
+    }
+  }
 
   Future<void> _changePassword() async {
     // La contraseña nueva pasa por las mismas reglas que el registro
@@ -429,6 +447,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     if (!auth.isGoogleOnly) ...[
                       const SizedBox(height: 14),
                       EditSectionTitle(kicker: 'editProfile.securityKicker'.tr(), title: 'editProfile.security'.tr(), isDark: isDark),
+                      const SizedBox(height: 10),
+                      LinkGoogleCard(
+                        isDark: isDark,
+                        isLinked: auth.isGoogleUser,
+                        busy: _isLinkingGoogle,
+                        onLink: _linkGoogle,
+                      ),
                       const SizedBox(height: 10),
                       PasswordCard(
                         isDark: isDark,

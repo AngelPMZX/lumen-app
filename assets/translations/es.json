@@ -115,7 +115,13 @@
     "privacyPoint2": "Se guardan en tu cuenta de Firebase para que no los pierdas al cambiar de teléfono.",
     "privacyPoint3": "Las estadísticas de uso son anónimas: nunca enviamos lo que escribes ni cómo te sientes.",
     "privacyPoint4": "Puedes borrar tu cuenta y todos tus datos cuando quieras desde Editar perfil.",
-    "privacyFull": "Leer la política completa"
+    "privacyFull": "Leer la política completa",
+    "linkGoogle": {
+      "title": "Unamos tus dos formas de entrar",
+      "body": "Ya tienes una cuenta con {email}. Escribe su contraseña una vez y Google quedará unido a ella: conservas tu racha, tu jardín y tu diario.",
+      "action": "Unir las cuentas",
+      "note": "Te la pedimos solo esta vez, para confirmar que la cuenta es tuya."
+    }
   },
   "validation": {
     "required": "Este campo es obligatorio",
@@ -1409,7 +1415,14 @@
     "discardTitle": "¿Dejar los cambios sin guardar?",
     "discardBody": "Hiciste cambios que todavía no se guardan. Puedes volver y guardarlos.",
     "discardLeave": "Salir sin guardar",
-    "discardStay": "Seguir editando"
+    "discardStay": "Seguir editando",
+    "linkGoogle": "Vincular con Google",
+    "linkGoogleDesc": "Entra también con un toque, sin escribir la contraseña.",
+    "linkGoogleDone": "Listo: ya puedes entrar con Google",
+    "linkGoogleLinked": "Tu cuenta de Google ya está vinculada",
+    "linkGoogleOtherEmail": "Esa cuenta de Google tiene otro correo. Elige la que coincide con el de tu cuenta.",
+    "linkGoogleTaken": "Esa cuenta de Google ya pertenece a otro usuario de Lumen.",
+    "linkGoogleAction": "Vincular"
   },
   "profileScreen": {
     "currentStreakStat": "Racha\nactual",

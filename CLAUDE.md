@@ -88,6 +88,7 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Login/registro con email+password.
 - **Contraseñas seguras (2026-09-17)**: `PasswordStrength` (`lib/data/models/password_strength.dart`, lógica pura con pruebas) exige mínimo 8 caracteres, letras y números, nada de contraseñas muy usadas (lista de filtraciones, repeticiones y series tipo `abcdefgh`) ni que contenga el nombre o el correo. `Validators.strongPassword` la aplica en el registro y al cambiar la contraseña; `Validators.password` (solo "no vacía") se queda para entrar, porque hay cuentas viejas de 6 caracteres. En el registro y en editar perfil se ve una barra de fuerza con las reglas que faltan (`PasswordStrengthMeter`).
 - **Sin filtrar qué correos existen**: al entrar, `user-not-found`, `wrong-password` e `invalid-credential` responden lo mismo ("Correo o contraseña incorrectos"); el correo de recuperación ya fingía éxito con correos que no existen. Conviene activar además *Email enumeration protection* en Firebase Console.
+- **Una sola cuenta por correo (vinculación)**: la opción *"Vincular cuentas que usen el mismo correo"* de Firebase **evita duplicados, pero no fusiona nada sola**. Si la cuenta de correo ya está verificada (en Lumen siempre lo está), entrar con Google devuelve `account-exists-with-different-credential` con la credencial pendiente, y **vincularlas es trabajo de la app**: `AuthProvider` la guarda (`pendingLinkEmail`), el login abre `showLinkGoogleSheet` (`auth/widgets/link_google_sheet.dart`, Lumi explica por qué se pide la contraseña), entra con correo y contraseña y hace `linkWithCredential`. Queda **el mismo uid**, así que conserva racha, jardín y diario. Desde Editar perfil, `LinkGoogleCard` hace lo mismo al revés (`linkGoogleToCurrentAccount`), y **solo acepta la cuenta de Google con el mismo correo**. Firebase únicamente fusiona por su cuenta cuando el correo de la cuenta vieja **no** está verificado.
 - **Google Sign-In**: errores traducidos (antes era un texto fijo en español), caso `account-exists-with-different-credential` explicado y cierre de sesión de Google si Firebase falla, para que el siguiente intento vuelva a preguntar la cuenta.
 - El correo se valida con un dominio de cualquier largo (antes `{2,4}` rechazaba `.online`, `.digital`…).
 - **Diseño de las pantallas de cuenta** (`lib/ui/screens/auth/widgets/auth_widgets.dart`): fondo con luces que flotan **sin `MaskFilter.blur`** (login y registro lo usaban, y también `AnimatedParticlesBackground`), tarjeta, campos con `autofillHints`, banner de error, botón de Google con su logo dibujado y nota de privacidad que abre un resumen de qué se guarda.
@@ -352,6 +353,8 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 9. **Escudo de racha inservible**: `saveStreakBeforeBreak` nunca se llamaba y el escudo del jardín no restauraba la racha. Ambos flujos deben terminar en `restoreStreakWithShield`.
 10. **Respiración guardada como lección** (`completed_lessons/breathing_session_<día>`): bloqueaba XP el mismo día del mes siguiente y contaba como lección del día.
 12. **Frase del día en inglés**: `QuoteService` consultaba ZenQuotes.io, que solo devuelve frases en inglés y sin `textKey`, así que se mostraban sin traducir. Además se cacheaban por día sin guardar el idioma. Ahora el catálogo es local y bilingüe, elegido de forma determinista por día del año: sin red, sin caché, igual en web y móvil.
+13. **Google Sign-In entraba a otra cuenta sin preguntar**: `GoogleSignIn.signIn()` (v6) reutiliza en silencio la última cuenta usada en el teléfono y **solo muestra el selector si no hay ninguna**. Si antes se probó con otra cuenta, "Continuar con Google" entraba directo a esa. `loginWithGoogle` y la reautenticación de `deleteAccount` hacen `_googleSignIn.signOut()` **antes** de `signIn()`, para que siempre pregunte. Si algún día se sube a google_sign_in 7.x, revisar que `authenticate()` mantenga el mismo comportamiento.
+14. **Datos de la sesión anterior pegados al cambiar de cuenta**: `loadUserData` solo escribía `_userModel` si el documento existía, así que una cuenta nueva mostraba el perfil de quien había entrado antes en esa misma corrida de la app; los contadores (diario, hábitos, check-ins) tampoco se limpiaban en `_clearSessionState`. En el jardín, `_loadMechanics` conservaba escudos y multiplicador, y el multiplicador se guardaba en una pref sin uid. Ahora todo se limpia, la pref es `garden_xp_multiplier_<uid>` y `GardenProvider` recuerda de quién es el estado cargado (`_loadedUid`): si no coincide con la sesión, **no guarda nada**, para que el jardín de una cuenta jamás se escriba encima de otra.
 11. **Recompensa doble de respiración**: la tarjeta del home daba semillas (SharedPreferences) al volver de `BreathingScreen`, aunque no se completara la sesión, además de la de `_finishSession`. La única fuente es `BreathingScreen` vía `completeBreathingSession`.
 
 ## Reglas de Firestore vigentes
@@ -385,8 +388,25 @@ flutter build apk --debug
 flutter clean; flutter pub get
 ```
 
+## Estado (2026-09-18)
+
+La app está **terminada para un primer lanzamiento**: las 9 rutas con 90 lecciones, home, jardín y tienda, diario, hábitos, respiración, repaso, misiones, resumen semanal, perfil con medallas, ayuda en crisis, Lumi, sonidos propios, modo claro/oscuro, accesibilidad y "reducir animaciones". `flutter analyze` en 0 y **141 pruebas** pasando.
+
+También está listo todo el material para publicar: ícono, gráfico de funciones, 7 capturas, política de privacidad y páginas legales, ficha de Play (ES/EN), formulario de seguridad de datos y el checklist de `store/pasos-para-publicar.md`.
+
+**Lo único que falta para publicar son tareas en consolas** (nadie puede hacerlas desde el código): ver "Pendientes actuales".
+
+Lo siguiente en el roadmap, ya después de publicar, son los **cosméticos de Lumi** con Google Play Billing (la única cosa de pago prevista).
+
 ## Pendientes actuales
 
+- **Tareas de Ángel en las consolas, antes de publicar** (detalle en `store/pasos-para-publicar.md`):
+  1. Activar **GitHub Pages** (`main` → `/docs`) y comprobar que abren la política y la página de eliminar cuenta.
+  2. Firebase → Authentication → Settings: **Email enumeration protection**.
+  3. Firebase → **App Check** con Play Integrity.
+  4. Publicar **`firestore.rules`** (la copia del repo es la buena).
+  5. Subir el AAB firmado y registrar en Firebase el **SHA-1 de "Firma de apps de Play"**, o Google Sign-In falla solo en la versión de Play.
+  6. Borrar de Authentication → Users las cuentas de prueba duplicadas (las que quedaron con el mismo correo antes del arreglo de vinculación; vincular no fusiona cuentas que ya existen por separado).
 - **RevenueCat activo** para monetización.
 - **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
 - **Panel admin** de rutas de bienestar (sin script Node.js).
@@ -408,6 +428,10 @@ flutter clean; flutter pub get
 8. ~~Pedir reseña en Play Store~~: hecho.
 10. **Personalización de Lumi como apoyo al proyecto** (pantalla "Apoya a Lumen" ya hecha, 2026-09-17; falta el pago) (idea de Ángel, 2026-09-16): colores, accesorios (gorrito, bufanda, lentes…) y quizá animaciones especiales, a precio bajo vía RevenueCat. Solo cosmético: nunca bloquear contenido de bienestar ni ayuda. El `LumiPainter` ya dibuja todo por código, así que los accesorios se pueden pintar como capas encima.
 9. ~~Rutas nuevas **Ansiedad y Estrés** y **Sueño**~~: hechas. **Decisión (2026-09-17): las rutas nunca serán premium.** La pantalla "Apoya a Lumen" promete que el contenido de bienestar y la ayuda en crisis son gratis siempre; lo de pago serán solo cosméticos.
+
+**Hecho después de esa lista (2026-09-17 y 18)**: pantalla "Apoya a Lumen", notificaciones de regreso (`WinBack`), jardín sin nada de pago, ícono y arte de marca, páginas legales y ficha de Play, las 7 capturas, y el arreglo de cuentas de Google (selector siempre visible, vinculación con la cuenta de correo y estado que ya no se hereda entre sesiones).
+
+**Lo siguiente, ya publicada la app**: cosméticos de Lumi con Google Play Billing (punto 10), y revisar las líneas de crisis cada ~6 meses.
 
 **Pulido**:
 - ~~Modo claro de la lección~~, ~~"Reducir animaciones"~~ y ~~dividir `lesson_screen.dart`~~: hechos (2026-09-16).

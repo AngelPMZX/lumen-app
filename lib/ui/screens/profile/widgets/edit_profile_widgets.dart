@@ -547,6 +547,96 @@ class EyeButton extends StatelessWidget {
   }
 }
 
+/// Ofrece unir Google a una cuenta de correo (o dice que ya está unida), para
+/// que entrar sea de un toque sin perder nada de lo que ya tiene.
+class LinkGoogleCard extends StatelessWidget {
+  final bool isDark;
+  final bool isLinked;
+  final bool busy;
+  final VoidCallback onLink;
+  const LinkGoogleCard({
+    super.key,
+    required this.isDark,
+    required this.isLinked,
+    required this.busy,
+    required this.onLink,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const google = Color(0xFF4285F4);
+    final subtle = isDark ? Colors.white60 : AppColors.textSecondary;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: google.withValues(alpha: isDark ? 0.28 : 0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: google.withValues(alpha: isDark ? 0.18 : 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(isLinked ? Icons.link_rounded : Icons.g_mobiledata_rounded,
+                color: google, size: isLinked ? 22 : 30),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isLinked ? 'editProfile.linkGoogleLinked'.tr() : 'editProfile.linkGoogle'.tr(),
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'editProfile.linkGoogleDesc'.tr(),
+                  style: TextStyle(fontSize: 12.5, height: 1.35, color: subtle),
+                ),
+              ],
+            ),
+          ),
+          if (!isLinked) ...[
+            const SizedBox(width: 10),
+            SizedBox(
+              height: 42,
+              child: busy
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 14),
+                      child: SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2.4, color: google),
+                      ),
+                    )
+                  : FilledButton(
+                      onPressed: onLink,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: google,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text('editProfile.linkGoogleAction'.tr(),
+                          style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+            ),
+          ] else
+            Icon(Icons.check_circle_rounded, color: google, size: 22),
+        ],
+      ),
+    );
+  }
+}
+
 class DangerZoneCard extends StatelessWidget {
   final bool isDark;
   final VoidCallback onDelete;
