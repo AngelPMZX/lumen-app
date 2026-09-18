@@ -119,6 +119,29 @@ class _LumiAvatarState extends State<LumiAvatar> with TickerProviderStateMixin {
   }
 }
 
+/// Lumi quieta, sin animación ni gestos: para el ícono de la app, los
+/// gráficos de la tienda y cualquier sitio donde no deba moverse.
+class LumiMark extends StatelessWidget {
+  final double size;
+  final LumiMood mood;
+
+  /// Momento del ciclo de reposo que se dibuja (0-1). 0.25 la deja mirando
+  /// al frente con la llama centrada.
+  final double pose;
+
+  const LumiMark({super.key, required this.size, this.mood = LumiMood.happy, this.pose = 0.25});
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: CustomPaint(
+        size: Size.square(size),
+        painter: _LumiPainter(mood: mood, time: pose, blink: 0, excitement: 0),
+      ),
+    );
+  }
+}
+
 class _LumiPainter extends CustomPainter {
   final LumiMood mood;
   final double time; // 0-1 en bucle

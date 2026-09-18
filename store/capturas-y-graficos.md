@@ -6,8 +6,8 @@ Requisitos de Google Play (agosto 2026) y un plan concreto para Lumen.
 
 | Elemento | Requisito | Estado |
 |---|---|---|
-| Ícono de la app | 512×512 PNG de 32 bits, sin transparencia | pendiente |
-| Gráfico de funciones (feature graphic) | 1024×500 PNG o JPG, sin transparencia | pendiente |
+| Ícono de la app | 512×512 PNG de 32 bits, sin transparencia | **listo** → `branding/icon_512.png` |
+| Gráfico de funciones (feature graphic) | 1024×500 PNG o JPG, sin transparencia | **listo** → `branding/feature_graphic_es.png` (y `_en`) |
 | Capturas de teléfono | Mínimo 2, máximo 8. Entre 320 y 3840 px por lado, proporción máx. 2:1 | pendiente |
 | Capturas de tablet de 7" y 10" | Opcionales, pero mejoran la ficha | opcional |
 | Video (YouTube) | Opcional | opcional |
@@ -54,16 +54,16 @@ flutter run --release
 
 En Xiaomi, `adb install` está bloqueado pero `adb exec-out screencap` sí funciona.
 
-## Ícono
+## Ícono y gráfico de funciones
 
-- Base: Lumi (la gotita de luz) sobre un degradado verde de la app
-  (`#10B981` → `#047857`), sin texto.
-- Exporta 512×512 PNG sin transparencia para la ficha y regenera los íconos de la
-  app con `flutter_launcher_icons` o desde Android Studio (Image Asset).
-- Evita poner el nombre dentro del ícono: Play ya lo muestra al lado.
+Ya están hechos y se generan con código (ver `branding/README.md`):
 
-## Gráfico de funciones (1024×500)
+```powershell
+flutter test tool/branding/generate_branding_test.dart   # exporta los PNG
+dart run flutter_launcher_icons                          # los instala en la app
+```
 
-Propuesta: fondo con el cielo del atardecer de la app, Lumi a la izquierda, a la
-derecha el texto **«Lumen · Tu gimnasio emocional»** y debajo, pequeñito,
-«lecciones · diario · respiración · jardín». Sin capturas dentro (Play las recorta).
+- Ficha de Play: sube `branding/icon_512.png` y `branding/feature_graphic_es.png`
+  (usa `feature_graphic_en.png` en la ficha en inglés).
+- El ícono de la app en el teléfono ya quedó instalado (Android adaptativo con
+  capa monocroma para Android 13+, iOS y web).

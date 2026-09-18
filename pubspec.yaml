@@ -39,6 +39,24 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Íconos de la app. El arte se genera con
+# `flutter test tool/branding/generate_branding_test.dart` y luego
+# `dart run flutter_launcher_icons` los instala en Android, iOS y web.
+flutter_launcher_icons:
+  image_path: "branding/icon_1024.png"
+  android: true
+  adaptive_icon_background: "branding/adaptive_background.png"
+  adaptive_icon_foreground: "branding/adaptive_foreground.png"
+  adaptive_icon_monochrome: "branding/adaptive_monochrome.png"
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "branding/icon_1024.png"
+    background_color: "#10B981"
+    theme_color: "#10B981"
 
 flutter:
   uses-material-design: true

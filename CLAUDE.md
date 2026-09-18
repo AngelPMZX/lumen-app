@@ -317,6 +317,11 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - Accesos: Perfil → "¿Necesitas ayuda ahora?", icono en la cabecera del Diario, y tarjeta automática en Home cuando hay 3+ días de ánimo negativo en la semana (`_shouldOfferCrisisSupport`, ocultable por día).
 - Usa `url_launcher` (`tel:`, `sms:`, `https:`); Android 11+ exige los `<intent>` declarados en `<queries>` del AndroidManifest.
 
+### Ícono y arte de marca
+- **El ícono se genera con código**, no es un PNG dibujado aparte: `tool/branding/brand_art.dart` pinta el fondo verde, el resplandor, los destellos y a **Lumi** (con `LumiMark`, la versión quieta de `LumiAvatar`), así que el ícono siempre coincide con el personaje de la app.
+- `flutter test tool/branding/generate_branding_test.dart` exporta a `branding/`: `icon_512` (ficha de Play), `icon_1024`, las tres capas del ícono adaptativo de Android (`adaptive_foreground`, `adaptive_background`, `adaptive_monochrome`) y los `feature_graphic_es/en` (1024×500). El PNG se rasteriza con `RepaintBoundary.toImage` **dentro de `tester.runAsync`** (fuera de él, `toByteData` se queda colgado).
+- `dart run flutter_launcher_icons` los instala en Android, iOS y web (config en `pubspec.yaml`). Para cambiar el ícono se edita el arte y se repiten los dos comandos; ver `branding/README.md`.
+
 ### Páginas públicas y ficha de Play
 - **`docs/`** (se publica con GitHub Pages desde `main` → carpeta `/docs`, en https://angelpmzx.github.io/lumen-app/): `index.html`, `privacidad.html` (ES), `privacy.html` (EN), `terminos.html` y `eliminar-cuenta.html`, con `assets/lumen.css` (claro y oscuro). **Google Play exige la URL de la política y una URL de eliminación de cuenta**; ambas salen de aquí.
 - La política declara lo que de verdad se guarda: cuenta (nombre, correo, usuario, y opcionales edad, género, gustos y arquetipo), bienestar (ánimo, diario, hábitos, recordatorios, progreso, jardín) como **dato de salud**, analítica anónima y reportes de fallos. Deja claro que no hay anuncios, no se venden datos y que la analítica nunca incluye lo que escribes. Si se agrega una colección o un SDK nuevo, **actualizar la política y `store/seguridad-de-datos.md`**.
@@ -375,7 +380,7 @@ flutter clean; flutter pub get
 - **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
 - **Panel admin** de rutas de bienestar (sin script Node.js).
 - **Guía de batería para Xiaomi/Huawei/Oppo** al detectar el fabricante.
-- **Pre-publicación**: ver `store/pasos-para-publicar.md`. Pendientes reales: activar GitHub Pages, activar *Email enumeration protection* y **App Check** en Firebase, íconos y capturas, y registrar el **SHA-1 de Play App Signing**. La política de privacidad, la ficha y el formulario de seguridad de datos ya están escritos.
+- **Pre-publicación**: ver `store/pasos-para-publicar.md`. Pendientes reales: activar GitHub Pages, activar *Email enumeration protection* y **App Check** en Firebase, capturas de pantalla, y registrar el **SHA-1 de Play App Signing**. La política de privacidad, la ficha y el formulario de seguridad de datos ya están escritos.
 - **Spam del email de reset**: requiere plan Blaze + dominio propio + SPF/DKIM.
 
 ### Ideas aprobadas (roadmap, 2026-09-16)
