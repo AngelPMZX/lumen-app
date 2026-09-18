@@ -118,6 +118,9 @@ class _UsernameStepState extends State<UsernameStep> {
             child: TextField(
               controller: _controller,
               onChanged: _onUsernameChanged,
+              // Con "Listo" se cierra el teclado en vez de quedarse abierto.
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => FocusScope.of(context).unfocus(),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,

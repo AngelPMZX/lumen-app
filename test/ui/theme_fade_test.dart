@@ -4,7 +4,7 @@ import 'package:gimnasio_emocional/core/theme/app_theme.dart';
 import 'package:gimnasio_emocional/ui/widgets/theme_fade.dart';
 
 void main() {
-  /// Una app mínima con el velo dentro, como lo monta `app.dart`.
+  /// Una app mínima con el atardecer dentro, como lo monta `app.dart`.
   Widget app(Brightness brightness, {bool reduceMotion = false}) {
     return MaterialApp(
       theme: AppTheme.lightTheme,
@@ -15,70 +15,74 @@ void main() {
         data: MediaQueryData(disableAnimations: reduceMotion),
         child: ThemeFade(
           brightness: brightness,
-          child: const Scaffold(body: Text('hola')),
+          child: const Scaffold(body: Center(child: Text('hola'))),
         ),
       ),
     );
   }
 
-  /// El velo es el `ColoredBox` a pantalla completa que tapa la app mientras
-  /// se desvanece.
-  Color? veilColor(WidgetTester tester) {
-    final boxes = tester.widgetList<ColoredBox>(find.descendant(
-      of: find.byType(ThemeFade),
-      matching: find.byType(ColoredBox),
-    ));
-    return boxes.isEmpty ? null : boxes.first.color;
-  }
+  /// La foto de la pantalla anterior, mientras se desvanece encima.
+  Finder snapshot() => find.descendant(
+        of: find.byType(ThemeFade),
+        matching: find.byType(RawImage),
+      );
 
-  testWidgets('al abrir no hay velo', (tester) async {
+  testWidgets('al abrir no hay nada encima', (tester) async {
     await tester.pumpWidget(app(Brightness.light));
-    expect(veilColor(tester), isNull);
+    expect(snapshot(), findsNothing);
     await tester.pumpAndSettle();
   });
 
-  testWidgets('al pasar a oscuro se desvanece el fondo claro', (tester) async {
+  testWidgets('al cambiar de tema se funde la pantalla anterior',
+      (tester) async {
     await tester.pumpWidget(app(Brightness.light));
+    await tester.pump();
     await tester.pumpWidget(app(Brightness.dark));
     await tester.pump();
 
-    // El velo es el fondo del tema que acaba de salir (el claro), no el nuevo:
-    // así la luz baja poco a poco en vez de dar un salto.
-    expect(veilColor(tester), AppTheme.lightTheme.scaffoldBackgroundColor);
+    // Encima queda la foto de cómo se veía, no un color plano: por eso no hay
+    // destello aunque la pantalla de abajo tenga degradados.
+    expect(snapshot(), findsOneWidget);
 
-    // A media animación sigue ahí, tapando en parte.
-    await tester.pump(const Duration(milliseconds: 200));
-    final opacity = tester
-        .widget<FadeTransition>(find.descendant(
-          of: find.byType(ThemeFade),
-          matching: find.byType(FadeTransition),
-        ))
+    // Arranca tapando del todo y va bajando.
+    // `.first` = el FadeTransition más cercano a la foto (arriba hay otros,
+    // de las transiciones del propio MaterialApp).
+    double opacity() => tester
+        .widget<FadeTransition>(find
+            .ancestor(of: snapshot(), matching: find.byType(FadeTransition))
+            .first)
         .opacity
         .value;
-    expect(opacity, greaterThan(0));
-    expect(opacity, lessThan(1));
+    expect(opacity(), 1);
 
-    // Y al terminar se quita: no deja una capa de más para siempre.
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(opacity(), greaterThan(0));
+    expect(opacity(), lessThan(1));
+
+    // Y al terminar se quita: no deja una capa —ni varios MB de imagen— ahí.
     await tester.pumpAndSettle();
-    expect(veilColor(tester), isNull);
+    expect(snapshot(), findsNothing);
   });
 
-  testWidgets('al volver a claro se desvanece el fondo oscuro', (tester) async {
+  testWidgets('funciona también al volver a claro', (tester) async {
     await tester.pumpWidget(app(Brightness.dark));
+    await tester.pump();
     await tester.pumpWidget(app(Brightness.light));
     await tester.pump();
 
-    expect(veilColor(tester), AppTheme.darkTheme.scaffoldBackgroundColor);
+    expect(snapshot(), findsOneWidget);
     await tester.pumpAndSettle();
+    expect(snapshot(), findsNothing);
   });
 
   testWidgets('con "reducir animaciones" el cambio es instantáneo',
       (tester) async {
     await tester.pumpWidget(app(Brightness.light, reduceMotion: true));
+    await tester.pump();
     await tester.pumpWidget(app(Brightness.dark, reduceMotion: true));
     await tester.pump();
 
-    expect(veilColor(tester), isNull);
+    expect(snapshot(), findsNothing);
     await tester.pumpAndSettle();
   });
 }

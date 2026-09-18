@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../widgets/age_picker.dart';
 
 class AboutYouStep extends StatefulWidget {
   final Function(int?, String?) onNext;
@@ -16,15 +17,6 @@ class _AboutYouStepState extends State<AboutYouStep> {
   int? _selectedAge;
   String? _selectedGender;
   bool _showGenderError = false;
-
-  final List<String> _ageRanges = [
-    '13-17',
-    '18-24',
-    '25-34',
-    '35-44',
-    '45-54',
-    '55+',
-  ];
 
   // Los labels se construyen en build() para tener acceso a .tr()
   List<Map<String, dynamic>> _buildGenders() {
@@ -54,25 +46,6 @@ class _AboutYouStepState extends State<AboutYouStep> {
         'color': const Color(0xFF6B7280),
       },
     ];
-  }
-
-  int? _getAgeFromRange(String range) {
-    switch (range) {
-      case '13-17':
-        return 15;
-      case '18-24':
-        return 21;
-      case '25-34':
-        return 30;
-      case '35-44':
-        return 40;
-      case '45-54':
-        return 50;
-      case '55+':
-        return 60;
-      default:
-        return null;
-    }
   }
 
   void _handleContinue() {
@@ -154,7 +127,7 @@ class _AboutYouStepState extends State<AboutYouStep> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'profileSetup.ageRange'.tr(),
+                      'profileSetup.age'.tr(),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -165,58 +138,30 @@ class _AboutYouStepState extends State<AboutYouStep> {
                       ' *',
                       style: TextStyle(color: Color(0xFFFF6B6B), fontSize: 16),
                     ),
+                    const Spacer(),
+                    // Lo elegido, en claro, al lado del título.
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: Text(
+                        _selectedAge == null
+                            ? 'profileSetup.ageHint'.tr()
+                            : 'profileSetup.ageYears'
+                                .tr(namedArgs: {'n': '$_selectedAge'}),
+                        key: ValueKey(_selectedAge),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white
+                              .withValues(alpha: _selectedAge == null ? 0.6 : 0.95),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: _ageRanges.map((range) {
-                    final isSelected = _selectedAge == _getAgeFromRange(range);
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => _selectedAge = _getAgeFromRange(range));
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 22,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.2),
-                            width: isSelected ? 2 : 1,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.white.withValues(alpha: 0.2),
-                                    blurRadius: 12,
-                                    spreadRadius: 1,
-                                  ),
-                                ]
-                              : [],
-                        ),
-                        child: Text(
-                          range,
-                          style: TextStyle(
-                            color: isSelected
-                                ? AppColors.primary
-                                : Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                AgePicker(
+                  value: _selectedAge,
+                  onChanged: (age) => setState(() => _selectedAge = age),
                 ),
               ],
             ),
@@ -309,7 +254,9 @@ class _AboutYouStepState extends State<AboutYouStep> {
                                     : isSelected
                                     ? Colors.white
                                     : Colors.white.withValues(alpha: 0.15),
-                                width: isSelected ? 2 : 1,
+                                // Medida fija: si crece al elegirlo, el Wrap
+                                // recoloca las demás y bailan.
+                                width: 2,
                               ),
                               boxShadow: isSelected
                                   ? [
@@ -349,9 +296,7 @@ class _AboutYouStepState extends State<AboutYouStep> {
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                                 const Spacer(),

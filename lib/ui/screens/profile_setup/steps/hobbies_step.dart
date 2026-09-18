@@ -245,7 +245,11 @@ class _HobbiesStepState extends State<HobbiesStep> {
                         color: isSelected
                             ? hobbyColor.withValues(alpha: 0.7)
                             : Colors.white.withValues(alpha: 0.15),
-                        width: isSelected ? 2 : 1,
+                        // El chip mide lo mismo elegido o no: borde de 2
+                        // siempre, letra de un solo grosor y el hueco del
+                        // check reservado. Si cambia de tamaño, el Wrap
+                        // recoloca las demás tarjetas y bailan.
+                        width: 2,
                       ),
                       boxShadow: isSelected
                           ? [
@@ -273,20 +277,21 @@ class _HobbiesStepState extends State<HobbiesStep> {
                             color: isSelected
                                 ? Colors.white
                                 : Colors.white.withValues(alpha: 0.8),
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                            fontWeight: FontWeight.w700,
                             fontSize: 14,
                           ),
                         ),
-                        if (isSelected) ...[
-                          const SizedBox(width: 6),
-                          Icon(
+                        // Siempre ocupa su sitio, solo aparece y desaparece.
+                        const SizedBox(width: 6),
+                        AnimatedOpacity(
+                          opacity: isSelected ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
                             Icons.check_rounded,
                             size: 16,
                             color: hobbyColor,
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ),

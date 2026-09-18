@@ -69,7 +69,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
     _previousProgress = newProgress.clamp(0.0, 1.0);
   }
 
+  /// El teclado no se cerraba solo al cambiar de paso ni al tocar fuera del
+  /// campo, y se quedaba tapando media pantalla.
+  void _dismissKeyboard() => FocusManager.instance.primaryFocus?.unfocus();
+
   void _nextStep() {
+    _dismissKeyboard();
     if (_currentStep < _totalSteps - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 500),
@@ -79,6 +84,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   }
 
   void _previousStep() {
+    _dismissKeyboard();
     if (_currentStep > 0) {
       _pageController.previousPage(
         duration: const Duration(milliseconds: 500),
@@ -195,117 +201,123 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeInOut,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: _currentStep < _totalSteps - 1
-                    ? const [
-                        Color(0xFF6C63FF),
-                        Color(0xFF4A42DB),
-                        Color(0xFF1E1157),
-                      ]
-                    : [
-                        _getArchetypeColors().$1,
-                        _getArchetypeColors().$2,
-                        const Color(0xFF1A1A2E),
-                      ],
-              ),
-            ),
-          ),
-
-          const AnimatedParticlesBackground(
-            particleCount: 35,
-            maxShootingStars: 3,
-            particleColor: Colors.white,
-          ),
-
-          Positioned(
-            top: -80,
-            right: -60,
-            child: Container(
-              width: 200,
-              height: 200,
+      // Tocar fuera del campo cierra el teclado, como en cualquier app.
+      body: GestureDetector(
+        onTap: _dismissKeyboard,
+        behavior: HitTestBehavior.translucent,
+        child: Stack(
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeInOut,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.05),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -100,
-            left: -80,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.03),
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: Column(
-              children: [
-                if (_currentStep < _totalSteps - 1)
-                  _buildProgressHeader()
-                else
-                  const SizedBox(height: 16),
-
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    onPageChanged: (index) {
-                      setState(() => _currentStep = index);
-                      if (index < _totalSteps - 1) {
-                        _updateProgress(index);
-                      }
-                    },
-                    children: [
-                      UsernameStep(
-                        onNext: (username) {
-                          _username = username;
-                          _nextStep();
-                        },
-                      ),
-                      AboutYouStep(
-                        onNext: (age, gender) {
-                          _age = age;
-                          _gender = gender;
-                          _nextStep();
-                        },
-                      ),
-                      HobbiesStep(
-                        onNext: (hobbies) {
-                          _hobbies = hobbies;
-                          _nextStep();
-                        },
-                      ),
-                      MusicStep(
-                        onNext: (genres) {
-                          _musicGenres = genres;
-                          _completeProfile();
-                        },
-                      ),
-                      ArchetypeResultStep(
-                        archetype: ArchetypeQuiz.compute(hobbies: _hobbies, genres: _musicGenres),
-                        affinity: ArchetypeQuiz.affinity(hobbies: _hobbies, genres: _musicGenres),
-                        onContinue: () => Navigator.pushReplacementNamed(context, AppRoutes.onboardingIntro),
-                      ),
-                    ],
-                  ),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: _currentStep < _totalSteps - 1
+                      ? const [
+                          Color(0xFF6C63FF),
+                          Color(0xFF4A42DB),
+                          Color(0xFF1E1157),
+                        ]
+                      : [
+                          _getArchetypeColors().$1,
+                          _getArchetypeColors().$2,
+                          const Color(0xFF1A1A2E),
+                        ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+
+            const AnimatedParticlesBackground(
+              particleCount: 35,
+              maxShootingStars: 3,
+              particleColor: Colors.white,
+            ),
+
+            Positioned(
+              top: -80,
+              right: -60,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.05),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -100,
+              left: -80,
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withValues(alpha: 0.03),
+                ),
+              ),
+            ),
+
+            SafeArea(
+              child: Column(
+                children: [
+                  if (_currentStep < _totalSteps - 1)
+                    _buildProgressHeader()
+                  else
+                    const SizedBox(height: 16),
+
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      onPageChanged: (index) {
+                        _dismissKeyboard();
+                        setState(() => _currentStep = index);
+                        if (index < _totalSteps - 1) {
+                          _updateProgress(index);
+                        }
+                      },
+                      children: [
+                        UsernameStep(
+                          onNext: (username) {
+                            _username = username;
+                            _nextStep();
+                          },
+                        ),
+                        AboutYouStep(
+                          onNext: (age, gender) {
+                            _age = age;
+                            _gender = gender;
+                            _nextStep();
+                          },
+                        ),
+                        HobbiesStep(
+                          onNext: (hobbies) {
+                            _hobbies = hobbies;
+                            _nextStep();
+                          },
+                        ),
+                        MusicStep(
+                          onNext: (genres) {
+                            _musicGenres = genres;
+                            _completeProfile();
+                          },
+                        ),
+                        ArchetypeResultStep(
+                          archetype: ArchetypeQuiz.compute(hobbies: _hobbies, genres: _musicGenres),
+                          affinity: ArchetypeQuiz.affinity(hobbies: _hobbies, genres: _musicGenres),
+                          onContinue: () => Navigator.pushReplacementNamed(context, AppRoutes.onboardingIntro),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

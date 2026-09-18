@@ -177,7 +177,7 @@
     "username": "Username",
     "usernameHint": "my_username",
     "usernameRules": "3-20 characters • Letters, numbers, . and _ • Starts with letter",
-    "age": "Age",
+    "age": "Your age",
     "genderMale": "Male",
     "genderFemale": "Female",
     "genderNonBinary": "Non-binary",
@@ -214,7 +214,11 @@
     "ageRequired": "Age is required",
     "usernameRequired": "Username is required",
     "hobbiesMin": "Select at least {count} hobbies",
-    "musicMin": "Select at least {count} music genres"
+    "musicMin": "Select at least {count} music genres",
+    "ageHint": "Swipe or tap to choose",
+    "ageLess": "One year less",
+    "ageMore": "One year more",
+    "ageYears": "{n} years old"
   },
   "archetype": {
     "revealTitle": "Your archetype is...",
