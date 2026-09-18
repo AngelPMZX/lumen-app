@@ -82,10 +82,13 @@ debugPrint('StackTrace: ${StackTrace.current}');
     Map<String, dynamic>? meta;
     var metaReachable = false;
     try {
+      // Con presupuesto: sin internet falla rápido, pero con señal mala puede
+      // colgarse, y el contenido ya está en la caché local esperando.
       final metaDoc = await _firestore
           .collection('wellness_routes')
           .doc('_meta')
-          .get(const GetOptions(source: Source.server));
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 3));
       metaReachable = true;
       meta = metaDoc.data();
     } catch (e) {

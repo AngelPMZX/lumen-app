@@ -48,7 +48,15 @@ class _SplashScreenState extends State<SplashScreen>
       // Sesión guardada de un registro sin verificar: no dejarla pasar
       final needsVerification =
           await authProvider.needsVerificationOnStartup();
-      if (!needsVerification) await authProvider.loadUserData();
+      if (!needsVerification) {
+        // Red de seguridad: cargar el perfil ya no bloquea en la red (lecturas
+        // con presupuesto y caché local), pero la app tiene que abrir sí o sí.
+        // Lo que falte llega solo y la pantalla se actualiza.
+        await authProvider.loadUserData().timeout(
+              const Duration(seconds: 6),
+              onTimeout: () => debugPrint('⏳ El perfil sigue cargando'),
+            );
+      }
       await Future.delayed(const Duration(milliseconds: 800));
       if (!mounted) return;
 
@@ -103,17 +111,19 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          AnimatedBuilder(
-            animation: _particleController,
-            builder: (context, _) {
-              return CustomPaint(
-                size: MediaQuery.of(context).size,
-                painter: _ParticlePainter(
-                  particles: _particles,
-                  progress: _particleController.value,
-                ),
-              );
-            },
+          RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _particleController,
+              builder: (context, _) {
+                return CustomPaint(
+                  size: MediaQuery.of(context).size,
+                  painter: _ParticlePainter(
+                    particles: _particles,
+                    progress: _particleController.value,
+                  ),
+                );
+              },
+            ),
           ),
 
           Center(

@@ -1,3 +1,6 @@
+import '../../core/utils/firestore_access.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -236,10 +239,15 @@ void clearVerificationState() {
   Future<void> loadUserData() async {
     if (firebaseUser == null) return;
     try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(firebaseUser!.uid)
-          .get();
+      // Todo lo independiente arranca a la vez: antes iban encadenados y el
+      // splash esperaba la suma de seis viajes a Firestore.
+      final userF =
+          _firestore.collection('users').doc(firebaseUser!.uid).getFast();
+      final progressF = _loadUserProgress();
+      final celebratedF = _loadCelebratedAchievements();
+      final discoveriesF = _loadDiscoveries();
+
+      final doc = await userF;
       if (doc.exists) {
         _userModel = UserModel.fromMap(doc.data()!);
       } else {
@@ -250,34 +258,42 @@ void clearVerificationState() {
         _habitsCompletedCount = 0;
         _moodCheckInCount = 0;
       }
-      await _loadUserProgress();
-
-      try {
-        final diarySnap = await _firestore
-            .collection('users').doc(firebaseUser!.uid)
-            .collection('diary').count().get();
-        _diaryEntryCount = diarySnap.count ?? 0;
-
-        final habitsSnap = await _firestore
-            .collection('users').doc(firebaseUser!.uid)
-            .collection('habit_checkins')
-            .where('completed', isEqualTo: true).count().get();
-        _habitsCompletedCount = habitsSnap.count ?? 0;
-
-        final moodsSnap = await _firestore
-            .collection('users').doc(firebaseUser!.uid)
-            .collection('moods').count().get();
-        _moodCheckInCount = moodsSnap.count ?? 0;
-      } catch (e) {
-        debugPrint('Error loading counters: $e');
-      }
-
+      await Future.wait([progressF, celebratedF, discoveriesF]);
       await _ensureUsernameReserved();
-      await _loadCelebratedAchievements();
-      await _loadDiscoveries();
+
+      // Los contadores del perfil son agregaciones (`count()`): **solo existen
+      // en el servidor**, no hay versión en caché. Sin internet nunca llegan,
+      // así que no pueden retrasar la apertura de la app: se piden aparte y la
+      // pantalla se actualiza cuando lleguen.
+      unawaited(_loadProfileCounters());
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading user data: $e');
+    }
+  }
+
+  Future<void> _loadProfileCounters() async {
+    if (firebaseUser == null) return;
+    final base = _firestore.collection('users').doc(firebaseUser!.uid);
+    try {
+      final counts = await Future.wait([
+        base.collection('diary').count().get(),
+        base
+            .collection('habit_checkins')
+            .where('completed', isEqualTo: true)
+            .count()
+            .get(),
+        base.collection('moods').count().get(),
+      ]).timeout(const Duration(seconds: 8));
+      _diaryEntryCount = counts[0].count ?? _diaryEntryCount;
+      _habitsCompletedCount = counts[1].count ?? _habitsCompletedCount;
+      _moodCheckInCount = counts[2].count ?? _moodCheckInCount;
+      notifyListeners();
+    } catch (e) {
+      // Sin internet se quedan los que ya había: mejor un número de la última
+      // vez que un 0 que borra medallas ganadas de la vista.
+      debugPrint('Error loading counters: $e');
     }
   }
 
@@ -290,7 +306,7 @@ void clearVerificationState() {
     try {
       final doc = await _firestore
           .collection('users').doc(firebaseUser!.uid)
-          .collection('progress').doc('discoveries').get();
+          .collection('progress').doc('discoveries').getFast();
       _discoveredFeatures =
           Set<String>.from(doc.data()?['ids'] ?? const <String>[]);
     } catch (e) {
@@ -304,11 +320,14 @@ void clearVerificationState() {
     if (firebaseUser == null || discovered == null) return false;
     if (!discovered.add(featureId)) return false;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid)
-          .collection('progress').doc('discoveries')
-          .set({'ids': FieldValue.arrayUnion([featureId])},
-              SetOptions(merge: true));
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('progress').doc('discoveries')
+            .set({'ids': FieldValue.arrayUnion([featureId])},
+                SetOptions(merge: true)),
+        'descubrimiento',
+      );
     } catch (e) {
       debugPrint('Error saving discovery: $e');
     }
@@ -320,7 +339,7 @@ void clearVerificationState() {
     try {
       final doc = await _firestore
           .collection('users').doc(firebaseUser!.uid)
-          .collection('progress').doc('celebrated_achievements').get();
+          .collection('progress').doc('celebrated_achievements').getFast();
       if (doc.exists) {
         final ids = List<String>.from(doc.data()!['ids'] ?? []);
         _celebratedAchievementIds = ids.toSet();
@@ -336,10 +355,13 @@ void clearVerificationState() {
   Future<void> _saveCelebratedAchievements() async {
     if (firebaseUser == null) return;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid)
-          .collection('progress').doc('celebrated_achievements')
-          .set({'ids': _celebratedAchievementIds.toList()});
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('progress').doc('celebrated_achievements')
+            .set({'ids': _celebratedAchievementIds.toList()}),
+        'logros celebrados',
+      );
     } catch (e) {
       debugPrint('Error saving celebrated achievements: $e');
     }
@@ -398,14 +420,17 @@ void clearVerificationState() {
           .where('timestamp',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('timestamp', isLessThan: Timestamp.fromDate(endOfDay))
-          .limit(1).get();
+          .limit(1).getFast();
 
       final isFirstMoodToday = existingMoods.docs.isEmpty;
 
       if (isFirstMoodToday) {
-        await _firestore
-            .collection('users').doc(firebaseUser!.uid).collection('moods')
-            .doc(entry.id).set(entry.toMap());
+        await _write(
+          _firestore
+              .collection('users').doc(firebaseUser!.uid).collection('moods')
+              .doc(entry.id).set(entry.toMap()),
+          'ánimo del día',
+        );
 
         if (_userProgress != null) {
           final oldProgress = _userProgress!;
@@ -418,24 +443,30 @@ void clearVerificationState() {
             totalXp: newXp,
             level: newLevel,
           );
-          await _firestore
-              .collection('users').doc(firebaseUser!.uid)
-              .collection('progress').doc('current')
-              .set(updatedProgress.toMap());
+          await _write(
+            _firestore
+                .collection('users').doc(firebaseUser!.uid)
+                .collection('progress').doc('current')
+                .set(updatedProgress.toMap()),
+            'progreso',
+          );
           _userProgress = updatedProgress;
           _moodCheckInCount++;
           await _checkCelebrations(oldProgress, updatedProgress);
         }
       } else {
         final existingDocId = existingMoods.docs.first.id;
-        await _firestore
-            .collection('users').doc(firebaseUser!.uid).collection('moods')
-            .doc(existingDocId)
-            .update({
-          'mood': entry.mood.key,
-          'intensity': entry.intensity,
-          'note': entry.note,
-        });
+        await _write(
+          _firestore
+              .collection('users').doc(firebaseUser!.uid).collection('moods')
+              .doc(existingDocId)
+              .update({
+                'mood': entry.mood.key,
+                'intensity': entry.intensity,
+                'note': entry.note,
+              }),
+          'ánimo del día',
+        );
       }
 
       notifyListeners();
@@ -459,7 +490,7 @@ void clearVerificationState() {
           .where('timestamp',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfWeek))
           .where('timestamp', isLessThan: Timestamp.fromDate(endOfWeek))
-          .orderBy('timestamp').get();
+          .orderBy('timestamp').getFast();
 
       final Map<int, MoodType> weeklyMoods = {};
       for (final doc in snapshot.docs) {
@@ -486,7 +517,7 @@ void clearVerificationState() {
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('timestamp', isLessThan: Timestamp.fromDate(endOfDay))
           .orderBy('timestamp', descending: true)
-          .limit(1).get();
+          .limit(1).getFast();
 
       if (snapshot.docs.isNotEmpty) {
         return MoodEntry.fromMap(snapshot.docs.first.data()).mood;
@@ -505,15 +536,18 @@ void clearVerificationState() {
     try {
       final doc = await _firestore
           .collection('users').doc(firebaseUser!.uid)
-          .collection('progress').doc('current').get();
+          .collection('progress').doc('current').getFast();
       if (doc.exists) {
         _userProgress = UserProgress.fromMap(doc.data()!);
       } else {
         _userProgress = UserProgress();
-        await _firestore
-            .collection('users').doc(firebaseUser!.uid)
-            .collection('progress').doc('current')
-            .set(_userProgress!.toMap());
+        await _write(
+          _firestore
+              .collection('users').doc(firebaseUser!.uid)
+              .collection('progress').doc('current')
+              .set(_userProgress!.toMap()),
+          'progreso inicial',
+        );
       }
     } catch (e) {
       debugPrint('Error loading user progress: $e');
@@ -533,10 +567,13 @@ void clearVerificationState() {
       final oldProgress = _userProgress!;
       final updatedProgress = _userProgress!.calculateStreak(serverTime);
 
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid)
-          .collection('progress').doc('current')
-          .set(updatedProgress.toMap());
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('progress').doc('current')
+            .set(updatedProgress.toMap()),
+        'racha',
+      );
 
       _userProgress = updatedProgress;
       // Cancelar recordatorio de racha porque ya hizo check-in hoy
@@ -626,12 +663,15 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
       totalXp: _userProgress!.totalXp,
       level: _userProgress!.level,
     );
-    await _firestore
-        .collection('users')
-        .doc(firebaseUser!.uid)
-        .collection('progress')
-        .doc('current')
-        .set(updatedProgress.toMap());
+    await _write(
+      _firestore
+          .collection('users')
+          .doc(firebaseUser!.uid)
+          .collection('progress')
+          .doc('current')
+          .set(updatedProgress.toMap()),
+      'racha restaurada',
+    );
     _userProgress = updatedProgress;
     notifyListeners();
   } catch (e) {
@@ -639,13 +679,29 @@ Future<void> restoreStreakWithShield(int streakToRestore) async {
   }
 }
 
+  /// Hora del servidor, para las recompensas de una vez al día y la racha.
+  ///
+  /// Sin internet no se puede pedir. Antes eso **tiraba la operación entera**:
+  /// el check-in, la sesión de respiración o el repaso que el usuario acababa
+  /// de hacer se perdían y tenía que repetirlos. Ahora se usa la hora del
+  /// teléfono como respaldo; las guardas de "ya se cobró hoy"
+  /// (`lastRewardDate`, el doc en `completed_lessons`) siguen aplicando, así
+  /// que lo peor que puede pasar es que alguien sin internet y con el reloj
+  /// cambiado adelante un día.
   Future<DateTime> _getServerTimestamp() async {
     final ref = _firestore.collection('_server_time').doc(firebaseUser!.uid);
-    await ref.set({'timestamp': FieldValue.serverTimestamp()});
-    final snap = await ref.get();
-    final Timestamp ts = snap.data()!['timestamp'];
-    await ref.delete();
-    return ts.toDate();
+    try {
+      await ref
+          .set({'timestamp': FieldValue.serverTimestamp()})
+          .timeout(const Duration(seconds: 4));
+      final snap = await ref.get().timeout(const Duration(seconds: 4));
+      final ts = snap.data()?['timestamp'];
+      unawaited(ref.delete().catchError((_) {}));
+      if (ts is Timestamp) return ts.toDate();
+    } catch (e) {
+      debugPrint('📴 Sin hora del servidor, se usa la del teléfono: $e');
+    }
+    return DateTime.now();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -784,7 +840,9 @@ Future<bool> checkEmailVerified() async {
 Future<bool> needsVerificationOnStartup() async {
   if (_auth.currentUser == null || isGoogleUser) return false;
   try {
-    await _auth.currentUser!.reload();
+    // `reload()` va al servidor. Sin internet falla rápido, pero con señal
+    // mala puede colgarse: el splash no puede quedarse esperando por esto.
+    await _auth.currentUser!.reload().timeout(const Duration(seconds: 3));
   } catch (e) {
     // Sin conexión: se usa el último estado conocido
     debugPrint('needsVerificationOnStartup reload error: $e');
@@ -849,7 +907,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final userCredential = await _auth.signInWithCredential(credential);
 
       final doc = await _firestore
-          .collection('users').doc(userCredential.user!.uid).get();
+          .collection('users').doc(userCredential.user!.uid).getFast();
       if (!doc.exists) {
         final userModel = UserModel(
             uid: userCredential.user!.uid,
@@ -984,7 +1042,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final username = _userModel?.username?.toLowerCase();
       if (username != null && username.isNotEmpty) {
         try {
-          final reserved = await _usernameDoc(username).get();
+          final reserved = await _usernameDoc(username).getFast();
           if (reserved.data()?['uid'] == user.uid) await reserved.reference.delete();
         } catch (e) {
           debugPrint('Release username on delete: $e');
@@ -1030,7 +1088,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       CollectionReference<Map<String, dynamic>> ref) async {
     const batchSize = 400; // límite de Firestore: 500 operaciones por batch
     while (true) {
-      final snapshot = await ref.limit(batchSize).get();
+      final snapshot = await ref.limit(batchSize).getFast();
       if (snapshot.docs.isEmpty) return;
       final batch = _firestore.batch();
       for (final doc in snapshot.docs) {
@@ -1068,7 +1126,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
 
   Future<bool> isUsernameTaken(String username) async {
     try {
-      final doc = await _usernameDoc(username).get();
+      final doc = await _usernameDoc(username).getFast();
       return doc.exists && doc.data()?['uid'] != firebaseUser?.uid;
     } catch (e) {
       debugPrint('Error checking username: $e');
@@ -1085,9 +1143,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     if (uid == null || name == null || name.isEmpty) return;
     try {
       final ref = _usernameDoc(name);
-      final snap = await ref.get();
+      final snap = await ref.getFast();
       if (!snap.exists) {
-        await ref.set({'uid': uid, 'createdAt': FieldValue.serverTimestamp()});
+        await _write(
+          ref.set({'uid': uid, 'createdAt': FieldValue.serverTimestamp()}),
+          'reserva de nombre de usuario',
+        );
       }
     } catch (e) {
       debugPrint('Error reserving existing username: $e');
@@ -1189,12 +1250,18 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   // ═══════════════════════════════════════════════════════════════════════════
   /// [awardXp] en false para entradas que ya dieron XP por otro lado
   /// (p. ej. un ejercicio de lección guardado en el diario).
+  /// Ver [queueWrite]: guarda sin esperar la confirmación del servidor.
+  Future<void> _write(Future<void> op, String what) => queueWrite(op, what);
+
   Future<void> saveDiaryEntry(DiaryEntry entry, {bool awardXp = true}) async {
     if (firebaseUser == null) return;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('diary')
-          .doc(entry.id).set(entry.toMap());
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('diary')
+            .doc(entry.id).set(entry.toMap()),
+        'entrada de diario',
+      );
 
       if (!awardXp) _diaryEntryCount++;
 
@@ -1212,10 +1279,13 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
           totalXp: newXp,
           level: newLevel,
         );
-        await _firestore
-            .collection('users').doc(firebaseUser!.uid)
-            .collection('progress').doc('current')
-            .set(updatedProgress.toMap());
+        await _write(
+          _firestore
+              .collection('users').doc(firebaseUser!.uid)
+              .collection('progress').doc('current')
+              .set(updatedProgress.toMap()),
+          'progreso',
+        );
         _userProgress = updatedProgress;
         _diaryEntryCount++;
         await _checkCelebrations(oldProgress, updatedProgress);
@@ -1235,7 +1305,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final snapshot = await _firestore
           .collection('users').doc(firebaseUser!.uid).collection('diary')
           .orderBy('createdAt', descending: true)
-          .limit(limit).get();
+          .limit(limit).getFast();
       return snapshot.docs.map((doc) => DiaryEntry.fromMap(doc.data())).toList();
     } catch (e) {
       debugPrint('Error loading diary entries: $e');
@@ -1251,7 +1321,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
           .collection('users').doc(firebaseUser!.uid).collection('diary')
           .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
           .where('createdAt', isLessThan: Timestamp.fromDate(end))
-          .orderBy('createdAt').get();
+          .orderBy('createdAt').getFast();
 
       final Map<DateTime, MoodType> moods = {};
       for (final doc in snapshot.docs) {
@@ -1270,9 +1340,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   Future<void> deleteDiaryEntry(String entryId) async {
     if (firebaseUser == null) return;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('diary')
-          .doc(entryId).delete();
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('diary')
+            .doc(entryId).delete(),
+        'borrar entrada',
+      );
       _diaryVersion++;
       notifyListeners();
     } catch (e) {
@@ -1292,7 +1365,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
           .where('createdAt',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('createdAt', isLessThan: Timestamp.fromDate(endOfDay))
-          .limit(1).get();
+          .limit(1).getFast();
       return snapshot.docs.isNotEmpty;
     } catch (e) {
       return false;
@@ -1305,9 +1378,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   Future<void> saveReminder(Reminder reminder) async {
     if (firebaseUser == null) return;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('reminders')
-          .doc(reminder.id).set(reminder.toMap());
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('reminders')
+            .doc(reminder.id).set(reminder.toMap()),
+        'recordatorio',
+      );
       notifyListeners();
     } catch (e) { rethrow; }
   }
@@ -1317,12 +1393,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     try {
       final snapshot = await _firestore
           .collection('users').doc(firebaseUser!.uid).collection('reminders')
-          .orderBy('timeInMinutes').get();
+          .orderBy('timeInMinutes').getFast();
       return snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
     } catch (e) {
       try {
         final snapshot = await _firestore
-            .collection('users').doc(firebaseUser!.uid).collection('reminders').get();
+            .collection('users').doc(firebaseUser!.uid).collection('reminders').getFast();
         final list = snapshot.docs.map((doc) => Reminder.fromMap(doc.data())).toList();
         list.sort((a, b) => a.timeInMinutes.compareTo(b.timeInMinutes));
         return list;
@@ -1333,9 +1409,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   Future<void> toggleReminder(String reminderId, bool isEnabled) async {
     if (firebaseUser == null) return;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('reminders')
-          .doc(reminderId).update({'isEnabled': isEnabled});
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('reminders')
+            .doc(reminderId).update({'isEnabled': isEnabled}),
+        'recordatorio',
+      );
       notifyListeners();
     } catch (e) { rethrow; }
   }
@@ -1343,9 +1422,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   Future<void> deleteReminder(String reminderId) async {
     if (firebaseUser == null) return;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('reminders')
-          .doc(reminderId).delete();
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('reminders')
+            .doc(reminderId).delete(),
+        'borrar recordatorio',
+      );
       notifyListeners();
     } catch (e) { rethrow; }
   }
@@ -1356,9 +1438,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   Future<void> saveHabit(Habit habit) async {
     if (firebaseUser == null) return;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('habits')
-          .doc(habit.id).set(habit.toMap());
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('habits')
+            .doc(habit.id).set(habit.toMap()),
+        'hábito',
+      );
       notifyListeners();
     } catch (e) { rethrow; }
   }
@@ -1368,7 +1453,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     try {
       final snapshot = await _firestore
           .collection('users').doc(firebaseUser!.uid).collection('habits')
-          .orderBy('createdAt').get();
+          .orderBy('createdAt').getFast();
       return snapshot.docs.map((doc) => Habit.fromMap(doc.data())).toList();
     } catch (e) { return []; }
   }
@@ -1376,9 +1461,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   Future<void> deleteHabit(String habitId) async {
     if (firebaseUser == null) return;
     try {
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('habits')
-          .doc(habitId).delete();
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('habits')
+            .doc(habitId).delete(),
+        'borrar hábito',
+      );
       notifyListeners();
     } catch (e) { rethrow; }
   }
@@ -1390,12 +1478,15 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final checkIn = HabitCheckIn(habitId: habitId, date: today);
       final existingDoc = await _firestore
           .collection('users').doc(firebaseUser!.uid).collection('habit_checkins')
-          .doc(checkIn.docId).get();
+          .doc(checkIn.docId).getFast();
       final isFirstTime = !existingDoc.exists;
 
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins')
-          .doc(checkIn.docId).set(checkIn.toMap());
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('habit_checkins')
+            .doc(checkIn.docId).set(checkIn.toMap()),
+        'hábito',
+      );
 
       if (isFirstTime && _userProgress != null) {
         final oldProgress = _userProgress!;
@@ -1408,10 +1499,13 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
           totalXp: newXp,
           level: newLevel,
         );
-        await _firestore
-            .collection('users').doc(firebaseUser!.uid)
-            .collection('progress').doc('current')
-            .set(updatedProgress.toMap());
+        await _write(
+          _firestore
+              .collection('users').doc(firebaseUser!.uid)
+              .collection('progress').doc('current')
+              .set(updatedProgress.toMap()),
+          'progreso',
+        );
         _userProgress = updatedProgress;
         _habitsCompletedCount++;
         await _checkCelebrations(oldProgress, updatedProgress);
@@ -1427,9 +1521,12 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     try {
       final today = DateTime.now();
       final checkIn = HabitCheckIn(habitId: habitId, date: today);
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins')
-          .doc(checkIn.docId).update({'completed': false});
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid).collection('habit_checkins')
+            .doc(checkIn.docId).update({'completed': false}),
+        'hábito',
+      );
       notifyListeners();
     } catch (e) { rethrow; }
   }
@@ -1440,7 +1537,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     if (firebaseUser == null) return {};
     try {
       final snapshot = await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins').get();
+          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins').getFast();
       final days = <String, List<DateTime>>{};
       for (final doc in snapshot.docs) {
         if (doc.data()['completed'] != true) continue;
@@ -1462,7 +1559,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final dateStr =
           '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
       final snapshot = await _firestore
-          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins').get();
+          .collection('users').doc(firebaseUser!.uid).collection('habit_checkins').getFast();
       return snapshot.docs
           .where((doc) => doc.id.endsWith(dateStr))
           .where((doc) => doc.data()['completed'] == true)
@@ -1480,7 +1577,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     try {
       final snapshot = await _firestore
           .collection('users').doc(firebaseUser!.uid)
-          .collection('completed_lessons').get();
+          .collection('completed_lessons').getFast();
       return snapshot.docs.map((doc) => doc.id).toSet();
     } catch (e) { return {}; }
   }
@@ -1493,15 +1590,22 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     try {
       final existing = await _firestore
           .collection('users').doc(firebaseUser!.uid)
-          .collection('completed_lessons').doc(lessonId).get();
+          .collection('completed_lessons').doc(lessonId).getFast();
       if (existing.exists) return;
 
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid)
-          .collection('completed_lessons').doc(lessonId).set({
-        'completedAt': FieldValue.serverTimestamp(),
-        'xpEarned': xpReward,
-      });
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('completed_lessons').doc(lessonId).set({
+          // Hora del teléfono, no `serverTimestamp()`: sin internet ese campo
+          // se queda en null en la caché local y `hasCompletedLessonToday()`
+          // —que filtra por fecha— no encontraba la lección. Se guardaba, pero
+          // el home seguía diciendo que no la habías hecho.
+          'completedAt': Timestamp.now(),
+          'xpEarned': xpReward,
+        }),
+        'lección completada',
+      );
 
       await _awardXp(xpReward, garden: garden);
       notifyListeners();
@@ -1526,10 +1630,13 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       totalXp: newXp,
       level: (newXp ~/ 100) + 1,
     );
-    await _firestore
-        .collection('users').doc(firebaseUser!.uid)
-        .collection('progress').doc('current')
-        .set(updatedProgress.toMap());
+    await _write(
+      _firestore
+          .collection('users').doc(firebaseUser!.uid)
+          .collection('progress').doc('current')
+          .set(updatedProgress.toMap()),
+      'progreso',
+    );
     _userProgress = updatedProgress;
     await _checkCelebrations(oldProgress, updatedProgress);
   }
@@ -1553,7 +1660,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final data = (await _firestore
               .collection('users').doc(firebaseUser!.uid)
               .collection('progress').doc('review')
-              .get())
+              .getFast())
           .data();
       final now = DateTime.now();
       final today =
@@ -1586,7 +1693,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final ref = _firestore
           .collection('users').doc(firebaseUser!.uid)
           .collection('progress').doc('review');
-      final data = (await ref.get()).data();
+      final data = (await ref.getFast()).data();
       final alreadyRewarded = data?['lastRewardDate'] == serverDay;
 
       final pending = Set<String>.from(data?['missed'] ?? const <String>[])
@@ -1599,17 +1706,23 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
           : pendingList;
 
       // Historial por sesión (misiones semanales cuentan repasos)
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid)
-          .collection('review_sessions')
-          .add({'at': FieldValue.serverTimestamp()});
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('review_sessions')
+            .add({'at': Timestamp.now()}),
+        'repaso',
+      );
 
-      await ref.set({
-        'missed': trimmed,
-        'lastLocalDay': localDay,
-        'totalReviews': FieldValue.increment(1),
-        if (!alreadyRewarded) 'lastRewardDate': serverDay,
-      }, SetOptions(merge: true));
+      await _write(
+        ref.set({
+          'missed': trimmed,
+          'lastLocalDay': localDay,
+          'totalReviews': FieldValue.increment(1),
+          if (!alreadyRewarded) 'lastRewardDate': serverDay,
+        }, SetOptions(merge: true)),
+        'estado del repaso',
+      );
       if (alreadyRewarded) return false;
 
       await _awardXp(xpReward, garden: garden);
@@ -1630,19 +1743,26 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       final ref = _firestore
           .collection('users').doc(firebaseUser!.uid)
           .collection('progress').doc('breathing');
-      final alreadyRewarded = (await ref.get()).data()?['lastRewardDate'] == today;
+      final alreadyRewarded =
+          (await ref.getFast()).data()?['lastRewardDate'] == today;
 
-      await ref.set({
-        'totalSessions': FieldValue.increment(1),
-        'lastSessionAt': FieldValue.serverTimestamp(),
-        if (!alreadyRewarded) 'lastRewardDate': today,
-      }, SetOptions(merge: true));
+      await _write(
+        ref.set({
+          'totalSessions': FieldValue.increment(1),
+          'lastSessionAt': FieldValue.serverTimestamp(),
+          if (!alreadyRewarded) 'lastRewardDate': today,
+        }, SetOptions(merge: true)),
+        'estado de respiración',
+      );
       // Historial por sesión: el resumen semanal cruza qué días respiró con
       // su ánimo. `progress/breathing` solo guarda un contador.
-      await _firestore
-          .collection('users').doc(firebaseUser!.uid)
-          .collection('breathing_sessions')
-          .add({'at': FieldValue.serverTimestamp()});
+      await _write(
+        _firestore
+            .collection('users').doc(firebaseUser!.uid)
+            .collection('breathing_sessions')
+            .add({'at': Timestamp.now()}),
+        'sesión de respiración',
+      );
       if (alreadyRewarded) return false;
 
       await _awardXp(xpReward, garden: garden);
@@ -1666,7 +1786,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
           .where('completedAt',
               isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
           .where('completedAt', isLessThan: Timestamp.fromDate(endOfDay))
-          .get();
+          .getFast();
       // Los retos diarios del Home también se guardan en completed_lessons
       // (`challenge_<fecha>`): no son una lección.
       return snapshot.docs.any((d) => !d.id.startsWith('challenge_'));

@@ -155,6 +155,41 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
     _scheduleDraft();
   }
 
+  /// Tocar "Guardar" sin poder hacerlo: antes el botón simplemente no
+  /// respondía y parecía que la app se había trabado. Ahora dice qué falta.
+  void _explainWhatIsMissing() {
+    HapticFeedback.lightImpact();
+    SoundService.instance.play(Sfx.toggleOff, volume: 0.4);
+    final message = _mood == null
+        ? 'journal.needMood'.tr()
+        : 'journal.needText'.tr();
+    final s = JournalStyle.of(context);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Row(
+          children: [
+            Text(_mood == null ? '🎨' : '✍️', style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: s.ink),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: s.paper,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: s.paperEdge),
+        ),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+        duration: const Duration(seconds: 2),
+      ));
+  }
+
   Future<void> _save() async {
     if (!_canSave || _isSaving) return;
     setState(() => _isSaving = true);
@@ -170,7 +205,13 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
         gratitude: _showGratitude && gratitude.isNotEmpty ? gratitude : null,
         prompt: _showGratitude && gratitude.isNotEmpty ? _gratitudePromptKey.tr() : null,
       );
-      await auth.saveDiaryEntry(entry);
+      // Red de seguridad: guardar no toca la red (ver AuthProvider._write),
+      // pero pase lo que pase el usuario no se queda mirando el spinner.
+      // Su página ya está en el teléfono y se sincroniza sola.
+      await auth.saveDiaryEntry(entry).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () => debugPrint('⏳ El diario sigue guardando en segundo plano'),
+          );
       _saved = true;
       final uid = _uid;
       if (uid != null) await DiaryDraftService.instance.clear(uid);
@@ -595,7 +636,9 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(18),
-                  onTap: enabled ? _save : null,
+                  onTap: _isSaving
+                      ? null
+                      : (enabled ? _save : _explainWhatIsMissing),
                   child: Center(
                     child: _isSaving
                         ? const SizedBox(

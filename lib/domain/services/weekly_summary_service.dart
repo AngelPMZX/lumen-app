@@ -1,3 +1,4 @@
+import '../../core/utils/firestore_access.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../data/models/mood_entry.dart';
@@ -25,7 +26,7 @@ class WeeklySummaryService {
         final snap = await user
             .collection(collection)
             .where(field, isGreaterThanOrEqualTo: since)
-            .get();
+            .getFast();
         return snap.docs;
       } catch (e) {
         debugPrint('Weekly summary: error loading $collection: $e');
@@ -72,7 +73,7 @@ class WeeklySummaryService {
           .collection('commitments')
           .orderBy('createdAt', descending: true)
           .limit(30)
-          .get();
+          .getFast();
       for (final doc in snap.docs) {
         final data = doc.data();
         final answered = dateOf(data, 'answeredAt');

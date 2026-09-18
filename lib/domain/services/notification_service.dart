@@ -15,7 +15,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
-  bool _initialized = false;
+  Future<void>? _ready;
 
   static const int _harvestNotificationId = 2000;
   static const int _streakNotificationId = 3000;
@@ -28,9 +28,12 @@ class NotificationService {
   // INICIALIZACIÓN
   // ═══════════════════════════════════════════════════════════════════════════
 
-  Future<void> initialize() async {
-    if (_initialized) return;
+  /// Se puede llamar desde varios sitios y desde el arranque sin bloquear la
+  /// primera pantalla: siempre es la misma inicialización, y todo lo que
+  /// programa o cancela algo la espera antes de tocar el plugin.
+  Future<void> initialize() => _ready ??= _initialize();
 
+  Future<void> _initialize() async {
     // Cargar base de datos de zonas horarias
     tz.initializeTimeZones();
 
@@ -63,7 +66,6 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
-    _initialized = true;
     debugPrint('✅ NotificationService initialized');
   }
 
@@ -170,6 +172,7 @@ class NotificationService {
     required int minute,
     String? payload,
   }) async {
+    await initialize();
     final now = tz.TZDateTime.now(tz.local);
     var scheduledDate = tz.TZDateTime(
       tz.local,
@@ -207,6 +210,7 @@ class NotificationService {
     required int weekday,
     String? payload,
   }) async {
+    await initialize();
     final now = tz.TZDateTime.now(tz.local);
     int daysUntil = (weekday - now.weekday + 7) % 7;
 

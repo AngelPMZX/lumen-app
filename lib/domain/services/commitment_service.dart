@@ -1,3 +1,4 @@
+import '../../core/utils/firestore_access.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../data/models/commitment.dart';
@@ -37,13 +38,16 @@ class CommitmentService {
         'routeId': routeId,
         'dayKey': today,
         'status': CommitmentStatus.pending.name,
-        'createdAt': FieldValue.serverTimestamp(),
+        // Hora del teléfono: `pendingToAsk` ordena por este campo, y con
+        // `serverTimestamp()` el reto creado sin internet queda en null y la
+        // consulta lo deja fuera hasta que sincronice.
+        'createdAt': Timestamp.now(),
       };
 
       final todays = await _col(uid)
           .where('dayKey', isEqualTo: today)
           .limit(5)
-          .get();
+          .getFast();
       final pendingToday = todays.docs
           .where((d) => d.data()['status'] == CommitmentStatus.pending.name)
           .toList();
@@ -64,7 +68,7 @@ class CommitmentService {
       final snap = await _col(uid)
           .orderBy('createdAt', descending: true)
           .limit(10)
-          .get();
+          .getFast();
       final now = DateTime.now();
       final batch = _firestore.batch();
       var expiredAny = false;

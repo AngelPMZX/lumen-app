@@ -17,6 +17,7 @@ import '../../widgets/animated_particles_background.dart';
 import '../../widgets/challenge_dialog.dart';
 import '../../widgets/reward_dialog.dart';
 import '../../widgets/crisis_support_card.dart';
+import '../../widgets/entrance.dart';
 import '../reminders/reminders_screen.dart';
 import '../routes/lesson_screen.dart';
 import '../diary/new_diary_entry_screen.dart';
@@ -55,8 +56,16 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   MoodType? _selectedMood;
+
+  /// Día que se cargó, para detectar que cambió mientras la app estaba
+  /// en segundo plano.
+  String _loadedDay = '';
+
+  /// Cuándo se recargó por última vez, para no repetir una decena de
+  /// consultas si el usuario entra y sale de la app en segundos.
+  DateTime _lastLoad = DateTime.fromMillisecondsSinceEpoch(0);
   Quote? _quote;
   Map<int, MoodType> _weeklyMoods = {};
   bool _hasDiaryToday = false;
@@ -122,9 +131,14 @@ class _HomeScreenState extends State<HomeScreen> {
  @override
 void initState() {
   super.initState();
+  // El home vive en el IndexedStack y nunca se vuelve a crear: sin esto, al
+  // volver de otra app seguía mostrando el ánimo, la lección y el reto de
+  // cuando se abrió (y los de ayer, si pasó la medianoche).
+  WidgetsBinding.instance.addObserver(this);
+  _loadedDay = WeeklySummary.dayKey(DateTime.now());
   WidgetsBinding.instance.addPostFrameCallback((_) async {
   _checkProfileComplete();
-  _loadChallengeState();
+  _loadLocalDayState();
   _loadData();
   // Capturar la racha rota antes de cualquier check-in (que la reinicia a 1)
   // y guardarla cuando carguen las mecánicas, para que un escudo la recupere.
@@ -139,6 +153,36 @@ void initState() {
   await _scheduleDailyReminders();
 });
 }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !mounted) return;
+    final today = WeeklySummary.dayKey(DateTime.now());
+    final sameDay = today == _loadedDay;
+    if (sameDay &&
+        DateTime.now().difference(_lastLoad) < const Duration(seconds: 20)) {
+      return;
+    }
+    if (!sameDay) {
+      // Cambió el día: lo de ayer ya no vale (ánimo, diario, lección, reto).
+      _loadedDay = today;
+      setState(() {
+        _selectedMood = null;
+        _hasDiaryToday = false;
+        _hasLessonToday = false;
+        _challengeCompletedToday = false;
+        _crisisCardDismissedToday = false;
+      });
+      _loadLocalDayState();
+    }
+    _loadData();
+  }
 
   void _checkProfileComplete() {
     try {
@@ -156,30 +200,51 @@ void initState() {
     }
   }
 
-  // Carga inmediata del estado del reto — evita el flash de "no completado"
-Future<void> _loadChallengeState() async {
-  try {
-    final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
-    final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now();
-    final todayStr =
-        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    final done = prefs.getBool('challenge_done_${uid}_$todayStr') ?? false;
-    final crisisDismissed =
-        prefs.getBool('crisis_card_dismissed_${uid}_$todayStr') ?? false;
-    if (mounted) {
-      setState(() {
-        _challengeCompletedToday = done;
-        _crisisCardDismissedToday = crisisDismissed;
-      });
+  /// Lo que vive solo en el teléfono y se lee al instante: si Lumi ya se
+  /// presentó y si hoy se ocultó la tarjeta de ayuda. Va aparte de [_loadData]
+  /// —y antes que él— para que Lumi salude de inmediato en vez de esperar a
+  /// que terminen las consultas a Firestore.
+  Future<void> _loadLocalDayState() async {
+    try {
+      final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
+      final prefs = await SharedPreferences.getInstance();
+      final todayStr = WeeklySummary.dayKey(DateTime.now());
+      final introSeen = prefs.getBool('lumi_intro_seen_$uid') ?? false;
+      final crisisDismissed =
+          prefs.getBool('crisis_card_dismissed_${uid}_$todayStr') ?? false;
+      if (mounted) {
+        setState(() {
+          _lumiIntroSeen = introSeen;
+          _lumiReady = true;
+          _crisisCardDismissedToday = crisisDismissed;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading local day state: $e');
+      if (mounted) setState(() => _lumiReady = true);
     }
-  } catch (e) {
-    debugPrint('Error loading challenge state: $e');
   }
-}
 
   Future<void> _loadData() async {
     if (!mounted) return;
+    _lastLoad = DateTime.now();
+    final auth = context.read<AuthProvider>();
+    final locale = context.locale.languageCode;
+    final uid = auth.firebaseUser?.uid;
+
+    // Todas las consultas arrancan a la vez. Antes iban encadenadas con await,
+    // así que el home tardaba la **suma** de una decena de viajes a Firestore
+    // y Lumi no hablaba hasta que terminaba la última.
+    final moodsF = auth.getWeeklyMoods();
+    final todayMoodF = auth.getTodayMood();
+    final diaryF = auth.hasDiaryEntryToday();
+    final routesF = RoutesService().getRoutes(locale);
+    final completedF = auth.getCompletedLessons();
+    final hasLessonF = auth.hasCompletedLessonToday();
+    final reviewF = auth.loadReviewState();
+    final habitsF = auth.getHabits();
+    final commitmentF =
+        uid == null ? null : CommitmentService.instance.pendingToAsk(uid);
 
     try {
       final quote = QuoteService.getQuoteOfTheDay();
@@ -191,32 +256,28 @@ Future<void> _loadChallengeState() async {
 
     if (!mounted) return;
     try {
-      final auth = context.read<AuthProvider>();
-      final moods = await auth.getWeeklyMoods();
+      final moods = await moodsF;
       if (!mounted) return;
       setState(() => _weeklyMoods = moods);
     } catch (e) { debugPrint('Error loading weekly moods: $e'); }
 
     if (!mounted) return;
     try {
-      final auth = context.read<AuthProvider>();
-      final todayMood = await auth.getTodayMood();
+      final todayMood = await todayMoodF;
       if (!mounted) return;
       if (todayMood != null) setState(() => _selectedMood = todayMood);
     } catch (e) { debugPrint('Error loading today mood: $e'); }
 
     if (!mounted) return;
     try {
-      final auth = context.read<AuthProvider>();
-      final hasDiary = await auth.hasDiaryEntryToday();
+      final hasDiary = await diaryF;
       if (!mounted) return;
       setState(() => _hasDiaryToday = hasDiary);
     } catch (e) { debugPrint('Error checking diary: $e'); }
 
     if (!mounted) return;
     try {
-      final locale = context.locale.languageCode;
-      final routes = await RoutesService().getRoutes(locale);
+      final routes = await routesF;
       if (!mounted) return;
       setState(() => _dynamicRoutes = routes);
     } catch (e) {
@@ -226,17 +287,23 @@ Future<void> _loadChallengeState() async {
 
     if (!mounted) return;
     try {
-      final auth = context.read<AuthProvider>();
-      final completed = await auth.getCompletedLessons();
+      final completed = await completedF;
+      final hasLesson = await hasLessonF;
       if (!mounted) return;
-      final hasLesson = await auth.hasCompletedLessonToday();
-      if (!mounted) return;
-      setState(() { _completedLessons = completed; _hasLessonToday = hasLesson; });
+      setState(() {
+        _completedLessons = completed;
+        _hasLessonToday = hasLesson;
+        // El reto del día se lee de Firestore, no de una preferencia local:
+        // así no se "reinicia" al reinstalar ni al entrar con otra sesión, y
+        // no se puede volver a cobrar su recompensa.
+        _challengeCompletedToday =
+            completed.contains('challenge_${WeeklySummary.dayKey(DateTime.now())}');
+      });
     } catch (e) { debugPrint('Error loading completed lessons: $e'); }
 
     if (!mounted) return;
     try {
-      final review = await context.read<AuthProvider>().loadReviewState();
+      final review = await reviewF;
       if (mounted) {
         setState(() {
           _reviewMissed = review.missed;
@@ -247,11 +314,8 @@ Future<void> _loadChallengeState() async {
 
     if (!mounted) return;
     try {
-      final uid = context.read<AuthProvider>().firebaseUser?.uid;
-      if (uid != null) {
-        final pending = await CommitmentService.instance.pendingToAsk(uid);
-        if (mounted) setState(() => _pendingCommitment = pending);
-      }
+      final pending = commitmentF == null ? null : await commitmentF;
+      if (mounted) setState(() => _pendingCommitment = pending);
     } catch (e) { debugPrint('Error loading commitment: $e'); }
 
     if (!mounted) return;
@@ -259,10 +323,8 @@ Future<void> _loadChallengeState() async {
 
     if (!mounted) return;
     try {
-      final auth = context.read<AuthProvider>();
-      final uid = auth.firebaseUser?.uid;
       if (uid != null) {
-        final habits = await auth.getHabits();
+        final habits = await habitsF;
         if (!mounted) return;
         final missions = await MissionService.instance.load(
           uid: uid,
@@ -272,18 +334,6 @@ Future<void> _loadChallengeState() async {
         if (mounted) setState(() { _missions = missions; _hasHabits = habits.isNotEmpty; });
       }
     } catch (e) { debugPrint('Error loading missions: $e'); }
-
-    if (!mounted) return;
-    try {
-      final uid = context.read<AuthProvider>().firebaseUser?.uid ?? '';
-      final prefs = await SharedPreferences.getInstance();
-      final seen = prefs.getBool('lumi_intro_seen_$uid') ?? false;
-      if (mounted) setState(() { _lumiIntroSeen = seen; _lumiReady = true; });
-    } catch (e) {
-      if (mounted) setState(() => _lumiReady = true);
-    }
-
-  
   }
 
   /// Programa (o cancela) los recordatorios diarios en función del estado actual.
@@ -628,19 +678,20 @@ Future<void> _scheduleDailyReminders() async {
   // ── Reto diario ────────────────────────────────────────────────────────────
 
   Future<void> _completeChallenge(DailyChallenge challenge) async {
-    // ChallengeAction ya da la recompensa del jardín: aquí solo XP y estado.
+    // `ChallengeAction.execute` da las semillas, y eso no lo frena
+    // `completeLesson`: sin esta guarda, volver a hacer el reto del día lo
+    // pagaba otra vez.
+    if (_challengeCompletedToday) return;
     final completed = await ChallengeAction.execute(context, challenge);
     if (!completed || !mounted) return;
     setState(() => _challengeCompletedToday = true);
     final auth = context.read<AuthProvider>();
     final garden = context.read<GardenProvider>();
     try {
-      final uid = auth.firebaseUser?.uid ?? '';
       final today = WeeklySummary.dayKey(DateTime.now());
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('challenge_done_${uid}_$today', true);
       // El id incluye el año: antes `challenge_<día>_<mes>` chocaba con el
-      // mismo día del año siguiente y ya no daba XP.
+      // mismo día del año siguiente y ya no daba XP. Este doc es además la
+      // única fuente de "ya lo hice hoy" (ver _loadData).
       await auth.completeLesson('challenge_$today', challenge.xpReward, garden: garden);
     } catch (e) {
       debugPrint('Error awarding challenge XP: $e');
@@ -863,11 +914,15 @@ Future<void> _scheduleDailyReminders() async {
     final activeMultiplier = gardenProvider.activeMultiplier;
     final hasDeck = _reviewDeck.isNotEmpty;
 
-    // Entrada escalonada de cada bloque
-    Widget enter(Widget child, int order) => child
-        .animate()
-        .fadeIn(delay: (120 + order * 60).ms, duration: 420.ms)
-        .slideY(begin: 0.06, end: 0, curve: Curves.easeOutCubic);
+    // Entrada escalonada de cada bloque. Va en su propia capa: las tarjetas
+    // del home viven todas dentro de una sola Column, así que sin esto un
+    // emoji flotando en una obliga a repintar las demás en cada cuadro.
+    Widget enter(Widget child, int order) => RepaintBoundary(
+          child: child
+              .animate()
+              .fadeIn(delay: (120 + order * 60).ms, duration: 420.ms)
+              .slideY(begin: 0.06, end: 0, curve: Curves.easeOutCubic),
+        );
 
     return Scaffold(
       body: Stack(
@@ -885,225 +940,229 @@ Future<void> _scheduleDailyReminders() async {
           ),
           const AnimatedParticlesBackground(particleCount: 14, maxShootingStars: 0),
           SafeArea(
-            child: RefreshIndicator(
-              onRefresh: _loadData,
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 10, 16, 36),
-                children: [
-                  HomeHeader(
-                    name: name,
-                    greeting: _getGreeting(),
-                    avatarColors: avatarColors,
-                    level: level,
-                    levelProgress: xpForNext == 0 ? 0 : xpInLevel / xpForNext,
-                    streak: streak,
-                    gardenBadge: gardenBadge,
-                    isDark: isDark,
-                    onGarden: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GardenScreen())),
-                    onToggleTheme: themeProvider.toggleTheme,
-                  ),
-                  const SizedBox(height: 14),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (activeMultiplier != null) ...[
-                          _buildMultiplierBanner(activeMultiplier.multiplier, activeMultiplier.timeRemaining, isDark),
-                          const SizedBox(height: 12),
-                        ],
-                        if (gardenProvider.canUseShield) ...[
-                          _buildShieldBanner(gardenProvider.streakShields, isDark),
-                          const SizedBox(height: 12),
-                        ],
-
-                        // ── Lumi en su cielo + progreso de hoy ─────────────────
-                        HomeHero(
-                          line: _lumiReady ? _lumiLine(authProvider) : null,
-                          isDark: isDark,
-                          onIntroSeen: _markLumiIntroSeen,
-                          checkInDone: _selectedMood != null,
-                          lessonDone: _hasLessonToday,
-                          diaryDone: _hasDiaryToday,
-                          hour: DateTime.now().hour,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ── Avisos del día (solo si aplican) ───────────────────
-                        if (_pendingCommitment != null) ...[
-                          enter(
-                            CommitmentCheckCard(
-                              key: ValueKey(_pendingCommitment!.id),
-                              commitment: _pendingCommitment!,
-                              isDark: isDark,
-                              onAnswer: _answerCommitment,
-                              onRetry: _retryCommitment,
-                              onClose: () => setState(() => _pendingCommitment = null),
-                            ),
-                            1,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        if (_showWeeklySummaryCard) ...[
-                          enter(
-                            WeeklySummaryCard(isDark: isDark, onOpen: _openWeeklySummary, onDismiss: _markWeeklySummarySeen),
-                            1,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        if (_shouldOfferCrisisSupport) ...[
-                          CrisisSupportCard(isDark: isDark, onDismiss: _dismissCrisisCard),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // ── Ánimo ──────────────────────────────────────────────
-                        enter(
-                          MoodCheckInCard(
-                            selected: _selectedMood,
-                            weeklyMoods: _weeklyMoods,
-                            isDark: isDark,
-                            onSelect: _onMoodSelected,
-                          ),
-                          2,
-                        ),
-                        const SizedBox(height: 26),
-
-                        // ── Plan de hoy ────────────────────────────────────────
-                        enter(HomeSectionTitle(kicker: 'home.planKicker'.tr(), title: 'home.todayTraining'.tr(), isDark: isDark), 3),
-                        const SizedBox(height: 12),
-                        enter(
-                          TodayLessonCard(
-                            routeEmoji: suggested?.route.emoji,
-                            routeTitle: suggested?.route.title,
-                            lessonTitle: suggested?.nextLesson?.title,
-                            color: suggested?.route.color ?? const Color(0xFF10B981),
-                            colorDark: suggested?.route.colorDark ?? const Color(0xFF059669),
-                            doneToday: _hasLessonToday,
-                            allComplete: suggested == null,
-                            onTap: suggested == null ? null : _openNextLesson,
-                          ),
-                          4,
-                        ),
-                        const SizedBox(height: 12),
-                        enter(
-                          Row(
-                            children: [
-                              Expanded(
-                                child: QuickActionTile(
-                                  emoji: '🃏',
-                                  title: _reviewDoneToday ? 'review.doneTitle'.tr() : 'review.title'.tr(),
-                                  subtitle: !hasDeck
-                                      ? 'review.lockedSubtitle'.tr()
-                                      : _reviewDoneToday
-                                          ? 'review.doneSubtitle'.tr()
-                                          : 'review.homeSubtitle'.tr(),
-                                  color: const Color(0xFFF59E0B),
-                                  state: !hasDeck
-                                      ? QuickTileState.locked
-                                      : _reviewDoneToday
-                                          ? QuickTileState.done
-                                          : QuickTileState.normal,
-                                  isDark: isDark,
-                                  onTap: _openReview,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: QuickActionTile(
-                                  emoji: '🌬️',
-                                  title: 'home.breathingTitle'.tr(),
-                                  subtitle: 'home.breathingSubtitle'.tr(),
-                                  color: AppColors.moodCalm,
-                                  isDark: isDark,
-                                  // La recompensa la da BreathingScreen al completar la sesión
-                                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BreathingScreen())),
-                                ),
-                              ),
-                            ],
-                          ),
-                          5,
-                        ),
-                        const SizedBox(height: 12),
-                        enter(
-                          Row(
-                            children: [
-                              Expanded(
-                                child: QuickActionTile(
-                                  emoji: '📝',
-                                  title: 'home.quickDiary'.tr(),
-                                  subtitle: _hasDiaryToday ? 'home.diaryDoneSubtitle'.tr() : 'home.quickDiarySubtitle'.tr(),
-                                  color: const Color(0xFF10B981),
-                                  state: _hasDiaryToday ? QuickTileState.done : QuickTileState.normal,
-                                  isDark: isDark,
-                                  onTap: _openQuickDiary,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: QuickActionTile(
-                                  emoji: '🎯',
-                                  title: 'home.habitsShort'.tr(),
-                                  subtitle: 'home.habitsRemindersSubtitle'.tr(),
-                                  color: const Color(0xFF8B5CF6),
-                                  isDark: isDark,
-                                  onTap: () async {
-                                    await Navigator.push(context, MaterialPageRoute(builder: (_) => const RemindersScreen()));
-                                    if (mounted) _loadData();
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          6,
-                        ),
-                        const SizedBox(height: 16),
-                        enter(
-                          DailyChallengeCard(
-                            challenge: challenge,
-                            title: _challengeTitle(challenge),
-                            description: _challengeDescription(challenge),
-                            category: _challengeCategory(challenge),
-                            done: _challengeCompletedToday,
-                            isDark: isDark,
-                            onTap: () => _completeChallenge(challenge),
-                          ),
-                          7,
-                        ),
-
-                        // ── Misiones ───────────────────────────────────────────
-                        if (_missions != null) ...[
-                          const SizedBox(height: 16),
-                          enter(MissionsHomeCard(state: _missions!, isDark: isDark, onTap: _openMissions), 8),
-                        ],
-                        const SizedBox(height: 26),
-
-                        // ── Tu progreso ────────────────────────────────────────
-                        enter(HomeSectionTitle(kicker: 'home.progressKicker'.tr(), title: 'home.yourSummary'.tr(), isDark: isDark), 9),
-                        const SizedBox(height: 12),
-                        enter(
-                          HomeProgressCard(
-                            streak: streak,
-                            bestStreak: progress?.longestStreak ?? 0,
-                            level: level,
-                            levelTitle: levelTitle,
-                            xpInLevel: xpInLevel,
-                            xpForNext: xpForNext,
-                            totalXp: totalXp,
-                            levelColors: avatarColors,
-                            isDark: isDark,
-                          ),
-                          10,
-                        ),
-                        const SizedBox(height: 26),
-
-                        // ── Frase del día ──────────────────────────────────────
-                        if (_quote != null)
-                          enter(QuoteNote(text: _quoteText(_quote!), author: _quoteAuthor(_quote!), isDark: isDark), 11),
-                      ],
+            child: EntranceScope(
+              child: RefreshIndicator(
+                onRefresh: _loadData,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 16, 36),
+                  children: [
+                    HomeHeader(
+                      name: name,
+                      greeting: _getGreeting(),
+                      avatarColors: avatarColors,
+                      level: level,
+                      levelProgress: xpForNext == 0 ? 0 : xpInLevel / xpForNext,
+                      streak: streak,
+                      gardenBadge: gardenBadge,
+                      isDark: isDark,
+                      onGarden: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GardenScreen())),
+                      onToggleTheme: themeProvider.toggleTheme,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 14),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (activeMultiplier != null) ...[
+                            _buildMultiplierBanner(activeMultiplier.multiplier, activeMultiplier.timeRemaining, isDark),
+                            const SizedBox(height: 12),
+                          ],
+                          if (gardenProvider.canUseShield) ...[
+                            _buildShieldBanner(gardenProvider.streakShields, isDark),
+                            const SizedBox(height: 12),
+                          ],
+
+                          // ── Lumi en su cielo + progreso de hoy ─────────────────
+                          RepaintBoundary(
+                            child: HomeHero(
+                              line: _lumiReady ? _lumiLine(authProvider) : null,
+                              isDark: isDark,
+                              onIntroSeen: _markLumiIntroSeen,
+                              checkInDone: _selectedMood != null,
+                              lessonDone: _hasLessonToday,
+                              diaryDone: _hasDiaryToday,
+                              hour: DateTime.now().hour,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── Avisos del día (solo si aplican) ───────────────────
+                          if (_pendingCommitment != null) ...[
+                            enter(
+                              CommitmentCheckCard(
+                                key: ValueKey(_pendingCommitment!.id),
+                                commitment: _pendingCommitment!,
+                                isDark: isDark,
+                                onAnswer: _answerCommitment,
+                                onRetry: _retryCommitment,
+                                onClose: () => setState(() => _pendingCommitment = null),
+                              ),
+                              1,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (_showWeeklySummaryCard) ...[
+                            enter(
+                              WeeklySummaryCard(isDark: isDark, onOpen: _openWeeklySummary, onDismiss: _markWeeklySummarySeen),
+                              1,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          if (_shouldOfferCrisisSupport) ...[
+                            CrisisSupportCard(isDark: isDark, onDismiss: _dismissCrisisCard),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // ── Ánimo ──────────────────────────────────────────────
+                          enter(
+                            MoodCheckInCard(
+                              selected: _selectedMood,
+                              weeklyMoods: _weeklyMoods,
+                              isDark: isDark,
+                              onSelect: _onMoodSelected,
+                            ),
+                            2,
+                          ),
+                          const SizedBox(height: 26),
+
+                          // ── Plan de hoy ────────────────────────────────────────
+                          enter(HomeSectionTitle(kicker: 'home.planKicker'.tr(), title: 'home.todayTraining'.tr(), isDark: isDark), 3),
+                          const SizedBox(height: 12),
+                          enter(
+                            TodayLessonCard(
+                              routeEmoji: suggested?.route.emoji,
+                              routeTitle: suggested?.route.title,
+                              lessonTitle: suggested?.nextLesson?.title,
+                              color: suggested?.route.color ?? const Color(0xFF10B981),
+                              colorDark: suggested?.route.colorDark ?? const Color(0xFF059669),
+                              doneToday: _hasLessonToday,
+                              allComplete: suggested == null,
+                              onTap: suggested == null ? null : _openNextLesson,
+                            ),
+                            4,
+                          ),
+                          const SizedBox(height: 12),
+                          enter(
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: QuickActionTile(
+                                    emoji: '🃏',
+                                    title: _reviewDoneToday ? 'review.doneTitle'.tr() : 'review.title'.tr(),
+                                    subtitle: !hasDeck
+                                        ? 'review.lockedSubtitle'.tr()
+                                        : _reviewDoneToday
+                                            ? 'review.doneSubtitle'.tr()
+                                            : 'review.homeSubtitle'.tr(),
+                                    color: const Color(0xFFF59E0B),
+                                    state: !hasDeck
+                                        ? QuickTileState.locked
+                                        : _reviewDoneToday
+                                            ? QuickTileState.done
+                                            : QuickTileState.normal,
+                                    isDark: isDark,
+                                    onTap: _openReview,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: QuickActionTile(
+                                    emoji: '🌬️',
+                                    title: 'home.breathingTitle'.tr(),
+                                    subtitle: 'home.breathingSubtitle'.tr(),
+                                    color: AppColors.moodCalm,
+                                    isDark: isDark,
+                                    // La recompensa la da BreathingScreen al completar la sesión
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BreathingScreen())),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            5,
+                          ),
+                          const SizedBox(height: 12),
+                          enter(
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: QuickActionTile(
+                                    emoji: '📝',
+                                    title: 'home.quickDiary'.tr(),
+                                    subtitle: _hasDiaryToday ? 'home.diaryDoneSubtitle'.tr() : 'home.quickDiarySubtitle'.tr(),
+                                    color: const Color(0xFF10B981),
+                                    state: _hasDiaryToday ? QuickTileState.done : QuickTileState.normal,
+                                    isDark: isDark,
+                                    onTap: _openQuickDiary,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: QuickActionTile(
+                                    emoji: '🎯',
+                                    title: 'home.habitsShort'.tr(),
+                                    subtitle: 'home.habitsRemindersSubtitle'.tr(),
+                                    color: const Color(0xFF8B5CF6),
+                                    isDark: isDark,
+                                    onTap: () async {
+                                      await Navigator.push(context, MaterialPageRoute(builder: (_) => const RemindersScreen()));
+                                      if (mounted) _loadData();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            6,
+                          ),
+                          const SizedBox(height: 16),
+                          enter(
+                            DailyChallengeCard(
+                              challenge: challenge,
+                              title: _challengeTitle(challenge),
+                              description: _challengeDescription(challenge),
+                              category: _challengeCategory(challenge),
+                              done: _challengeCompletedToday,
+                              isDark: isDark,
+                              onTap: () => _completeChallenge(challenge),
+                            ),
+                            7,
+                          ),
+
+                          // ── Misiones ───────────────────────────────────────────
+                          if (_missions != null) ...[
+                            const SizedBox(height: 16),
+                            enter(MissionsHomeCard(state: _missions!, isDark: isDark, onTap: _openMissions), 8),
+                          ],
+                          const SizedBox(height: 26),
+
+                          // ── Tu progreso ────────────────────────────────────────
+                          enter(HomeSectionTitle(kicker: 'home.progressKicker'.tr(), title: 'home.yourSummary'.tr(), isDark: isDark), 9),
+                          const SizedBox(height: 12),
+                          enter(
+                            HomeProgressCard(
+                              streak: streak,
+                              bestStreak: progress?.longestStreak ?? 0,
+                              level: level,
+                              levelTitle: levelTitle,
+                              xpInLevel: xpInLevel,
+                              xpForNext: xpForNext,
+                              totalXp: totalXp,
+                              levelColors: avatarColors,
+                              isDark: isDark,
+                            ),
+                            10,
+                          ),
+                          const SizedBox(height: 26),
+
+                          // ── Frase del día ──────────────────────────────────────
+                          if (_quote != null)
+                            enter(QuoteNote(text: _quoteText(_quote!), author: _quoteAuthor(_quote!), isDark: isDark), 11),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

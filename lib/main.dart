@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -39,11 +41,18 @@ void main() async {
       return true;
     };
   }
-  await AnalyticsService.instance.initialize();
-
-   await NotificationService.instance.initialize();
-  await SoundService.instance.initialize();
+  // "Reducir animaciones" sí se espera: decide cómo se dibuja la primera
+  // pantalla.
   await MotionService.instance.initialize();
+
+  // Lo demás arranca en paralelo y no retrasa la primera pantalla. Importa
+  // porque la app arranca de cero cada vez que Android la descarga de memoria.
+  // NotificationService.initialize() es idempotente y todo lo que programa un
+  // aviso la espera, así que no hay carrera.
+  unawaited(AnalyticsService.instance.initialize());
+  unawaited(NotificationService.instance.initialize());
+  unawaited(SoundService.instance.initialize());
+
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('es'), Locale('en')],

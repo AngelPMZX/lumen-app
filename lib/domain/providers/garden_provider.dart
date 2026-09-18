@@ -1,3 +1,4 @@
+import '../../core/utils/firestore_access.dart';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -116,7 +117,7 @@ class GardenProvider extends ChangeNotifier {
       notifyListeners();
 
       _loadedUid = _user!.uid;
-      final doc = await _gardenDoc!.get();
+      final doc = await _gardenDoc!.getFast();
       if (doc.exists) {
         _state = GardenState.fromMap(doc.data() as Map<String, dynamic>);
       } else {
@@ -141,7 +142,7 @@ class GardenProvider extends ChangeNotifier {
     _activeMultiplier = null;
     try {
       if (_mechanicsDoc != null) {
-        final doc = await _mechanicsDoc!.get();
+        final doc = await _mechanicsDoc!.getFast();
         if (doc.exists) {
           final data = doc.data() as Map<String, dynamic>;
           _streakShields = (data['streakShields'] as int? ?? 0).clamp(0, 3);
@@ -587,7 +588,7 @@ class GardenProvider extends ChangeNotifier {
   Future<void> savePlacedDecorations(List<Map<String, dynamic>> decos) async {
     if (_decoDoc == null) return;
     try {
-      await _decoDoc!.set({'items': decos});
+      await queueWrite(_decoDoc!.set({'items': decos}), 'decoraciones');
     } catch (e) {
       debugPrint('Error saving decorations: $e');
     }
@@ -596,7 +597,7 @@ class GardenProvider extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> loadPlacedDecorations() async {
     if (_decoDoc == null) return [];
     try {
-      final doc = await _decoDoc!.get();
+      final doc = await _decoDoc!.getFast();
       if (!doc.exists) return [];
       final data = doc.data() as Map<String, dynamic>?;
       final items = data?['items'] as List<dynamic>? ?? [];
@@ -647,7 +648,7 @@ class GardenProvider extends ChangeNotifier {
       return;
     }
     try {
-      await _gardenDoc!.set(_state.toMap());
+      await queueWrite(_gardenDoc!.set(_state.toMap()), 'jardín');
     } catch (e) {
       debugPrint('Error saving garden to Firestore: $e');
     }
@@ -660,12 +661,15 @@ class GardenProvider extends ChangeNotifier {
       return;
     }
     try {
-      await _mechanicsDoc!.set({
-        'streakShields': _streakShields,
-        'lastStreakBeforeBreak': _lastStreakBeforeBreak,
-        'streakBreakDate': _streakBreakDate,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await queueWrite(
+        _mechanicsDoc!.set({
+          'streakShields': _streakShields,
+          'lastStreakBeforeBreak': _lastStreakBeforeBreak,
+          'streakBreakDate': _streakBreakDate,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }),
+        'mecánicas del jardín',
+      );
     } catch (e) {
       debugPrint('Error saving mechanics: $e');
     }

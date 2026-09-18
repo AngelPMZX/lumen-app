@@ -1,3 +1,4 @@
+import '../../core/utils/firestore_access.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../data/models/weekly_missions.dart';
@@ -46,7 +47,7 @@ class MissionService {
     var chestClaimed = false;
 
     try {
-      final data = (await _doc(uid).get()).data();
+      final data = (await _doc(uid).getFast()).data();
       if (data != null && data['weekKey'] == weekKey) {
         types = [
           for (final name in List<String>.from(data['types'] ?? const []))
@@ -132,7 +133,7 @@ class MissionService {
 
     Future<List<Map<String, dynamic>>> query(String collection, String field) async {
       try {
-        final snap = await user.collection(collection).where(field, isGreaterThanOrEqualTo: since).get();
+        final snap = await user.collection(collection).where(field, isGreaterThanOrEqualTo: since).getFast();
         return snap.docs.map((d) => {...d.data(), '_id': d.id}).toList();
       } catch (e) {
         debugPrint('Missions: error loading $collection: $e');
