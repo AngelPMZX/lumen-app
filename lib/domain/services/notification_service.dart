@@ -69,6 +69,21 @@ class NotificationService {
     debugPrint('✅ NotificationService initialized');
   }
 
+  /// Ninguna notificación vale una app caída.
+  ///
+  /// Estas llamadas fallan por cosas ajenas al código —permisos revocados, el
+  /// fabricante bloqueando alarmas, o R8 dejando a Gson sin firmas genéricas
+  /// en release—. Se registra y se sigue: los avisos son un extra, y muchas
+  /// salen solas al abrir la app o al volver a ella, donde una excepción sin
+  /// atrapar mata el proceso.
+  Future<void> _safe(String what, Future<void> Function() op) async {
+    try {
+      await op();
+    } catch (e) {
+      debugPrint('⚠️ Notificaciones ($what): $e');
+    }
+  }
+
   void _onNotificationTap(NotificationResponse response) {
     debugPrint('Notification tapped: ${response.payload}');
   }
@@ -153,13 +168,14 @@ class NotificationService {
   Future<void> cancelReminder(String reminderId) async {
     await initialize();
     for (int day = 0; day <= 7; day++) {
-      await _plugin.cancel(_idFromReminderId(reminderId, day));
+      await _safe('cancelar recordatorio',
+        () => _plugin.cancel(_idFromReminderId(reminderId, day)));
     }
   }
 
   Future<void> cancelAllReminders() async {
     await initialize();
-    await _plugin.cancelAll();
+    await _safe('cancelar todo', () => _plugin.cancelAll());
   }
 
   // ── Una sola vez ──────────────────────────────────────────────────────────
@@ -186,17 +202,17 @@ class NotificationService {
 
     debugPrint('📅 Scheduling ONE-OFF for: $scheduledDate (now: $now)');
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledDate,
-      _notificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
-    );
+    await _safe('programar', () => _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduledDate,
+        _notificationDetails(),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      ));
   }
 
   // ── Semanal ───────────────────────────────────────────────────────────────
@@ -226,18 +242,18 @@ class NotificationService {
 
     debugPrint('📅 Scheduling WEEKLY (day $weekday) for: $scheduledDate (now: $now)');
 
-    await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      scheduledDate,
-      _notificationDetails(),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      payload: payload,
-    );
+    await _safe('programar', () => _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduledDate,
+        _notificationDetails(),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        payload: payload,
+      ));
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -250,16 +266,16 @@ class NotificationService {
         'Tienes plantas listas para cosechar. Entra y recoge tus recompensas.',
   }) async {
     await initialize();
-    await _plugin.show(
-      _harvestNotificationId,
-      title,
-      body,
-      _notificationDetails(
-        channelId: 'garden_harvest',
-        channelName: 'Cosecha del jardín',
-      ),
-      payload: 'garden:harvest',
-    );
+    await _safe('mostrar', () => _plugin.show(
+        _harvestNotificationId,
+        title,
+        body,
+        _notificationDetails(
+          channelId: 'garden_harvest',
+          channelName: 'Cosecha del jardín',
+        ),
+        payload: 'garden:harvest',
+      ));
   }
 
   Future<void> scheduleHarvestReminder({
@@ -282,26 +298,26 @@ class NotificationService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    await _plugin.zonedSchedule(
-      _harvestNotificationId,
-      title,
-      body,
-      scheduledDate,
-      _notificationDetails(
-        channelId: 'garden_harvest',
-        channelName: 'Cosecha del jardín',
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: 'garden:harvest',
-    );
+    await _safe('programar', () => _plugin.zonedSchedule(
+        _harvestNotificationId,
+        title,
+        body,
+        scheduledDate,
+        _notificationDetails(
+          channelId: 'garden_harvest',
+          channelName: 'Cosecha del jardín',
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: 'garden:harvest',
+      ));
   }
 
   Future<void> cancelHarvestReminder() async {
     await initialize();
-    await _plugin.cancel(_harvestNotificationId);
+    await _safe('cosecha', () => _plugin.cancel(_harvestNotificationId));
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -328,26 +344,26 @@ class NotificationService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    await _plugin.zonedSchedule(
-      _streakNotificationId,
-      title,
-      body,
-      scheduledDate,
-      _notificationDetails(
-        channelId: 'streak_reminder',
-        channelName: 'Racha diaria',
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: 'streak:reminder',
-    );
+    await _safe('programar', () => _plugin.zonedSchedule(
+        _streakNotificationId,
+        title,
+        body,
+        scheduledDate,
+        _notificationDetails(
+          channelId: 'streak_reminder',
+          channelName: 'Racha diaria',
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: 'streak:reminder',
+      ));
   }
 
   Future<void> cancelStreakReminder() async {
     await initialize();
-    await _plugin.cancel(_streakNotificationId);
+    await _safe('racha', () => _plugin.cancel(_streakNotificationId));
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -371,20 +387,20 @@ class NotificationService {
       hour, minute,
     );
 
-    await _plugin.zonedSchedule(
-      _commitmentNotificationId,
-      title,
-      body,
-      scheduledDate,
-      _notificationDetails(
-        channelId: 'lesson_commitment',
-        channelName: 'Retos de lecciones',
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: 'commitment:check',
-    );
+    await _safe('programar', () => _plugin.zonedSchedule(
+        _commitmentNotificationId,
+        title,
+        body,
+        scheduledDate,
+        _notificationDetails(
+          channelId: 'lesson_commitment',
+          channelName: 'Retos de lecciones',
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'commitment:check',
+      ));
   }
 
   /// Cada domingo a las 19:00: "tu resumen semanal está listo". Idempotente:
@@ -402,26 +418,26 @@ class NotificationService {
           tz.local, scheduled.year, scheduled.month, scheduled.day + 1, 19);
     }
 
-    await _plugin.zonedSchedule(
-      _weeklySummaryNotificationId,
-      title,
-      body,
-      scheduled,
-      _notificationDetails(
-        channelId: 'weekly_summary',
-        channelName: 'Resumen semanal',
-      ),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-      payload: 'summary:weekly',
-    );
+    await _safe('programar', () => _plugin.zonedSchedule(
+        _weeklySummaryNotificationId,
+        title,
+        body,
+        scheduled,
+        _notificationDetails(
+          channelId: 'weekly_summary',
+          channelName: 'Resumen semanal',
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        payload: 'summary:weekly',
+      ));
   }
 
   Future<void> cancelCommitmentReminder() async {
     await initialize();
-    await _plugin.cancel(_commitmentNotificationId);
+    await _safe('reto', () => _plugin.cancel(_commitmentNotificationId));
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -447,16 +463,16 @@ class NotificationService {
     ]) {
       final when = WinBack.dateFor(now, days);
       try {
-        await _plugin.zonedSchedule(
-          id,
-          title,
-          body,
-          tz.TZDateTime(tz.local, when.year, when.month, when.day, when.hour),
-          _notificationDetails(importance: Importance.defaultImportance),
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-          payload: 'win_back',
-        );
+        await _safe('programar', () => _plugin.zonedSchedule(
+            id,
+            title,
+            body,
+            tz.TZDateTime(tz.local, when.year, when.month, when.day, when.hour),
+            _notificationDetails(importance: Importance.defaultImportance),
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+            payload: 'win_back',
+          ));
       } catch (e) {
         debugPrint('Win-back schedule error: $e');
       }
@@ -465,8 +481,10 @@ class NotificationService {
 
   Future<void> cancelWinBackReminders() async {
     await initialize();
-    await _plugin.cancel(_winBackFirstId);
-    await _plugin.cancel(_winBackSecondId);
+    await _safe('volver a Lumen', () async {
+      await _plugin.cancel(_winBackFirstId);
+      await _plugin.cancel(_winBackSecondId);
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -475,13 +493,13 @@ class NotificationService {
 
   Future<void> showTestNotification() async {
     await initialize();
-    await _plugin.show(
-      9999,
-      '🧪 Prueba de notificación',
-      'Si ves esto, las notificaciones funcionan correctamente en tu dispositivo.',
-      _notificationDetails(),
-      payload: 'test',
-    );
+    await _safe('mostrar', () => _plugin.show(
+        9999,
+        '🧪 Prueba de notificación',
+        'Si ves esto, las notificaciones funcionan correctamente en tu dispositivo.',
+        _notificationDetails(),
+        payload: 'test',
+      ));
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

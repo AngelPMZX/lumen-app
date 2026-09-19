@@ -66,6 +66,15 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // R8 estaba activo igualmente (los reportes de Crashlytics venían
+            // con nombres ofuscados), pero sin reglas propias: borraba las
+            // firmas genéricas que Gson necesita y la app moría al abrirla.
+            // Ver `proguard-rules.pro`.
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

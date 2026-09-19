@@ -195,43 +195,48 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
     setState(() => _isSaving = true);
     HapticFeedback.mediumImpact();
 
+    final auth = context.read<AuthProvider>();
+    final gratitude = _gratitudeController.text.trim();
+    final entry = DiaryEntry(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      mood: _mood!,
+      text: _textController.text.trim(),
+      gratitude: _showGratitude && gratitude.isNotEmpty ? gratitude : null,
+      prompt: _showGratitude && gratitude.isNotEmpty ? _gratitudePromptKey.tr() : null,
+    );
+
+    // Guardar ya no espera a nadie: Firestore escribe en disco al instante y
+    // sincroniza solo (ver `queueWrite`). Esta pantalla **no puede** quedarse
+    // colgada esperando, así que se lanza y se sigue.
+    _saved = true;
+    unawaited(_persist(auth, entry));
+
+    AnalyticsService.instance.diaryEntrySaved();
+    SoundService.instance.play(Sfx.journalSaved, volume: 0.7);
+    HapticFeedback.heavyImpact();
+    if (!mounted) return;
+
+    // Y por si acaso: el aviso se cierra solo, pero nunca puede retener la
+    // pantalla más de esto.
+    await _SavedOverlay.show(
+      context,
+      mood: _mood!,
+      withGratitude: entry.gratitude != null,
+    ).timeout(const Duration(seconds: 4), onTimeout: () {});
+    if (mounted) Navigator.pop(context, true);
+  }
+
+  /// Guarda de verdad, ya con la pantalla cerrándose.
+  ///
+  /// Si algo fallara, el borrador **no** se borra: la página sigue en el
+  /// teléfono y aparece al volver a escribir.
+  Future<void> _persist(AuthProvider auth, DiaryEntry entry) async {
     try {
-      final auth = context.read<AuthProvider>();
-      final gratitude = _gratitudeController.text.trim();
-      final entry = DiaryEntry(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        mood: _mood!,
-        text: _textController.text.trim(),
-        gratitude: _showGratitude && gratitude.isNotEmpty ? gratitude : null,
-        prompt: _showGratitude && gratitude.isNotEmpty ? _gratitudePromptKey.tr() : null,
-      );
-      // Red de seguridad: guardar no toca la red (ver AuthProvider._write),
-      // pero pase lo que pase el usuario no se queda mirando el spinner.
-      // Su página ya está en el teléfono y se sincroniza sola.
-      await auth.saveDiaryEntry(entry).timeout(
-            const Duration(seconds: 5),
-            onTimeout: () => debugPrint('⏳ El diario sigue guardando en segundo plano'),
-          );
-      _saved = true;
+      await auth.saveDiaryEntry(entry);
       final uid = _uid;
       if (uid != null) await DiaryDraftService.instance.clear(uid);
-      AnalyticsService.instance.diaryEntrySaved();
-      SoundService.instance.play(Sfx.journalSaved, volume: 0.7);
-      HapticFeedback.heavyImpact();
-      if (!mounted) return;
-      await _SavedOverlay.show(context, mood: _mood!, withGratitude: entry.gratitude != null);
-      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       debugPrint('Error saving diary entry: $e');
-      if (!mounted) return;
-      setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('journal.saveErrorKept'.tr()),
-        backgroundColor: const Color(0xFFEF4444),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        margin: const EdgeInsets.all(16),
-      ));
     }
   }
 
@@ -680,18 +685,28 @@ class _SavedOverlay extends StatelessWidget {
 
   const _SavedOverlay({required this.mood, required this.withGratitude});
 
-  static Future<void> show(BuildContext context, {required MoodType mood, required bool withGratitude}) async {
+  static Future<void> show(BuildContext context, {required MoodType mood, required bool withGratitude}) {
     final reduced = MotionService.reduced(context);
-    final navigator = Navigator.of(context);
-    showGeneralDialog(
+    return showGeneralDialog<void>(
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black.withValues(alpha: 0.55),
       transitionDuration: Duration(milliseconds: reduced ? 100 : 280),
-      pageBuilder: (_, _, _) => _SavedOverlay(mood: mood, withGratitude: withGratitude),
+      pageBuilder: (dialogContext, _, _) {
+        // Se cierra sola, y cierra **su** ruta.
+        //
+        // Antes llamaba a `pop()` sobre el navegador a secas: si mientras
+        // tanto se había abierto cualquier otra cosa encima —una celebración
+        // de nivel, que el propio XP del diario puede disparar— ese `pop`
+        // cerraba esa otra cosa y este aviso se quedaba abierto para siempre,
+        // con el botón girando. De ahí el "se queda guardando y hay que salir
+        // a la fuerza".
+        Future.delayed(Duration(milliseconds: reduced ? 1100 : 1700), () {
+          if (dialogContext.mounted) Navigator.of(dialogContext).pop();
+        });
+        return _SavedOverlay(mood: mood, withGratitude: withGratitude);
+      },
     );
-    await Future.delayed(Duration(milliseconds: reduced ? 1100 : 1700));
-    if (navigator.mounted) navigator.pop();
   }
 
   @override
