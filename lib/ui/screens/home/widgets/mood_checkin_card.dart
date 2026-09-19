@@ -130,7 +130,9 @@ class _MoodCheckInCardState extends State<MoodCheckInCard> {
       height: 90,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
+        // Sin recorte (`Clip.none`) los emojis se pintaban fuera de la lista
+        // al deslizarlos y quedaban encima del borde de la tarjeta. Así
+        // aparecen y desaparecen dentro de ella.
         itemCount: MoodType.values.length,
         separatorBuilder: (_, _) => const SizedBox(width: 6),
         itemBuilder: (context, i) {

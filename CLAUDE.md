@@ -119,7 +119,7 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
   2. Banners de multiplicador y escudo (solo si aplican).
   3. `HomeHero`: el **cielo del momento** (`ReminderSky` por hora) con `LumiCompanionCard(transparent: true)` y el progreso de hoy (ánimo, lección, diario) con anillo 🎉 al completar los 3.
   4. Avisos del día: `CommitmentCheckCard`, `WeeklySummaryCard`, `CrisisSupportCard`.
-  5. `MoodCheckInCard`: burbujas grandes; al elegir se resume con el ánimo grande, destellos y una frase según la categoría (cariñosa si es difícil); "Cambiar" vuelve a abrir las opciones; abajo la semana en emojis (reemplaza a `WeeklyMoodChart`, borrado).
+  5. `MoodCheckInCard`: burbujas grandes (la lista **no** lleva `Clip.none`: sin recorte los emojis se pintaban fuera de la tarjeta al deslizarlos); al elegir se resume con el ánimo grande, destellos y una frase según la categoría (cariñosa si es difícil); "Cambiar" vuelve a abrir las opciones; abajo la semana en emojis (reemplaza a `WeeklyMoodChart`, borrado).
   6. "Tu entrenamiento de hoy": `TodayLessonCard` (color de la ruta, emoji flotando; tras hacer una hoy ofrece "Hacer otra") y cuadrícula de `QuickActionTile` (repaso, respiración, diario, hábitos; estados hecho/bloqueado).
   7. `DailyChallengeCard` y `MissionsHomeCard`.
   8. "Tu resumen": `HomeProgressCard` (racha con semana de llamas + nivel con anillo y XP; reemplaza stat cards, tarjeta de nivel y `DailyProgressRing`, borrado).

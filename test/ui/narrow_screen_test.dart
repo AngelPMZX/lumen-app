@@ -67,9 +67,13 @@ void main() {
     );
     // Las traducciones cargan de verdad (leen un asset), así que hace falta
     // tiempo real: sin esto no se dibuja nada y la prueba mediría el vacío.
-    await tester.runAsync(
-        () => Future.delayed(const Duration(milliseconds: 300)));
-    await tester.pump();
+    // Cuánto tarda depende del orden de las pruebas, así que se espera hasta
+    // que haya algo dibujado.
+    for (var i = 0; i < 12 && find.byType(Text).evaluate().isEmpty; i++) {
+      await tester.runAsync(
+          () => Future.delayed(const Duration(milliseconds: 100)));
+      await tester.pump();
+    }
     await tester.pump(const Duration(milliseconds: 400));
 
     // Si no se dibujó nada, no hay nada que comprobar.
