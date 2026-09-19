@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -260,30 +261,11 @@ class NotificationService {
   // COSECHA PENDIENTE
   // ═══════════════════════════════════════════════════════════════════════════
 
-  Future<void> showHarvestReadyNotification({
-    String title = '🌾 ¡Tu jardín te necesita!',
-    String body =
-        'Tienes plantas listas para cosechar. Entra y recoge tus recompensas.',
-  }) async {
-    await initialize();
-    await _safe('mostrar', () => _plugin.show(
-        _harvestNotificationId,
-        title,
-        body,
-        _notificationDetails(
-          channelId: 'garden_harvest',
-          channelName: 'Cosecha del jardín',
-        ),
-        payload: 'garden:harvest',
-      ));
-  }
-
   Future<void> scheduleHarvestReminder({
     required int hour,
     required int minute,
-    String title = '🌾 ¡Plantas listas para cosechar!',
-    String body =
-        'Tus plantas están maduras. Entra a Lumen y recoge tus semillas.',
+    required String title,
+    required String body,
   }) async {
     await initialize();
 
@@ -327,9 +309,8 @@ class NotificationService {
   Future<void> scheduleStreakReminderAt({
     int hour = 20,
     int minute = 0,
-    String title = '🔥 ¡Tu racha está en riesgo!',
-    String body =
-        'No olvides hacer tu check-in diario en Lumen para mantener tu racha.',
+    required String title,
+    required String body,
   }) async {
     await initialize();
 
@@ -508,13 +489,16 @@ class NotificationService {
 
   NotificationDetails _notificationDetails({
     String channelId = 'lumen_reminders',
-    String channelName = 'Recordatorios de Lumen',
+    String? channelName,
     Importance importance = Importance.high,
   }) {
     return NotificationDetails(
       android: AndroidNotificationDetails(
+        // El **id** del canal no se traduce nunca (Android lo usa para
+        // identificarlo), pero el nombre sí: es el que se lee en los ajustes
+        // del teléfono, y estaba fijo en español.
         channelId,
-        channelName,
+        channelName ?? 'notifications.channelName'.tr(),
         importance: importance,
         priority: Priority.high,
         icon: '@mipmap/ic_launcher',

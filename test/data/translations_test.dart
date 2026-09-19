@@ -73,4 +73,38 @@ void main() {
           reason: '$key: el inglés no usa los mismos datos que el español');
     }
   });
+
+  test('ningún parámetro trae texto suelto como valor por defecto', () {
+    // La forma exacta del bug: `String title = '🔥 ¡Tu racha está en riesgo!'`
+    // en NotificationService. Quien lo llamaba no pasaba nada, así que las
+    // notificaciones de racha y cosecha salían siempre en español.
+    //
+    // Si hace falta un texto, se pide traducido (`required String title`) y lo
+    // pasa quien llama, que sí tiene contexto para hacer `.tr()`.
+    final defaults = RegExp(r"String\??\s+\w+\s*=\s*'([^']{6,})'");
+    final letters = RegExp(r'[A-Za-zÁÉÍÓÚáéíóúÑñ]{3,}');
+    final offenders = <String>[];
+
+    for (final file in Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))) {
+      final source = file.readAsStringSync();
+      for (final match in defaults.allMatches(source)) {
+        final text = match.group(1)!;
+        // Claves, rutas y formatos no son texto para leer.
+        if (!letters.hasMatch(text)) continue;
+        if (RegExp(r'^[a-z][A-Za-z0-9]*(\.[A-Za-z0-9_]+)+$').hasMatch(text)) continue;
+        if (text.startsWith('assets/') || text.startsWith('http')) continue;
+        if (!text.contains(' ')) continue; // una sola palabra: id, clave, etc.
+        final line =
+            '\n'.allMatches(source.substring(0, match.start)).length + 1;
+        offenders.add('${file.path.replaceAll(r'\', '/')}:$line  "$text"');
+      }
+    }
+
+    expect(offenders, isEmpty,
+        reason: 'Texto fijo como valor por defecto (no se traduce nunca):\n  '
+            '${offenders.join('\n  ')}');
+  });
 }

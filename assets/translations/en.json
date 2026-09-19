@@ -2446,7 +2446,12 @@
         "title": "We are still here, no rush 🤍",
         "body": "Your journal and your garden are just as you left them. Come back when it feels good."
       }
-    }
+    },
+    "streakTitle": "🔥 Your streak is waiting",
+    "streakBody": "One quick check-in and your day is complete.",
+    "harvestTitle": "🌾 Your garden has something for you",
+    "harvestBody": "Some plants are ready to harvest. Drop by whenever you like.",
+    "channelName": "Lumen reminders"
   },
   "archetypeQuiz": {
     "a11yOption": "Option {n} of {total}: {text}",

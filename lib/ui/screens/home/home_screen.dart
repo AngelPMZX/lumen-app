@@ -363,7 +363,10 @@ Future<void> _scheduleDailyReminders() async {
       await NotificationService.instance.cancelStreakReminder();
       debugPrint('✅ Streak reminder cancelled — check-in already done today');
     } else {
-      await NotificationService.instance.scheduleStreakReminderAt();
+      await NotificationService.instance.scheduleStreakReminderAt(
+        title: 'notifications.streakTitle'.tr(),
+        body: 'notifications.streakBody'.tr(),
+      );
       debugPrint('⏰ Streak reminder scheduled for 20:00');
     }
   } catch (e) {
@@ -379,7 +382,10 @@ Future<void> _scheduleDailyReminders() async {
 
     if (hasPendingHarvest) {
       await NotificationService.instance.scheduleHarvestReminder(
-        hour: 10, minute: 0,
+        hour: 10,
+        minute: 0,
+        title: 'notifications.harvestTitle'.tr(),
+        body: 'notifications.harvestBody'.tr(),
       );
       debugPrint('🌾 Harvest reminder scheduled for 10:00');
     } else {

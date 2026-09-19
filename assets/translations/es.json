@@ -2446,7 +2446,12 @@
         "title": "Aquí seguimos, sin prisa 🤍",
         "body": "Tu diario y tu jardín te esperan tal como los dejaste. Vuelve cuando te haga bien."
       }
-    }
+    },
+    "streakTitle": "🔥 Tu racha te espera",
+    "streakBody": "Con un check-in rápido cierras el día.",
+    "harvestTitle": "🌾 Tu jardín tiene algo para ti",
+    "harvestBody": "Hay plantas listas para cosechar. Pásate cuando quieras.",
+    "channelName": "Recordatorios de Lumen"
   },
   "archetypeQuiz": {
     "a11yOption": "Opción {n} de {total}: {text}",
