@@ -1,3 +1,4 @@
+import '../../../widgets/clip_sideways.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -274,63 +275,65 @@ class AmbientPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 52,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: kAmbientChoices.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, i) {
-          final s = kAmbientChoices[i];
-          final isSelected = s.id == selectedId;
-          final isPlaying = s.id == playingId;
-          final chip = AnimatedContainer(
-            duration: const Duration(milliseconds: 220),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              gradient: isSelected ? LinearGradient(colors: [color.withValues(alpha: 0.35), color.withValues(alpha: 0.15)]) : null,
-              color: isSelected ? null : Colors.white.withValues(alpha: 0.07),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isSelected ? color : Colors.white.withValues(alpha: 0.1), width: isSelected ? 2 : 1),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(s.emoji, style: const TextStyle(fontSize: 17)),
-                const SizedBox(width: 7),
-                Text(
-                  s.labelKey.tr(),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.65),
+      child: ClipSideways(
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          itemCount: kAmbientChoices.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemBuilder: (context, i) {
+            final s = kAmbientChoices[i];
+            final isSelected = s.id == selectedId;
+            final isPlaying = s.id == playingId;
+            final chip = AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: isSelected ? LinearGradient(colors: [color.withValues(alpha: 0.35), color.withValues(alpha: 0.15)]) : null,
+                color: isSelected ? null : Colors.white.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: isSelected ? color : Colors.white.withValues(alpha: 0.1), width: isSelected ? 2 : 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(s.emoji, style: const TextStyle(fontSize: 17)),
+                  const SizedBox(width: 7),
+                  Text(
+                    s.labelKey.tr(),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.65),
+                    ),
                   ),
-                ),
-                if (isPlaying) ...[
-                  const SizedBox(width: 6),
-                  Icon(Icons.graphic_eq_rounded, size: 14, color: Color.lerp(color, Colors.white, 0.5)),
+                  if (isPlaying) ...[
+                    const SizedBox(width: 6),
+                    Icon(Icons.graphic_eq_rounded, size: 14, color: Color.lerp(color, Colors.white, 0.5)),
+                  ],
                 ],
-              ],
-            ),
-          );
-          return Semantics(
-            button: true,
-            selected: isSelected,
-            inMutuallyExclusiveGroup: true,
-            label: s.labelKey.tr(),
-            onTap: () => onSelect(s),
-            excludeSemantics: true,
-            child: GestureDetector(
+              ),
+            );
+            return Semantics(
+              button: true,
+              selected: isSelected,
+              inMutuallyExclusiveGroup: true,
+              label: s.labelKey.tr(),
               onTap: () => onSelect(s),
-              child: isPlaying
-                  ? chip
-                      .animate(onPlay: MotionService.loop(context, reverse: true))
-                      .scale(begin: const Offset(1, 1), end: const Offset(1.03, 1.03), duration: 1200.ms, curve: Curves.easeInOut)
-                  : chip,
-            ),
-          );
-        },
-      ),
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () => onSelect(s),
+                child: isPlaying
+                    ? chip
+                        .animate(onPlay: MotionService.loop(context, reverse: true))
+                        .scale(begin: const Offset(1, 1), end: const Offset(1.03, 1.03), duration: 1200.ms, curve: Curves.easeInOut)
+                    : chip,
+              ),
+            );
+          },
+        ),
+),
     );
   }
 }

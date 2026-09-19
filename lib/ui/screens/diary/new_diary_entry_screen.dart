@@ -1,3 +1,4 @@
+import '../../widgets/clip_sideways.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -371,70 +372,72 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
   Widget _buildMoodPicker(JournalStyle s) {
     return SizedBox(
       height: 92,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: MoodType.values.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, i) {
-          final mood = MoodType.values[i];
-          final selected = _mood == mood;
-          return Semantics(
-            button: true,
-            selected: selected,
-            inMutuallyExclusiveGroup: true,
-            label: _moodLabel(mood),
-            onTap: () => _selectMood(mood),
-            excludeSemantics: true,
-            child: GestureDetector(
+      child: ClipSideways(
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
+          itemCount: MoodType.values.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemBuilder: (context, i) {
+            final mood = MoodType.values[i];
+            final selected = _mood == mood;
+            return Semantics(
+              button: true,
+              selected: selected,
+              inMutuallyExclusiveGroup: true,
+              label: _moodLabel(mood),
               onTap: () => _selectMood(mood),
-              child: SizedBox(
-                width: 64,
-                child: Column(
-                  children: [
-                    AnimatedScale(
-                      scale: selected ? 1.12 : 1,
-                      duration: const Duration(milliseconds: 260),
-                      curve: Curves.easeOutBack,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 220),
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: selected
-                              ? mood.color.withValues(alpha: s.isDark ? 0.3 : 0.2)
-                              : (s.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
-                          border: Border.all(
-                            color: selected ? mood.color : s.paperEdge,
-                            width: selected ? 2.5 : 1,
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: () => _selectMood(mood),
+                child: SizedBox(
+                  width: 64,
+                  child: Column(
+                    children: [
+                      AnimatedScale(
+                        scale: selected ? 1.12 : 1,
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutBack,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: selected
+                                ? mood.color.withValues(alpha: s.isDark ? 0.3 : 0.2)
+                                : (s.isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white),
+                            border: Border.all(
+                              color: selected ? mood.color : s.paperEdge,
+                              width: selected ? 2.5 : 1,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(mood.emoji, style: TextStyle(fontSize: selected ? 30 : 26)),
                           ),
                         ),
-                        child: Center(
-                          child: Text(mood.emoji, style: TextStyle(fontSize: selected ? 30 : 26)),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _moodLabel(mood),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                          color: selected
+                              ? (s.isDark ? Color.lerp(mood.color, Colors.white, 0.3) : Color.lerp(mood.color, Colors.black, 0.25))
+                              : s.inkSoft,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _moodLabel(mood),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                        color: selected
-                            ? (s.isDark ? Color.lerp(mood.color, Colors.white, 0.3) : Color.lerp(mood.color, Colors.black, 0.25))
-                            : s.inkSoft,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ).animate().fadeIn(delay: (25 * i).ms, duration: 250.ms).slideX(begin: 0.2, end: 0);
-        },
-      ),
+            ).animate().fadeIn(delay: (25 * i).ms, duration: 250.ms).slideX(begin: 0.2, end: 0);
+          },
+        ),
+),
     );
   }
 

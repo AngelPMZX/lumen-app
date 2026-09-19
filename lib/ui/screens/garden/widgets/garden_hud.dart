@@ -1,3 +1,4 @@
+import '../../../widgets/clip_sideways.dart';
 import 'dart:async';
 
 import 'package:easy_localization/easy_localization.dart';
@@ -349,49 +350,51 @@ class InventoryTray extends StatelessWidget {
           else
             SizedBox(
               height: 104,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                clipBehavior: Clip.none,
-                itemCount: items.length,
-                separatorBuilder: (_, i) => SizedBox(width: items[i].$1.type != items[i + 1].$1.type ? 16 : 8),
-                itemBuilder: (context, i) {
-                  final (item, qty) = items[i];
-                  final selected = item.id == plantingId || item.id == boostingId;
-                  final card = _TrayCard(item: item, quantity: qty, selected: selected);
-                  final Widget child = switch (item.type) {
-                    ItemType.decoration => Draggable<NewDecoDrag>(
-                      data: NewDecoDrag(item.id),
-                      affinity: Axis.vertical,
-                      dragAnchorStrategy: pointerDragAnchorStrategy,
-                      feedback: DecoDragFeedback(item: item),
-                      childWhenDragging: Opacity(opacity: 0.35, child: card),
-                      onDragStarted: () {
-                        HapticFeedback.mediumImpact();
-                        onDragStarted();
-                      },
-                      onDragEnd: (_) => onDragEnded(),
-                      child: GardenPressable(
-                        onTap: () => onDecoTap(item),
-                        semanticsLabel: '${item.nameKey.tr()}, ×$qty. ${'garden.dragHint'.tr()}',
+              child: ClipSideways(
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  clipBehavior: Clip.none,
+                  itemCount: items.length,
+                  separatorBuilder: (_, i) => SizedBox(width: items[i].$1.type != items[i + 1].$1.type ? 16 : 8),
+                  itemBuilder: (context, i) {
+                    final (item, qty) = items[i];
+                    final selected = item.id == plantingId || item.id == boostingId;
+                    final card = _TrayCard(item: item, quantity: qty, selected: selected);
+                    final Widget child = switch (item.type) {
+                      ItemType.decoration => Draggable<NewDecoDrag>(
+                        data: NewDecoDrag(item.id),
+                        affinity: Axis.vertical,
+                        dragAnchorStrategy: pointerDragAnchorStrategy,
+                        feedback: DecoDragFeedback(item: item),
+                        childWhenDragging: Opacity(opacity: 0.35, child: card),
+                        onDragStarted: () {
+                          HapticFeedback.mediumImpact();
+                          onDragStarted();
+                        },
+                        onDragEnd: (_) => onDragEnded(),
+                        child: GardenPressable(
+                          onTap: () => onDecoTap(item),
+                          semanticsLabel: '${item.nameKey.tr()}, ×$qty. ${'garden.dragHint'.tr()}',
+                          child: card,
+                        ),
+                      ),
+                      ItemType.booster => GardenPressable(
+                        onTap: () => onBooster(item),
+                        selected: selected,
+                        semanticsLabel: '${item.nameKey.tr()}, ×$qty',
                         child: card,
                       ),
-                    ),
-                    ItemType.booster => GardenPressable(
-                      onTap: () => onBooster(item),
-                      selected: selected,
-                      semanticsLabel: '${item.nameKey.tr()}, ×$qty',
-                      child: card,
-                    ),
-                    _ => GardenPressable(
-                      onTap: () => onPlant(item),
-                      selected: selected,
-                      semanticsLabel: '${item.nameKey.tr()}, ×$qty. ${'garden.plant'.tr()}',
-                      child: card,
-                    ),
-                  };
-                  return child.animate().fadeIn(delay: (40 * i).ms, duration: 260.ms).slideX(begin: 0.25, end: 0, curve: Curves.easeOutCubic);
-                },
-              ),
+                      _ => GardenPressable(
+                        onTap: () => onPlant(item),
+                        selected: selected,
+                        semanticsLabel: '${item.nameKey.tr()}, ×$qty. ${'garden.plant'.tr()}',
+                        child: card,
+                      ),
+                    };
+                    return child.animate().fadeIn(delay: (40 * i).ms, duration: 260.ms).slideX(begin: 0.25, end: 0, curve: Curves.easeOutCubic);
+                  },
+                ),
+),
             ),
         ],
       ),

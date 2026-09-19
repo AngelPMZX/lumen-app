@@ -1,3 +1,4 @@
+import '../../../widgets/clip_sideways.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -289,45 +290,47 @@ class _BoosterRow extends StatelessWidget {
       children: [
         Text('garden.useBooster'.tr(), style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: Colors.white70)),
         const SizedBox(height: 6),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          clipBehavior: Clip.none,
-          child: Row(
-            children: [
-              for (final (i, b) in boosters.indexed)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: GardenPressable(
-                    onTap: () => onBooster(b.id),
-                    semanticsLabel: '${b.nameKey.tr()}, ×${state.quantityOf(b.id)}. ${_boostLabel(b)}',
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(6, 5, 10, 5),
-                      decoration: BoxDecoration(
-                        color: b.auraColor.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: b.auraColor.withValues(alpha: 0.55)),
+        ClipSideways(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            child: Row(
+              children: [
+                for (final (i, b) in boosters.indexed)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GardenPressable(
+                      onTap: () => onBooster(b.id),
+                      semanticsLabel: '${b.nameKey.tr()}, ×${state.quantityOf(b.id)}. ${_boostLabel(b)}',
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(6, 5, 10, 5),
+                        decoration: BoxDecoration(
+                          color: b.auraColor.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: b.auraColor.withValues(alpha: 0.55)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GardenItemImage(item: b, size: 30, auraScale: 0.6),
+                            const SizedBox(width: 6),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_boostLabel(b), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white)),
+                                Text('×${state.quantityOf(b.id)}', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Colors.white60)),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          GardenItemImage(item: b, size: 30, auraScale: 0.6),
-                          const SizedBox(width: 6),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(_boostLabel(b), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white)),
-                              Text('×${state.quantityOf(b.id)}', style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Colors.white60)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ).animate().fadeIn(delay: (60 * i).ms, duration: 250.ms).slideX(begin: 0.2, end: 0, curve: Curves.easeOutCubic),
-                ),
-            ],
+                    ).animate().fadeIn(delay: (60 * i).ms, duration: 250.ms).slideX(begin: 0.2, end: 0, curve: Curves.easeOutCubic),
+                  ),
+              ],
+            ),
           ),
-        ),
+),
       ],
     );
   }

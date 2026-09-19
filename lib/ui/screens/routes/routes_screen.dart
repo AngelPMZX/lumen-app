@@ -1,3 +1,4 @@
+import '../../widgets/clip_sideways.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -452,29 +453,31 @@ class _RoutesScreenState extends State<RoutesScreen> {
       RouteFilter.notStarted: 'routes.filterNew'.tr(),
       RouteFilter.completed: 'routes.filterDone'.tr(),
     };
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      clipBehavior: Clip.none,
-      child: Row(
-        children: [
-          for (final f in RouteFilter.values) ...[
-            _FilterChip(
-              label: labels[f]!,
-              count: overview.count(f),
-              selected: _filter == f,
-              isDark: isDark,
-              onTap: () {
-                if (_filter == f) return;
-                HapticFeedback.selectionClick();
-                SoundService.instance.play(Sfx.toggleOn, volume: 0.4);
-                setState(() => _filter = f);
-              },
-            ),
-            const SizedBox(width: 8),
+    return ClipSideways(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        child: Row(
+          children: [
+            for (final f in RouteFilter.values) ...[
+              _FilterChip(
+                label: labels[f]!,
+                count: overview.count(f),
+                selected: _filter == f,
+                isDark: isDark,
+                onTap: () {
+                  if (_filter == f) return;
+                  HapticFeedback.selectionClick();
+                  SoundService.instance.play(Sfx.toggleOn, volume: 0.4);
+                  setState(() => _filter = f);
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
           ],
-        ],
+        ),
       ),
-    );
+);
   }
 
   Widget _buildEmptyFilter(bool isDark) {

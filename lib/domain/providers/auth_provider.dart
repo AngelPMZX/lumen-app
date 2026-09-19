@@ -708,7 +708,7 @@ Future<bool> sendPasswordResetEmail(String email, {String? languageCode}) async 
     notifyListeners();
     return false;
   } catch (e) {
-    _errorMessage = 'auth.errors.generic'.tr();
+    _errorMessage = 'errors.generic'.tr();
     _isLoading = false;
     notifyListeners();
     return false;
@@ -934,7 +934,7 @@ Future<bool> needsVerificationOnStartup() async {
 Future<bool> resendEmailVerification({String? languageCode}) async {
   try {
     if (_auth.currentUser == null) {
-      _errorMessage = 'auth.errors.sessionExpired'.tr();
+      _errorMessage = 'errors.sessionExpired'.tr();
       notifyListeners();
       return false;
     }
@@ -945,7 +945,7 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     return true;
   } on FirebaseAuthException catch (e) {
     if (e.code == 'too-many-requests') {
-      _errorMessage = 'auth.errors.tooManyRequests'.tr();
+      _errorMessage = 'errors.tooManyRequests'.tr();
     } else {
       _errorMessage = _getErrorMessage(e.code);
     }
