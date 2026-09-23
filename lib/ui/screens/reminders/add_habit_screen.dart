@@ -6,6 +6,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../core/constants/app_colors.dart';
 import 'widgets/habit_color_picker.dart';
 import '../../../data/models/habit.dart';
+import '../../../data/models/habit_xp_quota.dart';
 import '../../../domain/providers/auth_provider.dart';
 import '../../../data/models/lumi.dart';
 import '../../../domain/services/sound_service.dart';
@@ -465,6 +466,19 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _selectedColor)),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Se dice el tope: si no, marcar el cuarto hábito y no ver XP
+          // parece un fallo (y el XP de hábitos tiene tope por día para que
+          // no se pueda farmear creando y borrando hábitos).
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'habits.xpDailyCap'.tr(
+                namedArgs: {'count': '${HabitXpQuota.maxPerDay}'},
+              ),
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ),
           const SizedBox(height: 16),

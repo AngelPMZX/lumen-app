@@ -11,6 +11,7 @@ import '../../data/models/mood_entry.dart';
 import '../../data/models/diary_entry.dart';
 import '../../data/models/reminder.dart';
 import '../../data/models/habit.dart';
+import '../../data/models/habit_xp_quota.dart';
 import '../../domain/services/achievement_service.dart';
 import '../providers/garden_provider.dart';
 import '../services/notification_service.dart';
@@ -1531,13 +1532,30 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
     } catch (e) { return []; }
   }
 
+  /// Borra el hábito **y sus check-ins**.
+  ///
+  /// Es lo que la app ya promete al confirmar ("se perderá el historial de
+  /// este hábito"), y evita que borrar y volver a crear hábitos infle el
+  /// contador de medallas y el avance de las misiones de la semana.
   Future<void> deleteHabit(String habitId) async {
     if (firebaseUser == null) return;
     try {
+      final user = _firestore.collection('users').doc(firebaseUser!.uid);
+      final checkIns = await user
+          .collection('habit_checkins')
+          .where('habitId', isEqualTo: habitId)
+          .getFast();
+      if (checkIns.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+        for (final doc in checkIns.docs) {
+          batch.delete(doc.reference);
+        }
+        await _write(batch.commit(), 'historial del hábito');
+        _habitsCompletedCount =
+            (_habitsCompletedCount - checkIns.docs.length).clamp(0, 1 << 30);
+      }
       await _write(
-        _firestore
-            .collection('users').doc(firebaseUser!.uid).collection('habits')
-            .doc(habitId).delete(),
+        user.collection('habits').doc(habitId).delete(),
         'borrar hábito',
       );
       notifyListeners();
@@ -1561,32 +1579,34 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
         'hábito',
       );
 
-      if (isFirstTime && _userProgress != null) {
-        final oldProgress = _userProgress!;
-        final newXp = _userProgress!.totalXp + 5;
-        final newLevel = (newXp ~/ 100) + 1;
-        final updatedProgress = UserProgress(
-          currentStreak: _userProgress!.currentStreak,
-          longestStreak: _userProgress!.longestStreak,
-          lastCheckIn: _userProgress!.lastCheckIn,
-          totalXp: newXp,
-          level: newLevel,
-        );
-        await _write(
-          _firestore
-              .collection('users').doc(firebaseUser!.uid)
-              .collection('progress').doc('current')
-              .set(updatedProgress.toMap()),
-          'progreso',
-        );
-        _userProgress = updatedProgress;
+      if (isFirstTime) {
         _habitsCompletedCount++;
-        await _checkCelebrations(oldProgress, updatedProgress);
+        await _awardHabitXp();
       }
 
       notifyListeners();
       return isFirstTime;
     } catch (e) { rethrow; }
+  }
+
+  /// Da el XP del hábito mientras quede cupo del día ([HabitXpQuota]).
+  ///
+  /// El tope es por día y no por hábito: sin él se podía farmear XP sin
+  /// límite creando, marcando y borrando hábitos, porque cada hábito nuevo
+  /// estrena id y volvía a contar como "primera vez".
+  Future<void> _awardHabitXp() async {
+    if (firebaseUser == null || _userProgress == null) return;
+    final ref = _firestore
+        .collection('users').doc(firebaseUser!.uid)
+        .collection('progress').doc('habits');
+    final quota = HabitXpQuota.fromMap(
+      (await ref.getFast()).data(),
+      today: HabitXpQuota.dayKey(DateTime.now()),
+    );
+    if (!quota.hasRoom) return;
+    await _write(ref.set(quota.next.toMap()), 'cupo de XP de hábitos');
+    // Sin el multiplicador del jardín: ese es para las lecciones.
+    await _awardXp(HabitXpQuota.xpPerHabit);
   }
 
   Future<void> uncheckHabit(String habitId) async {

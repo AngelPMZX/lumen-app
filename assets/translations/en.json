@@ -423,6 +423,7 @@
     "presetTitle": "Suggested habits",
     "checkInSuccess": "Habit completed!",
     "checkInXp": "+5 XP",
+    "xpDailyCap": "The first {count} habits you check off each day give XP.",
     "todayProgress": "{completed}/{total} habits today",
     "streak": "Streak: {count} days",
     "exercise": "Exercise",
