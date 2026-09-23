@@ -216,10 +216,12 @@ class PlantSlotView extends StatelessWidget {
               ),
               if (burst > 0 && !reduced)
                 SparkleBurst(key: ValueKey('plant_burst_$burst'), color: item.auraColor, size: size * 1.3, seed: burst),
-              // Estado debajo: progreso o cosecha
+              // Cuánto falta, apoyado en la tierra de su propia planta. Colgaba
+              // por debajo del hueco y, donde dos huecos quedan cerca (la
+              // montaña), caía encima de la planta de abajo.
               if (!adult)
                 Positioned(
-                  bottom: -14,
+                  bottom: size * (1 - PlantGround.line),
                   child: _GrowthPill(
                     progress: planted.growthProgress(item),
                     stage: stage,

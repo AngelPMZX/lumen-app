@@ -174,6 +174,7 @@ Cada pantalla nueva o que se pule debe quedar al nivel de lecciones, rutas, diar
 - 4 decoraciones, 4 boosters (water/sun/fertilizer/elixir).
 - Assets ilustrados estilo watercolor children's book (WebP en `assets/images/plants/`, `decorations/`, `boosters/`, `currency/`).
 - **Auras de rareza (no quitar, lo pidió Ángel)**: cada item tiene `auraColor`/`auraOpacity`/`auraBlurRadius` en `GardenItem`. `AuraContainer` las dibuja como degradado radial (sin blur) y con `pulse` late despacio; `AuraContainer.pulsesFor` lo activa en épico, legendario y de temporada. Las plantas adultas tienen además halo del mismo color y destellos que suben.
+- **La píldora de "cuánto falta" se apoya en la tierra de su propia planta** (`bottom: size * (1 - PlantGround.line)`). Colgaba por debajo del cuadro del hueco y, donde dos huecos quedan cerca —la montaña—, caía encima de la planta de abajo. Lo vigila `test/ui/garden_slot_test.dart`.
 - **Las plantas se apoyan en el suelo del hueco** (regla 31): `PlantGround` (`garden_defs.dart`) desplaza cada etapa con las medidas de `plant_metrics.dart` (las genera `tools/images/measure_plants.py`), así que al crecer la planta ya no salta ni se le sale la tierra. Lo usan el hueco (`PlantSlotView`, con el halo y los destellos del adulto dentro para que acompañen), la semilla fantasma al plantar, la tira de etapas de la tienda (`grounded: true`) y los medallones del panel de la planta (`centerOffsetFor`, que ahí no hay suelo).
 - **Siempre con nuestras ilustraciones**: `GardenAssets` (`garden_defs.dart`) da la ruta de cada planta por etapa, decoración, booster, semilla y fondo; `GardenItemImage` las muestra con su aura y cae en el emoji si falla. Una prueba verifica que existan todos los archivos.
 - **Todo el jardín se gana con semillas** (2026-09-17): el pino navideño y la calabaza cuestan 150, el elixir 250 y el puente 50. Antes eran de pago ($0.99–1.99) y chocaban con la promesa de "Apoya a Lumen" (el bienestar es gratis). Las estacionales siguen apareciendo solo en su mes. El camino premium del modelo y de la tienda (`isPremium`, `registerPremiumPurchase`, sección Premium) se deja listo para los **cosméticos de Lumi**, que serán lo único de pago.
@@ -433,7 +434,7 @@ flutter clean; flutter pub get
 
 ## Estado (2026-09-18)
 
-La app está **terminada para un primer lanzamiento**: las 9 rutas con 90 lecciones, home, jardín y tienda, diario, hábitos, respiración, repaso, misiones, resumen semanal, perfil con medallas, ayuda en crisis, Lumi, sonidos propios, modo claro/oscuro, accesibilidad y "reducir animaciones". `flutter analyze` en 0 y **210 pruebas** pasando.
+La app está **terminada para un primer lanzamiento**: las 9 rutas con 90 lecciones, home, jardín y tienda, diario, hábitos, respiración, repaso, misiones, resumen semanal, perfil con medallas, ayuda en crisis, Lumi, sonidos propios, modo claro/oscuro, accesibilidad y "reducir animaciones". `flutter analyze` en 0 y **211 pruebas** pasando.
 
 También está listo todo el material para publicar: ícono, gráfico de funciones, 7 capturas, política de privacidad y páginas legales, ficha de Play (ES/EN), formulario de seguridad de datos y el checklist de `store/pasos-para-publicar.md`.
 
