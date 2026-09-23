@@ -173,13 +173,19 @@ class _PracticeStepState extends State<PracticeStep>
         const SizedBox(height: 16),
         StepHeading(text: widget.step.title, glow: widget.routeColor),
         const SizedBox(height: 14),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 350),
-          child: switch (_phase) {
-            _Phase.intro => _buildIntro(),
-            _Phase.running => _buildRunning(),
-            _Phase.done => _buildDone(),
-          },
+        // Ancho completo: la columna del paso alinea a la izquierda, así que
+        // una fase más estrecha que la pantalla se pegaría al borde y el orbe
+        // dejaría de estar centrado.
+        SizedBox(
+          width: double.infinity,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            child: switch (_phase) {
+              _Phase.intro => _buildIntro(),
+              _Phase.running => _buildRunning(),
+              _Phase.done => _buildDone(),
+            },
+          ),
         ),
       ],
     );
@@ -284,6 +290,7 @@ class _PracticeStepState extends State<PracticeStep>
     final p = LessonPalette.of(context);
     return Column(
       key: const ValueKey('running'),
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const SizedBox(height: 6),
         SizedBox(
@@ -392,6 +399,7 @@ class _PracticeStepState extends State<PracticeStep>
     final outro = widget.step.explanation;
     return Column(
       key: const ValueKey('done'),
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const SizedBox(height: 8),
         Text(

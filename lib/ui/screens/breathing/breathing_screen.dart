@@ -20,10 +20,12 @@ import '../../widgets/lumi/lumi_avatar.dart';
 import '../../widgets/reward_dialog.dart';
 import 'breathing_data.dart';
 import 'widgets/breath_orb.dart';
+import 'widgets/breath_session_bar.dart';
 import 'widgets/breathing_setup.dart';
 import 'widgets/breathing_sky.dart';
 
 enum _Step { science, setup, session, completion }
+
 
 /// Respiración guiada: eliges técnica, minutos y ambiente, y un orbe te guía
 /// fase por fase con señales de sonido. Lumi respira contigo.
@@ -496,39 +498,12 @@ class _BreathingScreenState extends State<BreathingScreen> with TickerProviderSt
     return Column(
       key: const ValueKey('session'),
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-          child: Row(
-            children: [
-              BreathIconButton(icon: Icons.close_rounded, label: 'common.close'.tr(), onTap: _stopSession),
-              const Spacer(),
-              Column(
-                children: [
-                  Text(
-                    _technique.nameKey.tr(),
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.6, color: Color.lerp(_color, Colors.white, 0.45)),
-                  ),
-                  Semantics(
-                    label: 'breathing.timeLeft'.tr(namedArgs: {'time': _formatTime(left)}),
-                    excludeSemantics: true,
-                    child: Text(
-                      _formatTime(left),
-                      style: const TextStyle(fontSize: 26, height: 1.1, fontWeight: FontWeight.w900, color: Colors.white, fontFeatures: [FontFeature.tabularFigures()]),
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              if (_sound.ambient != null)
-                BreathIconButton(
-                  icon: Icons.graphic_eq_rounded,
-                  label: _sound.labelKey.tr(),
-                  onTap: () {},
-                )
-              else
-                const SizedBox(width: 38),
-            ],
-          ),
+        BreathSessionBar(
+          techniqueName: _technique.nameKey.tr(),
+          timeLeft: _formatTime(left),
+          color: _color,
+          soundLabel: _sound.ambient == null ? null : _sound.labelKey.tr(),
+          onClose: _stopSession,
         ),
         const SizedBox(height: 10),
         // Avance de la sesión
