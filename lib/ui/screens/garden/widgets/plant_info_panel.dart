@@ -233,12 +233,17 @@ class _StageDot extends StatelessWidget {
           padding: const EdgeInsets.all(3),
           child: Opacity(
             opacity: reached ? 1 : 0.35,
-            child: Image.asset(
-              GardenAssets.plant(item.id, stage),
-              fit: BoxFit.contain,
-              cacheWidth: decodePixels(context, 42),
-              errorBuilder: (_, _, _) => Center(
-                child: Text(item.stageEmojis?[stage] ?? '🌱', style: const TextStyle(fontSize: 14)),
+            // El medallón es un círculo, no un suelo: aquí se centra el
+            // dibujo (una semilla trae mucho aire encima y se veía caída).
+            child: Transform.translate(
+              offset: PlantGround.centerOffsetFor(GardenAssets.plant(item.id, stage), 36),
+              child: Image.asset(
+                GardenAssets.plant(item.id, stage),
+                fit: BoxFit.contain,
+                cacheWidth: decodePixels(context, 42),
+                errorBuilder: (_, _, _) => Center(
+                  child: Text(item.stageEmojis?[stage] ?? '🌱', style: const TextStyle(fontSize: 14)),
+                ),
               ),
             ),
           ),

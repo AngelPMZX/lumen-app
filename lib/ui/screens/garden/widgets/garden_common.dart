@@ -27,6 +27,12 @@ class GardenItemImage extends StatelessWidget {
   /// Latido del aura: por defecto solo en rarezas altas.
   final bool? pulse;
 
+  /// Apoya el dibujo en la línea de tierra ([PlantGround]) en vez de
+  /// centrarlo. Para cuando se ven varias etapas juntas o sobre un suelo:
+  /// cada ilustración reparte su espacio transparente a su manera y, sin
+  /// esto, la planta parece saltar de una etapa a otra.
+  final bool grounded;
+
   const GardenItemImage({
     super.key,
     required this.item,
@@ -35,15 +41,17 @@ class GardenItemImage extends StatelessWidget {
     this.aura = true,
     this.auraScale = 1,
     this.pulse,
+    this.grounded = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final image = SizedBox(
+    final path = GardenAssets.preview(item, stage: stage);
+    Widget image = SizedBox(
       width: size,
       height: size,
       child: Image.asset(
-        GardenAssets.preview(item, stage: stage),
+        path,
         fit: BoxFit.contain,
         cacheWidth: decodePixels(context, size),
         errorBuilder: (_, _, _) => Center(
@@ -54,6 +62,12 @@ class GardenItemImage extends StatelessWidget {
         ),
       ),
     );
+    if (grounded) {
+      image = Transform.translate(
+        offset: PlantGround.offsetFor(path, size),
+        child: image,
+      );
+    }
     if (!aura) return ExcludeSemantics(child: image);
     return ExcludeSemantics(
       child: AuraContainer(

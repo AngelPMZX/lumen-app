@@ -621,7 +621,13 @@ class _PlantDetails extends StatelessWidget {
                 Expanded(
                   child: Column(
                     children: [
-                      GardenItemImage(item: item, size: 46, stage: stage, aura: stage == PlantStage.adult)
+                      GardenItemImage(
+                        item: item,
+                        size: 46,
+                        stage: stage,
+                        aura: stage == PlantStage.adult,
+                        grounded: true,
+                      )
                           .animate()
                           .fadeIn(delay: (120 * stage.index).ms, duration: 300.ms)
                           .scale(begin: const Offset(0.6, 0.6), end: const Offset(1, 1), curve: Curves.easeOutBack),

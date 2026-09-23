@@ -5,6 +5,7 @@ import 'package:gimnasio_emocional/data/models/garden_item.dart';
 import 'package:gimnasio_emocional/data/models/lumi.dart';
 import 'package:gimnasio_emocional/ui/screens/garden/garden_defs.dart';
 import 'package:gimnasio_emocional/ui/screens/garden/garden_logic.dart';
+import 'package:gimnasio_emocional/ui/screens/garden/plant_metrics.dart';
 
 void main() {
   group('GardenLayout', () {
@@ -143,6 +144,57 @@ void main() {
     expect(GardensCatalog.byId('mountain').id, 'mountain');
     expect(GardensCatalog.byId('forest').id, 'meadow');
     expect(GardensCatalog.byId(null).id, 'meadow');
+  });
+
+  group('Las plantas se apoyan en el suelo del hueco', () {
+    // Cada ilustración reparte su espacio transparente a su manera (la base
+    // del dibujo cae entre el 66 % y el 96 % del alto del lienzo). Pintadas
+    // todas centradas en el mismo cuadrado, la planta saltaba al crecer y su
+    // tierra se salía del hueco. `tools/images/measure_plants.py` mide los
+    // archivos y escribe `plant_metrics.dart`.
+    test('toda etapa de toda planta tiene su medida', () {
+      for (final plant in GardenCatalog.allPlants) {
+        for (final stage in PlantStage.values) {
+          final path = GardenAssets.plant(plant.id, stage);
+          expect(
+            PlantGround.metricsFor(path),
+            isNotNull,
+            reason: 'falta medir $path: corre tools/images/measure_plants.py',
+          );
+        }
+      }
+    });
+
+    test('las medidas son coherentes', () {
+      for (final entry in kPlantMetrics.entries) {
+        final m = entry.value;
+        expect(m.topY, lessThan(m.baseY), reason: entry.key);
+        expect(m.topY, inInclusiveRange(0, 1), reason: entry.key);
+        expect(m.baseY, inInclusiveRange(0, 1), reason: entry.key);
+        expect(m.centerX, inInclusiveRange(0, 1), reason: entry.key);
+      }
+    });
+
+    test('todas las etapas de una planta acaban pisando la misma línea', () {
+      const size = 140.0;
+      for (final plant in GardenCatalog.allPlants) {
+        for (final stage in PlantStage.values) {
+          final path = GardenAssets.plant(plant.id, stage);
+          final m = PlantGround.metricsFor(path)!;
+          final base = m.baseY * size + PlantGround.offsetFor(path, size).dy;
+          expect(
+            base,
+            moreOrLessEquals(PlantGround.line * size, epsilon: 0.5),
+            reason: '${plant.id} en ${stage.name} no se apoya donde las demás',
+          );
+        }
+      }
+    });
+
+    test('sin medida no se mueve nada (una ilustración nueva se ve como antes)', () {
+      expect(PlantGround.offsetFor('assets/images/plants/no_existe.webp', 140), Offset.zero);
+      expect(PlantGround.centerOffsetFor('assets/images/decorations/bridge.webp', 80), Offset.zero);
+    });
   });
 
   test('cada item del catálogo tiene su ilustración en assets', () {

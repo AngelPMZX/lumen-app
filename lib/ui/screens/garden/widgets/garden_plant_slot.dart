@@ -72,7 +72,18 @@ class EmptySlotTarget extends StatelessWidget {
             if (itemToPlant != null)
               Opacity(
                 opacity: 0.55,
-                child: GardenItemImage(item: itemToPlant!, size: size * 0.42, stage: PlantStage.seed, aura: false),
+                child: Transform.translate(
+                  offset: PlantGround.offsetFor(
+                    GardenAssets.preview(itemToPlant!, stage: PlantStage.seed),
+                    size * 0.42,
+                  ),
+                  child: GardenItemImage(
+                    item: itemToPlant!,
+                    size: size * 0.42,
+                    stage: PlantStage.seed,
+                    aura: false,
+                  ),
+                ),
               ),
             Positioned(
               bottom: size * 0.2,
@@ -133,12 +144,21 @@ class PlantSlotView extends StatelessWidget {
         ? (ready ? 'garden.readyToHarvest'.tr() : 'garden.harvestClaimed'.tr())
         : '${'garden.stage.${stage.name}'.tr()}, ${gardenTimeShort(planted.timeRemaining(item) ?? Duration.zero)}';
 
+    final assetPath = GardenAssets.plant(item.id, stage);
     Widget plant = adult
-        ? AdultPlant(item: item, size: size, assetPath: GardenAssets.plant(item.id, stage))
+        ? AdultPlant(item: item, size: size, assetPath: assetPath)
         : _Swaying(
             size: size,
             child: GardenItemImage(item: item, size: size, stage: stage),
           );
+    // Cada etapa reparte su espacio transparente a su manera: sin esto, al
+    // crecer la planta saltaba y su tierra se salía del hueco. El halo y los
+    // destellos del adulto van dentro, así que acompañan a la planta; la
+    // sombra y el anillo se quedan marcando el suelo.
+    plant = Transform.translate(
+      offset: PlantGround.offsetFor(assetPath, size),
+      child: plant,
+    );
 
     return GardenPressable(
       onTap: mode == SlotMode.planting ? null : onTap,
@@ -154,9 +174,10 @@ class PlantSlotView extends StatelessWidget {
             alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: [
-              // Sombra suave en la tierra
+              // Sombra suave en la tierra, centrada en la línea donde se
+              // apoyan las plantas
               Positioned(
-                bottom: size * 0.1,
+                top: size * (PlantGround.line - 0.08),
                 child: Container(
                   width: size * 0.62,
                   height: size * 0.16,
@@ -171,7 +192,7 @@ class PlantSlotView extends StatelessWidget {
               // Anillo de selección en la base
               if (selected || boostTarget)
                 Positioned(
-                  bottom: size * 0.04,
+                  top: size * (PlantGround.line - 0.13),
                   child: Container(
                     width: size * 0.82,
                     height: size * 0.26,

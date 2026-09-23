@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/models/garden_item.dart';
 import '../../../domain/services/sound_service.dart';
 import 'garden_logic.dart';
+import 'plant_metrics.dart';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Jardines: fondo ilustrado, huecos para plantas y ambiente sonoro
@@ -147,6 +148,14 @@ class GardenAssets {
         ItemType.theme => seed,
       };
 
+  /// Nombre del archivo sin carpeta ni extensión (`bamboo_4_adult`), que es
+  /// como [kPlantMetrics] guarda sus medidas.
+  static String assetKey(String path) {
+    final file = path.split('/').last;
+    final dot = file.lastIndexOf('.');
+    return dot < 0 ? file : file.substring(0, dot);
+  }
+
   /// Tamaño de cada decoración en el jardín (px lógicos).
   static double decoSize(String itemId) => switch (itemId) {
         'deco_zen_stone' => 70,
@@ -255,4 +264,48 @@ class PlacedDeco {
         fy: (m['fy'] as num).toDouble(),
         legacy: m['v'] == null,
       );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Suelo: todas las etapas de una planta se apoyan en la misma línea
+// ═════════════════════════════════════════════════════════════════════════════
+
+/// Dónde pisa una planta dentro del cuadrado de su hueco.
+///
+/// Las ilustraciones traen mucho aire transparente y cada etapa lo reparte a
+/// su manera: la base del dibujo cae entre el 66 % y el 96 % del alto del
+/// lienzo. Pintadas todas centradas en el mismo cuadrado, la planta **saltaba
+/// al crecer** y la tierra se salía del hueco (lo vieron los testers). Con
+/// [kPlantMetrics] (que genera `tools/images/measure_plants.py` midiendo los
+/// archivos) cada etapa se desplaza para pisar [line].
+abstract final class PlantGround {
+  /// Línea de tierra, en fracción del cuadrado del hueco.
+  ///
+  /// Es casi la base media de las plantas adultas (0.918), que es con lo que
+  /// se colocaron los huecos sobre la ilustración del jardín: así las adultas
+  /// se quedan donde estaban y son las etapas pequeñas —las que flotaban— las
+  /// que bajan a su sitio. Un poco más arriba que esa media para que la
+  /// sombra y el anillo de selección quepan dentro del cuadrado.
+  static const double line = 0.88;
+
+  static PlantMetrics? metricsFor(String assetPath) =>
+      kPlantMetrics[GardenAssets.assetKey(assetPath)];
+
+  /// Cuánto mover el dibujo dentro de un cuadrado de [size] para que se apoye
+  /// en [line] y quede centrado. Sin medida (una ilustración nueva sin pasar
+  /// por el script) no se mueve nada y se ve como antes.
+  static Offset offsetFor(String assetPath, double size) {
+    final m = metricsFor(assetPath);
+    if (m == null) return Offset.zero;
+    return Offset((0.5 - m.centerX) * size, (line - m.baseY) * size);
+  }
+
+  /// Cuánto mover el dibujo para centrarlo **a él**, no a su lienzo. Para
+  /// medallones y vitrinas, donde no hay suelo y lo que estorba es el aire
+  /// que la ilustración deja de más arriba o abajo.
+  static Offset centerOffsetFor(String assetPath, double size) {
+    final m = metricsFor(assetPath);
+    if (m == null) return Offset.zero;
+    return Offset((0.5 - m.centerX) * size, (0.5 - m.centerY) * size);
+  }
 }
