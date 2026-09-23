@@ -432,7 +432,7 @@ flutter build apk --debug
 flutter clean; flutter pub get
 ```
 
-## Estado (2026-09-18)
+## Estado (2026-09-23)
 
 La app está **terminada para un primer lanzamiento**: las 9 rutas con 90 lecciones, home, jardín y tienda, diario, hábitos, respiración, repaso, misiones, resumen semanal, perfil con medallas, ayuda en crisis, Lumi, sonidos propios, modo claro/oscuro, accesibilidad y "reducir animaciones". `flutter analyze` en 0 y **211 pruebas** pasando.
 
@@ -441,6 +441,20 @@ También está listo todo el material para publicar: ícono, gráfico de funcion
 **Lo único que falta para publicar son tareas en consolas** (nadie puede hacerlas desde el código): ver "Pendientes actuales".
 
 Lo siguiente en el roadmap, ya después de publicar, son los **cosméticos de Lumi** con Google Play Billing (la única cosa de pago prevista).
+
+### Ronda de testers (2026-09-22 y 23)
+
+Siete arreglos salidos de probar la app en teléfonos reales. Cada uno con su prueba, y el porqué en la regla que se indica:
+
+1. **El sonido seguía con la app minimizada** (regla 27). El contexto de audio es `mixWithOthers`, así que el sistema no pausa nada por su cuenta: el ambiente de una lección o del jardín seguía sonando fuera de la app y los temporizadores de la respiración seguían soltando señales. `SoundService` escucha el ciclo de vida.
+2. **El botón "Continuar" de las conversaciones** aparecía apagado desde la primera burbuja y se leía como algo roto. Ahora sale al terminar la historia (`LessonScreen.hidesContinue`).
+3. **La práctica guiada se iba al borde izquierdo** en cuanto arrancaba —medio orbe fuera de la pantalla— porque su columna no ocupaba el ancho (regla 28).
+4. **El reloj de la sesión de respiración** se corría unos píxeles cuando la sesión iba en silencio (regla 29). Salió `BreathSessionBar`.
+5. **XP infinito con los hábitos** (regla 30): crear, marcar y borrar en bucle. Tope diario con `HabitXpQuota`, y borrar un hábito ahora borra sus check-ins.
+6. **Las plantas saltaban al crecer** y su tierra se salía del hueco (regla 31). `tools/images/measure_plants.py` mide las ilustraciones y `PlantGround` apoya todas las etapas en la misma línea.
+7. **La píldora de "cuánto falta"** colgaba fuera del hueco y caía sobre la planta de abajo en la montaña. Ahora se apoya en la tierra de su propia planta.
+
+**Falta probarlo todo en el teléfono** antes de publicar: lo de arriba está verificado con pruebas y capturas, no en un dispositivo.
 
 ## Pendientes actuales
 
@@ -451,6 +465,8 @@ Lo siguiente en el roadmap, ya después de publicar, son los **cosméticos de Lu
   4. Publicar **`firestore.rules`** (la copia del repo es la buena).
   5. Subir el AAB firmado y registrar en Firebase el **SHA-1 de "Firma de apps de Play"**, o Google Sign-In falla solo en la versión de Play.
   6. Borrar de Authentication → Users las cuentas de prueba duplicadas (las que quedaron con el mismo correo antes del arreglo de vinculación; vincular no fusiona cuentas que ya existen por separado).
+- **Correo de contacto equivocado** (2026-09-23): `angelperez19663@gmail.com` está publicado en 14 sitios —`AppLinks.supportEmail`, las cuatro páginas de `docs/` y las dos fichas de `store/`— y **no es el correo que Ángel quiere dar**. Cambiarlo en todos a la vez antes de publicar: es el correo que verá Google Play y al que llegarán las peticiones de eliminar cuenta y de datos personales.
+- **Probar en el teléfono la ronda de testers** (ver "Estado"): sonido al minimizar, conversaciones, práctica guiada, respiración, hábitos y jardín.
 - **RevenueCat activo** para monetización.
 - **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
 - **Panel admin** de rutas de bienestar (sin script Node.js).
@@ -478,6 +494,7 @@ Lo siguiente en el roadmap, ya después de publicar, son los **cosméticos de Lu
 **Lo siguiente, ya publicada la app**: cosméticos de Lumi con Google Play Billing (punto 10), y revisar las líneas de crisis cada ~6 meses.
 
 **Pulido**:
+- ~~Arreglos de la ronda de testers~~ (2026-09-22 y 23): hechos, ver "Estado".
 - ~~Modo claro de la lección~~, ~~"Reducir animaciones"~~ y ~~dividir `lesson_screen.dart`~~: hechos (2026-09-16).
 - ~~Accesibilidad de pasos y menú~~: hecha (2026-09-17), ver "Accesibilidad".
 - ~~Menú de rutas~~ (2026-09-17) y ~~diario, hábitos y recordatorios estilo cuaderno~~ (2026-09-17): hechos.
