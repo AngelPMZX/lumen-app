@@ -80,7 +80,7 @@ Hecha con cariño por TheDarking Studios.
 · Medallas, misiones semanales y resumen del domingo
 · Español e inglés, modo claro y oscuro
 
-Gracias por probarla. Si algo no funciona o se te ocurre una idea, escríbeme: angelperez19663@gmail.com
+Gracias por probarla. Si algo no funciona o se te ocurre una idea, escríbeme: lumen.app.soporte@gmail.com
 ```
 (≈430 caracteres)
 
@@ -90,7 +90,7 @@ Gracias por probarla. Si algo no funciona o se te ocurre una idea, escríbeme: a
 |---|---|
 | Categoría | Salud y bienestar |
 | Etiquetas | Bienestar mental, Meditación, Diario, Hábitos, Autoayuda |
-| Correo de contacto | angelperez19663@gmail.com |
+| Correo de contacto | lumen.app.soporte@gmail.com |
 | Sitio web | https://angelpmzx.github.io/lumen-app/ |
 | Política de privacidad | https://angelpmzx.github.io/lumen-app/privacidad.html |
 | Eliminación de cuenta | https://angelpmzx.github.io/lumen-app/eliminar-cuenta.html |

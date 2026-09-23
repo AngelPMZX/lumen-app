@@ -10,7 +10,7 @@ class AppLinks {
   static const terms = '${site}terminos.html';
   static const deleteAccount = '${site}eliminar-cuenta.html';
 
-  static const supportEmail = 'angelperez19663@gmail.com';
+  static const supportEmail = 'lumen.app.soporte@gmail.com';
 
   /// Ficha de Google Play (existe a partir de la publicación).
   static const playStore = 'https://play.google.com/store/apps/details?id=com.thedarkingstudios.lumen';

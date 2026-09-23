@@ -72,7 +72,7 @@ Hello! This is the first version of Lumen 🌱
 · Medals, weekly missions and a Sunday summary
 · Spanish and English, light and dark mode
 
-Thanks for trying it. If something breaks or you have an idea, write to me: angelperez19663@gmail.com
+Thanks for trying it. If something breaks or you have an idea, write to me: lumen.app.soporte@gmail.com
 ```
 
 ## Listing data
@@ -81,7 +81,7 @@ Thanks for trying it. If something breaks or you have an idea, write to me: ange
 |---|---|
 | Category | Health & Fitness |
 | Tags | Mental wellbeing, Meditation, Journal, Habits, Self-help |
-| Contact email | angelperez19663@gmail.com |
+| Contact email | lumen.app.soporte@gmail.com |
 | Website | https://angelpmzx.github.io/lumen-app/ |
 | Privacy policy | https://angelpmzx.github.io/lumen-app/privacy.html |
 | Account deletion | https://angelpmzx.github.io/lumen-app/eliminar-cuenta.html |
