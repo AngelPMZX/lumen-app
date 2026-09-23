@@ -1,5 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Efectos cortos. Todos en Do mayor pentatónica para que la app suene
@@ -80,6 +81,7 @@ enum Ambient {
 /// - El ambiente de las lecciones respeta su propio interruptor.
 /// - Las señales de respiración las decide cada pantalla.
 /// - Todo se mezcla con la música del usuario en vez de pausarla.
+/// - Al minimizar la app se calla todo y al volver sigue donde iba.
 class SoundService {
   SoundService._();
   static final SoundService instance = SoundService._();
@@ -107,9 +109,26 @@ class SoundService {
   Ambient? _baseAmbient;
   double _baseVolume = 0.2;
 
+  /// La app está en segundo plano: nada debe sonar.
+  bool _silenced = false;
+
+  /// El ambiente lo pausó el ciclo de vida (no el usuario), así que al volver
+  /// a la app hay que reanudarlo.
+  bool _ambientPausedByLifecycle = false;
+
+  /// El ambiente lo pausó la pantalla (p. ej. la respiración en pausa).
+  /// Volver a la app no debe reanudarlo por su cuenta.
+  bool _ambientPausedByScreen = false;
+
+  AppLifecycleListener? _lifecycleListener;
+
   bool get effectsEnabled => _effectsEnabled;
   bool get lessonAmbientEnabled => _lessonAmbientEnabled;
   bool get gardenAmbientEnabled => _gardenAmbientEnabled;
+
+  /// Cierto mientras la app está en segundo plano.
+  @visibleForTesting
+  bool get silenced => _silenced;
 
   static String _sfxPath(Sfx s) {
     const names = {
@@ -162,6 +181,7 @@ class SoundService {
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
+    _listenToLifecycle();
     try {
       final prefs = await SharedPreferences.getInstance();
       _effectsEnabled = prefs.getBool(_prefEffects) ?? true;
@@ -210,6 +230,62 @@ class SoundService {
     } catch (e) {
       debugPrint('SoundService prefs error: $e');
     }
+  }
+
+  // ── Ciclo de vida de la app ──────────────────────────────────────────────
+  /// Calla la app al minimizarla y la devuelve al volver.
+  ///
+  /// El contexto de audio es `mixWithOthers` (para no cortar la música del
+  /// usuario), así que el sistema **no** pausa nada por su cuenta: el ambiente
+  /// de una lección o del jardín seguía sonando con la app en segundo plano, y
+  /// los temporizadores de la respiración seguían soltando señales.
+  void _listenToLifecycle() {
+    if (_lifecycleListener != null) return;
+    try {
+      _lifecycleListener = AppLifecycleListener(
+        onStateChange: handleLifecycleState,
+      );
+    } catch (e) {
+      debugPrint('SoundService lifecycle error: $e');
+    }
+  }
+
+  /// `inactive` no cuenta: pasa al bajar la cortina de notificaciones o al
+  /// aparecer un diálogo del sistema, con la app todavía a la vista.
+  @visibleForTesting
+  void handleLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _silence();
+      case AppLifecycleState.resumed:
+        _unsilence();
+      case AppLifecycleState.inactive:
+        break;
+    }
+  }
+
+  void _silence() {
+    if (_silenced) return;
+    _silenced = true;
+    for (final player in _oneShots.values) {
+      player.stop().catchError((Object _) {});
+    }
+    final ambient = _ambientPlayer;
+    if (ambient != null && !_ambientPausedByScreen) {
+      _ambientPausedByLifecycle = true;
+      ambient.pause().catchError((Object _) {});
+    }
+  }
+
+  void _unsilence() {
+    if (!_silenced) return;
+    _silenced = false;
+    if (!_ambientPausedByLifecycle) return;
+    _ambientPausedByLifecycle = false;
+    if (_ambientPausedByScreen) return;
+    _ambientPlayer?.resume().catchError((Object _) {});
   }
 
   // ── Efectos ──────────────────────────────────────────────────────────────
@@ -269,6 +345,9 @@ class SoundService {
       _playOneShot(_cuePath(cue), volume);
 
   Future<void> _playOneShot(String path, double volume) async {
+    // Con la app minimizada no se reproduce nada: un efecto que sale de un
+    // temporizador (las señales de la respiración) llegaría igual.
+    if (_silenced) return;
     try {
       final player = _oneShots.putIfAbsent(path, () {
         final p = AudioPlayer();
@@ -331,19 +410,33 @@ class SoundService {
         await player.dispose();
         return;
       }
+      // Pedirlo con la app ya minimizada (una pantalla que arranca su ambiente
+      // justo al irse) lo deja listo, pero en silencio hasta volver.
+      if (_silenced) {
+        _ambientPausedByLifecycle = true;
+        await player.pause();
+      }
       await _fade(player, 0, volume, fadeIn);
     } catch (e) {
       debugPrint('SoundService ambient error: $e');
     }
   }
 
+  /// Pausa que pide la pantalla (p. ej. la respiración en pausa). Volver a la
+  /// app no la deshace sola.
   Future<void> pauseAmbient() async {
+    _ambientPausedByScreen = true;
     try {
       await _ambientPlayer?.pause();
     } catch (_) {}
   }
 
   Future<void> resumeAmbient() async {
+    _ambientPausedByScreen = false;
+    if (_silenced) {
+      _ambientPausedByLifecycle = true;
+      return;
+    }
     try {
       await _ambientPlayer?.resume();
     } catch (_) {}
@@ -353,6 +446,8 @@ class SoundService {
     Duration fadeOut = const Duration(milliseconds: 1200),
   }) async {
     _ambientGeneration++;
+    _ambientPausedByLifecycle = false;
+    _ambientPausedByScreen = false;
     final player = _ambientPlayer;
     if (player == null) return;
     _ambientPlayer = null;
