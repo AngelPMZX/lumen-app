@@ -61,6 +61,15 @@ class LessonScreen extends StatefulWidget {
   /// Resultado de `Navigator.pop` cuando el usuario eligió seguir.
   static const nextResult = 'next';
 
+  /// Pasos que **esconden** el botón "Continuar" hasta poder seguir, en vez de
+  /// enseñarlo apagado.
+  ///
+  /// En una conversación el botón apagado se lee como algo roto ("¿por qué no
+  /// avanza?") y compite con el "toca para seguir" de las burbujas: lo dijeron
+  /// los testers. En los pasos que se responden (quiz, escenario…) el botón sí
+  /// se queda a la vista: ahí indica qué hacer después de elegir.
+  static bool hidesContinue(LessonStepType type) => type == LessonStepType.story;
+
   const LessonScreen({
     super.key,
     required this.lesson,
@@ -137,6 +146,8 @@ class _LessonScreenState extends State<LessonScreen> {
   bool get _canContinue => _step.type == LessonStepType.exercise
       ? _exerciseDraft.trim().length >= ExerciseStep.minChars
       : _stepReady;
+
+  bool get _hidesContinueUntilReady => LessonScreen.hidesContinue(_step.type);
 
   void _nextStep() {
     HapticFeedback.mediumImpact();
@@ -386,7 +397,7 @@ class _LessonScreenState extends State<LessonScreen> {
             ),
           ),
         ),
-        _buildBottomButton(p),
+        _buildBottomBar(p),
       ],
     );
   }
@@ -673,6 +684,31 @@ class _LessonScreenState extends State<LessonScreen> {
     return SizedBox(
       height: 110,
       child: Center(child: LumiAvatar(mood: mood, size: 104)),
+    );
+  }
+
+  /// El botón "Continuar", que en algunos pasos ([_hidesContinueUntilReady])
+  /// aparece recién cuando se puede seguir. Al aparecer, la barra crece y el
+  /// botón sube: sin rebote, que interpolaría en negativo el blur de su sombra.
+  Widget _buildBottomBar(LessonPalette p) {
+    final hidden = _hidesContinueUntilReady && !_canContinue;
+    final reduced = MotionService.reduced(context);
+    final Widget child;
+    if (hidden) {
+      child = const SizedBox(width: double.infinity);
+    } else if (reduced) {
+      child = _buildBottomButton(p);
+    } else {
+      child = _buildBottomButton(p)
+          .animate()
+          .fadeIn(duration: 260.ms)
+          .slideY(begin: 0.45, end: 0, duration: 340.ms, curve: Curves.easeOutCubic);
+    }
+    return AnimatedSize(
+      duration: reduced ? Duration.zero : const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: child,
     );
   }
 

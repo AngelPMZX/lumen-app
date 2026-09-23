@@ -61,19 +61,26 @@ class _StoryStepState extends State<StoryStep> {
     HapticFeedback.selectionClick();
     SoundService.instance.play(Sfx.bubble, volume: 0.55);
     setState(() => _shown++);
-    if (_finished) _complete();
+    final justFinished = _finished;
+    if (justFinished) _complete();
     // Mantener visible el botón de "toca para seguir".
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ctx = _tapKey.currentContext;
-      if (ctx != null && ctx.mounted) {
-        Scrollable.ensureVisible(
-          ctx,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-          alignment: 1,
-        );
-      }
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _revealTapHint());
+    // Al terminar, la lección hace sitio al botón "Continuar": el espacio para
+    // leer se encoge, así que se vuelve a acomodar cuando el botón ya subió.
+    if (justFinished) {
+      Future.delayed(const Duration(milliseconds: 380), _revealTapHint);
+    }
+  }
+
+  void _revealTapHint() {
+    final ctx = _tapKey.currentContext;
+    if (!mounted || ctx == null || !ctx.mounted) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      alignment: 1,
+    );
   }
 
   @override
