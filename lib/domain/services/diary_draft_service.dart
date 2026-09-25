@@ -45,8 +45,31 @@ class DiaryDraftService {
 
   static String _key(String uid) => 'diary_draft_$uid';
 
+  /// Las escrituras se hacen en fila.
+  ///
+  /// Guardar y borrar son asíncronos, así que un borrador que ya estaba
+  /// guardándose podía escribirse **después** de borrarlo al guardar la
+  /// página: el borrador reaparecía y guardarlo otra vez creaba una copia.
+  Future<void> _queue = Future.value();
+
+  Future<void> _enqueue(
+      Future<void> Function(SharedPreferences prefs) op, String what) {
+    final next = _queue.then((_) async {
+      try {
+        await op(await SharedPreferences.getInstance());
+      } catch (e) {
+        debugPrint('DiaryDraftService $what error: $e');
+      }
+    });
+    _queue = next;
+    return next;
+  }
+
   Future<DiaryDraft?> load(String uid) async {
     try {
+      // Detrás de lo que esté escribiéndose: abrir la pantalla justo después
+      // de guardar una página no puede leer el borrador que se está borrando.
+      await _queue;
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_key(uid));
       if (raw == null) return null;
@@ -58,25 +81,14 @@ class DiaryDraftService {
     }
   }
 
-  Future<void> save(String uid, DiaryDraft draft) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (draft.isEmpty) {
-        await prefs.remove(_key(uid));
-      } else {
-        await prefs.setString(_key(uid), jsonEncode(draft.toJson()));
-      }
-    } catch (e) {
-      debugPrint('DiaryDraftService save error: $e');
-    }
-  }
+  Future<void> save(String uid, DiaryDraft draft) => _enqueue((prefs) async {
+        if (draft.isEmpty) {
+          await prefs.remove(_key(uid));
+        } else {
+          await prefs.setString(_key(uid), jsonEncode(draft.toJson()));
+        }
+      }, 'save');
 
-  Future<void> clear(String uid) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_key(uid));
-    } catch (e) {
-      debugPrint('DiaryDraftService clear error: $e');
-    }
-  }
+  Future<void> clear(String uid) =>
+      _enqueue((prefs) => prefs.remove(_key(uid)), 'clear');
 }
