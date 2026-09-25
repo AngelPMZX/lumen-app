@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -99,6 +100,8 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
       );
 
   void _persistDraft() {
+    // La página ya se guardó: aquí el borrador solo se borra, nunca se escribe.
+    if (_saved) return;
     final uid = _uid;
     if (uid == null) return;
     DiaryDraftService.instance.save(uid, _draft);
@@ -194,6 +197,16 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
   Future<void> _save() async {
     if (!_canSave || _isSaving) return;
     setState(() => _isSaving = true);
+    // Se guarda: a partir de aquí no se escribe borrador.
+    //
+    // Escribir deja un guardado pendiente a 700 ms. Sin cancelarlo, ese
+    // borrador se escribía **después** de borrarlo (guardar la página es
+    // inmediato) y quedaba ahí: la página estaba guardada y el borrador
+    // reaparecía al volver a escribir, así que guardarlo otra vez creaba una
+    // segunda copia de lo mismo.
+    _saved = true;
+    _draftTimer?.cancel();
+    _draftTimer = null;
     HapticFeedback.mediumImpact();
 
     final auth = context.read<AuthProvider>();
@@ -209,7 +222,6 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
     // Guardar ya no espera a nadie: Firestore escribe en disco al instante y
     // sincroniza solo (ver `queueWrite`). Esta pantalla **no puede** quedarse
     // colgada esperando, así que se lanza y se sigue.
-    _saved = true;
     unawaited(_persist(auth, entry));
 
     AnalyticsService.instance.diaryEntrySaved();
@@ -223,8 +235,29 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
       context,
       mood: _mood!,
       withGratitude: entry.gratitude != null,
-    ).timeout(const Duration(seconds: 4), onTimeout: () {});
-    if (mounted) Navigator.pop(context, true);
+    ).timeout(const Duration(seconds: 6), onTimeout: () {});
+    if (mounted) _close();
+  }
+
+  /// Cierra **esta** pantalla, no lo que haya encima.
+  ///
+  /// `Navigator.pop` cierra siempre la ruta de arriba: si mientras se guardaba
+  /// se abrió algo (una celebración de nivel, que el propio XP del diario
+  /// puede disparar), ese `pop` cerraba esa otra cosa y el diario se quedaba
+  /// abierto con el botón girando — el "se queda guardando y hay que salir a
+  /// la fuerza".
+  /// Red de seguridad: ya no debería haber nada encima (las celebraciones
+  /// esperan a que el menú esté al frente, y el aviso de guardado es una capa),
+  /// pero si lo hubiera, se quita **esta** ruta. Ahí se pierde el `true` del
+  /// resultado —el Home da las semillas del día con él—, que es mucho menos
+  /// malo que dejar la pantalla trabada.
+  void _close() {
+    final route = ModalRoute.of(context);
+    if (route == null || route.isCurrent) {
+      Navigator.pop(context, true);
+    } else {
+      Navigator.of(context).removeRoute(route);
+    }
   }
 
   /// Guarda de verdad, ya con la pantalla cerrándose.
@@ -682,99 +715,133 @@ class _NewDiaryEntryScreenState extends State<NewDiaryEntryScreen> {
 
 /// Celebración breve al guardar: la página se cierra en un corazón y Lumi
 /// agradece. Dura ~1.6 s (menos con movimiento reducido).
+///
+/// Es una **capa** (`OverlayEntry`), no un diálogo. Un diálogo es una ruta, y
+/// `Navigator.pop` cierra siempre la de arriba: si algo se abría encima
+/// mientras este aviso se cerraba solo —una celebración de nivel, que el XP
+/// del diario puede disparar—, cada uno cerraba la ruta del otro, el aviso se
+/// quedaba puesto para siempre y el diario aparecía con el botón girando ("se
+/// queda guardando"). Una capa no cierra nada ajeno, ni nadie la cierra por
+/// error.
 class _SavedOverlay extends StatelessWidget {
   final MoodType mood;
   final bool withGratitude;
+  final ValueListenable<bool> visible;
 
-  const _SavedOverlay({required this.mood, required this.withGratitude});
+  const _SavedOverlay({
+    required this.mood,
+    required this.withGratitude,
+    required this.visible,
+  });
 
-  static Future<void> show(BuildContext context, {required MoodType mood, required bool withGratitude}) {
+  static const _fade = Duration(milliseconds: 220);
+
+  static Future<void> show(BuildContext context, {required MoodType mood, required bool withGratitude}) async {
     final reduced = MotionService.reduced(context);
-    return showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha: 0.55),
-      transitionDuration: Duration(milliseconds: reduced ? 100 : 280),
-      pageBuilder: (dialogContext, _, _) {
-        // Se cierra sola, y cierra **su** ruta.
-        //
-        // Antes llamaba a `pop()` sobre el navegador a secas: si mientras
-        // tanto se había abierto cualquier otra cosa encima —una celebración
-        // de nivel, que el propio XP del diario puede disparar— ese `pop`
-        // cerraba esa otra cosa y este aviso se quedaba abierto para siempre,
-        // con el botón girando. De ahí el "se queda guardando y hay que salir
-        // a la fuerza".
-        Future.delayed(Duration(milliseconds: reduced ? 1100 : 1700), () {
-          if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-        });
-        return _SavedOverlay(mood: mood, withGratitude: withGratitude);
-      },
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final visible = ValueNotifier(false);
+    final entry = OverlayEntry(
+      builder: (_) => _SavedOverlay(
+        mood: mood,
+        withGratitude: withGratitude,
+        visible: visible,
+      ),
     );
+    overlay.insert(entry);
+    try {
+      // Tras el primer cuadro, para que el fundido de entrada se vea (puesto
+      // antes de dibujarse, la capa aparecería de golpe ya opaca).
+      await WidgetsBinding.instance.endOfFrame;
+      visible.value = true;
+      await Future<void>.delayed(Duration(milliseconds: reduced ? 1100 : 1700));
+      visible.value = false;
+      await Future<void>.delayed(_fade);
+    } finally {
+      if (entry.mounted) entry.remove();
+      entry.dispose();
+      visible.dispose();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final s = JournalStyle.of(context);
-    return Center(
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: 270,
-          padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
-          decoration: BoxDecoration(
-            color: s.paperFor(mood),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: s.paperEdge),
-            boxShadow: s.paperShadow,
+    return ValueListenableBuilder<bool>(
+      valueListenable: visible,
+      builder: (context, shown, child) => AnimatedOpacity(
+        opacity: shown ? 1 : 0,
+        duration: _fade,
+        curve: Curves.easeOut,
+        // Mientras está puesta, nadie toca lo de debajo: ni un segundo
+        // "Guardar" ni el botón de cerrar.
+        child: AbsorbPointer(
+          child: ColoredBox(
+            color: Colors.black.withValues(alpha: 0.55),
+            child: child,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 120,
-                height: 110,
-                child: Stack(
-                  alignment: Alignment.center,
+        ),
+      ),
+      child: Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 270,
+            padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
+            decoration: BoxDecoration(
+              color: s.paperFor(mood),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: s.paperEdge),
+              boxShadow: s.paperShadow,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 120,
+                  height: 110,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SparkleBurst(color: mood.color, size: 130),
+                      const Text('📖', style: TextStyle(fontSize: 56))
+                          .animate()
+                          .scale(begin: const Offset(0.4, 0.4), end: const Offset(1, 1), duration: 420.ms, curve: Curves.easeOutBack)
+                          .then(delay: 150.ms)
+                          .fadeOut(duration: 200.ms),
+                      const Text('💚', style: TextStyle(fontSize: 58))
+                          .animate(delay: 650.ms)
+                          .fadeIn(duration: 200.ms)
+                          .scale(begin: const Offset(0.3, 0.3), end: const Offset(1, 1), duration: 420.ms, curve: Curves.elasticOut),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'journal.savedTitle'.tr(),
+                  textAlign: TextAlign.center,
+                  style: JournalStyle.hand(TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: s.ink)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  withGratitude ? 'journal.savedXpGratitude'.tr() : 'journal.savedXp'.tr(),
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFFD97706)),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SparkleBurst(color: mood.color, size: 130),
-                    const Text('📖', style: TextStyle(fontSize: 56))
-                        .animate()
-                        .scale(begin: const Offset(0.4, 0.4), end: const Offset(1, 1), duration: 420.ms, curve: Curves.easeOutBack)
-                        .then(delay: 150.ms)
-                        .fadeOut(duration: 200.ms),
-                    const Text('💚', style: TextStyle(fontSize: 58))
-                        .animate(delay: 650.ms)
-                        .fadeIn(duration: 200.ms)
-                        .scale(begin: const Offset(0.3, 0.3), end: const Offset(1, 1), duration: 420.ms, curve: Curves.elasticOut),
+                    LumiAvatar(mood: mood.category == 'negative' ? LumiMood.caring : LumiMood.proud, size: 44),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        mood.category == 'negative' ? 'journal.lumiSavedHard'.tr() : 'journal.lumiSaved'.tr(),
+                        style: TextStyle(fontSize: 12.5, height: 1.35, color: s.inkSoft),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'journal.savedTitle'.tr(),
-                textAlign: TextAlign.center,
-                style: JournalStyle.hand(TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: s.ink)),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                withGratitude ? 'journal.savedXpGratitude'.tr() : 'journal.savedXp'.tr(),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFFD97706)),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  LumiAvatar(mood: mood.category == 'negative' ? LumiMood.caring : LumiMood.proud, size: 44),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      mood.category == 'negative' ? 'journal.lumiSavedHard'.tr() : 'journal.lumiSaved'.tr(),
-                      style: TextStyle(fontSize: 12.5, height: 1.35, color: s.inkSoft),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

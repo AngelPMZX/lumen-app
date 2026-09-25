@@ -11,6 +11,7 @@ import '../widgets/discovery_dialog.dart';
 import '../../data/models/win_back.dart';
 import '../../domain/providers/auth_provider.dart';
 import '../../domain/services/notification_service.dart';
+import '../../core/utils/app_route_observer.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -19,9 +20,11 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
+class _MainShellState extends State<MainShell>
+    with WidgetsBindingObserver, RouteAware {
   int _currentIndex = 0;
   bool _isShowingCelebration = false;
+  ModalRoute<dynamic>? _observedRoute;
 
   final _screens = const [
     HomeScreen(),
@@ -38,7 +41,23 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Para saber cuándo el shell vuelve a estar al frente (ver `_celebrate`).
+    final route = ModalRoute.of(context);
+    if (route == _observedRoute) return;
+    if (_observedRoute != null) appRouteObserver.unsubscribe(this);
+    _observedRoute = route;
+    if (route != null) appRouteObserver.subscribe(this, route);
+  }
+
+  /// Se cerró lo que estaba encima: si algo quedó por celebrar, ahora sí.
+  @override
+  void didPopNext() => _celebrate();
+
+  @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -112,18 +131,33 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   void _checkPendingCelebrations(AuthProvider authProvider) {
     if (_isShowingCelebration) return;
     if (authProvider.pendingCelebrations.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _celebrate());
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      if (_isShowingCelebration) return;
+  /// Muestra lo que haya por celebrar, **solo con el shell al frente**.
+  ///
+  /// El XP de una página del diario o de una lección puede subir de nivel, y
+  /// esta celebración se abría encima de esa pantalla, en medio de lo suyo:
+  /// dos rutas apiladas cerrándose a la vez, y `Navigator.pop` cierra siempre
+  /// la de arriba, así que cada una cerraba la del otro y el diario se quedaba
+  /// "guardando" para siempre. Ahora espera a que esa pantalla se cierre
+  /// (`didPopNext`), y se ve como el premio de vuelta al menú.
+  Future<void> _celebrate() async {
+    if (!mounted || _isShowingCelebration) return;
+    if (!(_observedRoute?.isCurrent ?? true)) return; // vuelve en didPopNext
+    final auth = context.read<AuthProvider>();
+    if (auth.pendingCelebrations.isEmpty) return;
+    final events = auth.consumeCelebrations();
+    if (events.isEmpty) return;
 
-      final events = authProvider.consumeCelebrations();
-      if (events.isEmpty) return;
-
-      _isShowingCelebration = true;
-      await CelebrationDialog.showCelebrations(context, events);
-      _isShowingCelebration = false;
-    });
+    _isShowingCelebration = true;
+    await CelebrationDialog.showCelebrations(context, events);
+    _isShowingCelebration = false;
+    // Si llegó algo más mientras se celebraba (el `didPopNext` de este mismo
+    // diálogo pasó con la bandera puesta), sale a continuación.
+    if (mounted && context.read<AuthProvider>().pendingCelebrations.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _celebrate());
+    }
   }
 
   Widget _buildNavItem(int index, IconData icon, String label) {

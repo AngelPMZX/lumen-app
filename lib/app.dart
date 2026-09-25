@@ -16,6 +16,7 @@ import 'ui/screens/crisis/crisis_support_screen.dart';
 import 'domain/services/analytics_service.dart';
 import 'domain/services/motion_service.dart';
 import 'ui/widgets/theme_fade.dart';
+import 'core/utils/app_route_observer.dart';
 
 class LumenApp extends StatelessWidget {
   const LumenApp({super.key});
@@ -39,7 +40,7 @@ class LumenApp extends StatelessWidget {
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       initialRoute: AppRoutes.splash,
-      navigatorObservers: [?analyticsObserver],
+      navigatorObservers: [?analyticsObserver, appRouteObserver],
       // "Reducir animaciones" del perfil se suma a la opción del sistema, y
       // todo el árbol la lee desde MediaQuery.disableAnimations.
       builder: (context, child) => ListenableBuilder(
