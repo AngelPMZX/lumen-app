@@ -82,6 +82,9 @@ Clean architecture simplificada:
 29. **Una barra con algo centrado lleva los lados del mismo ancho**: con `Spacer()` entre un botón de 48 dp y un hueco de 38, lo del medio se corre esa diferencia. La barra de la sesión de respiración (`BreathSessionBar`) usa dos `SizedBox(width: BreathSessionBar.slot)` y un `Expanded` en medio, así el reloj queda en el centro de la pantalla haya o no botón de sonido a la derecha.
 30. **Una recompensa que se cobra "la primera vez por X" se puede farmear si el usuario puede crear X**: marcar un hábito daba +5 XP la primera vez del día para **ese** hábito (`habit_checkins/{habitId}_{fecha}`), y como cada hábito nuevo estrena id, bastaba crear, marcar y borrar en bucle. El tope ahora es **por día** (`HabitXpQuota`, `progress/habits`): los 3 primeros hábitos del día dan XP y punto. Al añadir una recompensa, pregúntate qué puede crear, borrar o renombrar el usuario para volver a cobrarla.
 31. **Una ilustración no está donde parece: hay que medirla**. Las plantas del jardín traen su propio montículo de tierra, pero cada etapa reparte el espacio transparente a su manera —la base del dibujo cae entre el 66 % y el 96 % del alto del lienzo—, así que pintadas todas centradas en el mismo cuadrado la planta **saltaba al crecer** y su tierra quedaba fuera del hueco (lo vieron los testers). `tools/images/measure_plants.py` mide los archivos y escribe `lib/ui/screens/garden/plant_metrics.dart`; `PlantGround.offsetFor` apoya cada etapa en la misma línea y `centerOffsetFor` centra el dibujo (no el lienzo) en medallones y vitrinas. **Al añadir o cambiar una ilustración de planta, correr el script**: `test/ui/garden_logic_test.dart` falla si falta una medida, y sin medida el dibujo se queda como estaba (no se rompe nada).
+32. **Un aviso que se cierra solo nunca es una ruta, y nada se abre encima de un flujo a medias**: `Navigator.pop` cierra **siempre la ruta de arriba**, no la de quien lo llama. El aviso de "guardado" del diario era un diálogo que se cerraba solo a los 1.7 s; si el XP de esa página subía de nivel, `MainShell` abría la celebración encima y entonces cada `pop` cerraba la ruta del otro: la pantalla del diario se quedaba con el botón girando y solo salías matando la app (lo vieron los testers). Dos medidas: el aviso es una **capa** (`OverlayEntry` con su propio velo y `AbsorbPointer`), que no cierra nada ajeno ni nadie la cierra; y las celebraciones **esperan a que el shell esté al frente** (`appRouteObserver` + `RouteAware.didPopNext` en `MainShell`), así salen al volver al menú y no en medio de lo tuyo. Si aun así hay que cerrar una pantalla que ya no está arriba, `Navigator.of(context).removeRoute(route)` quita **esa**.
+33. **Lo "ya visto" que no se pudo leer no es "ninguno"**: la lista de medallas ya celebradas se quedaba en un set **vacío** cuando la lectura fallaba, y con ella vacía todo lo ganado vuelve a contar como nuevo — encima el guardado hacía `.set()` de la lista completa y **pisaba** la del servidor, así que las medallas se repetían para siempre. Ahora `_celebratedAchievementIds` es `Set<String>?` (**null = todavía no se sabe** → no se celebra ninguna medalla, como `_discoveredFeatures`), se escribe con `arrayUnion` (la lista solo crece) y hay un espejo en el teléfono por si el servidor va atrasado. Lo mismo aplica a cualquier "esto ya salió": distinguir *vacío* de *desconocido*, y no escribir nunca la lista entera.
+34. **Lo que se guarda con retraso se cancela al guardar de verdad**: el borrador del diario se escribe 700 ms después de teclear; al guardar la página no se cancelaba ese temporizador, así que el borrador se escribía **después** de borrarlo y reaparecía al volver a escribir — la página quedaba guardada y el borrador también, y guardarlo otra vez creaba una segunda copia (lo vieron los testers). `_save()` cancela el temporizador y `_persistDraft` no escribe nada una vez guardado; además `DiaryDraftService` hace sus escrituras **en fila** (y `load` espera a la fila), para que un guardado en vuelo no gane al borrado. Lo vigila `test/domain/diary_draft_service_test.dart`.
 
 ## Guía de diseño y polish (lo que ya tiene la app)
 
@@ -437,7 +440,7 @@ flutter clean; flutter pub get
 
 ## Estado (2026-09-23)
 
-La app está **terminada para un primer lanzamiento**: las 9 rutas con 90 lecciones, home, jardín y tienda, diario, hábitos, respiración, repaso, misiones, resumen semanal, perfil con medallas, ayuda en crisis, Lumi, sonidos propios, modo claro/oscuro, accesibilidad y "reducir animaciones". `flutter analyze` en 0 y **211 pruebas** pasando.
+La app está **terminada para un primer lanzamiento**: las 9 rutas con 90 lecciones, home, jardín y tienda, diario, hábitos, respiración, repaso, misiones, resumen semanal, perfil con medallas, ayuda en crisis, Lumi, sonidos propios, modo claro/oscuro, accesibilidad y "reducir animaciones". `flutter analyze` en 0 y **221 pruebas** pasando.
 
 También está listo todo el material para publicar: ícono, gráfico de funciones, 7 capturas, política de privacidad y páginas legales, ficha de Play (ES/EN), formulario de seguridad de datos y el checklist de `store/pasos-para-publicar.md`.
 
@@ -445,9 +448,9 @@ También está listo todo el material para publicar: ícono, gráfico de funcion
 
 Lo siguiente en el roadmap, ya después de publicar, son los **cosméticos de Lumi** con Google Play Billing (la única cosa de pago prevista).
 
-### Ronda de testers (2026-09-22 y 23)
+### Ronda de testers (2026-09-22, 23 y 24)
 
-Siete arreglos salidos de probar la app en teléfonos reales. Cada uno con su prueba, y el porqué en la regla que se indica:
+Diez arreglos salidos de probar la app en teléfonos reales. Cada uno con su prueba, y el porqué en la regla que se indica:
 
 1. **El sonido seguía con la app minimizada** (regla 27). El contexto de audio es `mixWithOthers`, así que el sistema no pausa nada por su cuenta: el ambiente de una lección o del jardín seguía sonando fuera de la app y los temporizadores de la respiración seguían soltando señales. `SoundService` escucha el ciclo de vida.
 2. **El botón "Continuar" de las conversaciones** aparecía apagado desde la primera burbuja y se leía como algo roto. Ahora sale al terminar la historia (`LessonScreen.hidesContinue`).
@@ -456,6 +459,9 @@ Siete arreglos salidos de probar la app en teléfonos reales. Cada uno con su pr
 5. **XP infinito con los hábitos** (regla 30): crear, marcar y borrar en bucle. Tope diario con `HabitXpQuota`, y borrar un hábito ahora borra sus check-ins.
 6. **Las plantas saltaban al crecer** y su tierra se salía del hueco (regla 31). `tools/images/measure_plants.py` mide las ilustraciones y `PlantGround` apoya todas las etapas en la misma línea.
 7. **La píldora de "cuánto falta"** colgaba fuera del hueco y caía sobre la planta de abajo en la montaña. Ahora se apoya en la tierra de su propia planta.
+8. **El borrador del diario sobrevivía a guardar la página** (regla 34): la página se guardaba bien, pero al volver a escribir aparecía el borrador de lo mismo y guardarlo creaba una segunda copia.
+9. **El diario se quedaba "guardando"** cuando al guardar salía un logro o una subida de nivel, y había que matar la app (regla 32). La página sí se había guardado.
+10. **Algunos logros volvían a salir** aunque ya hubieran salido antes (regla 33). Las cuentas a las que el error viejo ya les borró la lista del servidor celebrarán esas medallas **una vez más** y nunca más.
 
 **Falta probarlo todo en el teléfono** antes de publicar: lo de arriba está verificado con pruebas y capturas, no en un dispositivo.
 
