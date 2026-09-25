@@ -18,6 +18,7 @@ import '../services/notification_service.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../data/models/journal_insights.dart';
 import '../services/diary_draft_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -258,19 +259,36 @@ void clearVerificationState() {
   int get habitsCompletedCount => _habitsCompletedCount;
   int get moodCheckInCount => _moodCheckInCount;
 
-  // ── Set de achievements ya celebrados (fuente de verdad = Firestore) ───────
-  Set<String> _celebratedAchievementIds = {};
+  // ── Medallas ya celebradas ─────────────────────────────────────────────────
+  //
+  // **null = todavía no se sabe** (como `_discoveredFeatures`): con la lista
+  // sin cargar no se celebra ninguna medalla, o saldrían todas otra vez.
+  // Antes esto era un set vacío, y eso hacía que las medallas se repitieran:
+  //   * una lectura que no llegaba (sin red y sin caché) lo dejaba vacío, y
+  //   * el guardado hacía `.set()` de la lista completa, así que **pisaba** la
+  //     del servidor con solo las nuevas: lo ya celebrado se perdía y volvía a
+  //     salir en cada sesión.
+  // Ahora se escribe con `arrayUnion` (la lista solo crece) y hay un espejo en
+  // el teléfono, para que una lectura vieja del servidor —una escritura
+  // encolada tarda en llegar— tampoco las repita.
+  Set<String>? _celebratedAchievementIds;
+
+  static String _celebratedPrefsKey(String uid) => 'celebrated_achievements_$uid';
 
   /// Medallas ya celebradas o vistas en el perfil.
-  Set<String> get celebratedAchievementIds => Set.unmodifiable(_celebratedAchievementIds);
+  Set<String> get celebratedAchievementIds =>
+      Set.unmodifiable(_celebratedAchievementIds ?? const <String>{});
 
   /// Marca medallas como vistas (las del jardín no pasan por la celebración):
   /// así quedan ganadas aunque el dato baje y el "¡Nueva!" sale una sola vez.
   Future<void> markAchievementsSeen(Iterable<String> ids) async {
-    final before = _celebratedAchievementIds.length;
-    _celebratedAchievementIds.addAll(ids);
-    if (_celebratedAchievementIds.length == before) return;
-    await _saveCelebratedAchievements();
+    final celebrated = _celebratedAchievementIds ??= <String>{};
+    final added = <String>[];
+    for (final id in ids) {
+      if (celebrated.add(id)) added.add(id);
+    }
+    if (added.isEmpty) return;
+    await _saveCelebratedAchievements(added);
   }
 
   // ── Diary refresh signal ───────────────────────────────────────────────────
@@ -409,31 +427,64 @@ void clearVerificationState() {
   }
 
   Future<void> _loadCelebratedAchievements() async {
-    if (firebaseUser == null) return;
+    final user = firebaseUser;
+    if (user == null) return;
+    // El espejo del teléfono va primero: si el servidor devuelve una versión
+    // vieja (la escritura de la última medalla puede seguir encolada), lo que
+    // ya se celebró aquí no vuelve a salir.
+    final ids = <String>{};
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      ids.addAll(prefs.getStringList(_celebratedPrefsKey(user.uid)) ?? const []);
+    } catch (e) {
+      debugPrint('Error loading local celebrated achievements: $e');
+    }
     try {
       final doc = await _firestore
-          .collection('users').doc(firebaseUser!.uid)
+          .collection('users').doc(user.uid)
           .collection('progress').doc('celebrated_achievements').getFast();
-      if (doc.exists) {
-        final ids = List<String>.from(doc.data()!['ids'] ?? []);
-        _celebratedAchievementIds = ids.toSet();
-      } else {
-        _celebratedAchievementIds = {};
-      }
+      final remote =
+          List<String>.from(doc.data()?['ids'] ?? const <String>[]).toSet();
+      final missing = ids.difference(remote);
+      ids.addAll(remote);
+      _celebratedAchievementIds = ids;
+      // El servidor se quedó atrás: una escritura que nunca llegó, o la lista
+      // que el error viejo pisó. Se le devuelve lo que falta.
+      if (missing.isNotEmpty) await _saveCelebratedAchievements(missing);
     } catch (e) {
       debugPrint('Error loading celebrated achievements: $e');
-      _celebratedAchievementIds = {};
+      // Sin poder leer el servidor no se sabe qué medallas ya salieron: esta
+      // sesión no celebra ninguna en vez de repetirlas todas. El espejo no vale
+      // por sí solo — una instalación que se acaba de actualizar todavía no
+      // tiene espejo, y ahí un set vacío volvería a celebrarlo todo.
+      _celebratedAchievementIds = null;
     }
   }
 
-  Future<void> _saveCelebratedAchievements() async {
-    if (firebaseUser == null) return;
+  /// Guarda las medallas recién celebradas: espejo local + `arrayUnion`.
+  ///
+  /// Nunca escribe la lista completa: con `.set()` de todo, una lista cargada a
+  /// medias (sin red) borraba del servidor lo ya celebrado y las medallas
+  /// volvían a salir para siempre.
+  Future<void> _saveCelebratedAchievements(Iterable<String> added) async {
+    final user = firebaseUser;
+    if (user == null || added.isEmpty) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(
+        _celebratedPrefsKey(user.uid),
+        (_celebratedAchievementIds ?? const <String>{}).toList(),
+      );
+    } catch (e) {
+      debugPrint('Error saving local celebrated achievements: $e');
+    }
     try {
       await _write(
         _firestore
-            .collection('users').doc(firebaseUser!.uid)
+            .collection('users').doc(user.uid)
             .collection('progress').doc('celebrated_achievements')
-            .set({'ids': _celebratedAchievementIds.toList()}),
+            .set({'ids': FieldValue.arrayUnion(added.toList())},
+                SetOptions(merge: true)),
         'logros celebrados',
       );
     } catch (e) {
@@ -453,13 +504,14 @@ void clearVerificationState() {
     int adultPlantsInGarden = 0,
     int decorationsPlaced = 0,
   }) async {
+    final celebrated = _celebratedAchievementIds;
     final events = AchievementService.checkForCelebrations(
       progressBefore: before,
       progressAfter: after,
       diaryEntries: _diaryEntryCount,
       habitsCompleted: _habitsCompletedCount,
       moodCheckIns: _moodCheckInCount,
-      celebratedAchievementIds: _celebratedAchievementIds,
+      celebratedAchievementIds: celebrated,
       plantsInGarden: plantsInGarden,
       adultPlantsInGarden: adultPlantsInGarden,
       decorationsPlaced: decorationsPlaced,
@@ -467,15 +519,17 @@ void clearVerificationState() {
 
     if (events.isEmpty) return;
 
-    bool newAchievements = false;
+    final newAchievements = <String>[];
     for (final event in events) {
       if (event.type == CelebrationEventType.achievement &&
-          event.achievementId != null) {
-        _celebratedAchievementIds.add(event.achievementId!);
-        newAchievements = true;
+          event.achievementId != null &&
+          (celebrated?.add(event.achievementId!) ?? false)) {
+        newAchievements.add(event.achievementId!);
       }
     }
-    if (newAchievements) await _saveCelebratedAchievements();
+    if (newAchievements.isNotEmpty) {
+      await _saveCelebratedAchievements(newAchievements);
+    }
     _pendingCelebrations.addAll(events);
   }
 
@@ -1048,7 +1102,9 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
   void _clearSessionState() {
     _userModel = null;
     _userProgress = null;
-    _celebratedAchievementIds = {};
+    // null, no {}: hasta cargar las medallas de la cuenta nueva no se celebra
+    // ninguna (si no, saldrían todas las que ya tenía otra vez).
+    _celebratedAchievementIds = null;
     _diaryVersion = 0;
     _discoveredFeatures = null;
     _diaryEntryCount = 0;
@@ -1111,8 +1167,15 @@ Future<bool> resendEmailVerification({String? languageCode}) async {
       for (final name in _userSubcollections) {
         await _deleteCollection(userDoc.collection(name));
       }
-      // El borrador del diario vive solo en el teléfono
+      // Lo que vive solo en el teléfono: borrador del diario y espejo de las
+      // medallas ya celebradas.
       await DiaryDraftService.instance.clear(user.uid);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(_celebratedPrefsKey(user.uid));
+      } catch (e) {
+        debugPrint('Clear local celebrated achievements: $e');
+      }
       final username = _userModel?.username?.toLowerCase();
       if (username != null && username.isNotEmpty) {
         try {

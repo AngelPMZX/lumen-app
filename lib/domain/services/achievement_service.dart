@@ -33,7 +33,9 @@ class AchievementService {
     required int diaryEntries,
     required int habitsCompleted,
     required int moodCheckIns,
-    required Set<String> celebratedAchievementIds,
+    /// Medallas ya celebradas. **null = todavía no se sabe** (no se pudo
+    /// leer): entonces no se celebra ninguna, o saldrían todas otra vez.
+    required Set<String>? celebratedAchievementIds,
     // ── Parámetros del jardín (opcionales — default 0) ──────────────────
     int plantsInGarden = 0,
     int adultPlantsInGarden = 0,
@@ -65,6 +67,11 @@ class AchievementService {
     }
 
     // ── 3. Achievements ──────────────────────────────────────────────────
+    // Sin saber cuáles ya salieron, el nivel y la racha sí se celebran (se
+    // deducen del progreso) y las medallas esperan: mejor una tarde que la
+    // misma cuatro veces.
+    if (celebratedAchievementIds == null) return events;
+
     for (final achievement in Achievement.all) {
       if (celebratedAchievementIds.contains(achievement.id)) continue;
 
