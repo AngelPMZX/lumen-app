@@ -432,13 +432,26 @@ node seed/seed_routes.js --all
 flutter build apk --debug
 # Sale en: build\app\outputs\flutter-apk\app-debug.apk
 
+# APK de release para probar en el teléfono (firmado con android/key.properties)
+flutter build apk --release
+# Sale en: build\app\outputs\flutter-apk\app-release.apk (~79 MB, ~3 min)
+# Comprobar SIEMPRE que no salió con la llave de debug:
+#   <SDK>\build-tools\<version>\apksigner.bat verify --print-certs <apk>
+#   debe decir CN=Angel Perez, y el SHA-1 C6:8D:...:4C:83
+# Es el que hay que probar antes de publicar: R8 y el minify solo actúan en
+# release, y ahí ya se cayó la app una vez por las notificaciones (bug 20).
+
+# AAB para Play (el de build/ se queda viejo: regenerarlo antes de subir)
+flutter build appbundle --release
+# Sale en: build\app\outputs\bundle\release\app-release.aab
+
 # Xiaomi bloquea adb install — transferir APK manualmente (WhatsApp/Drive/USB)
 
 # Limpiar antes de cambios grandes
 flutter clean; flutter pub get
 ```
 
-## Estado (2026-09-23)
+## Estado (2026-09-25)
 
 La app está **terminada para un primer lanzamiento**: las 9 rutas con 90 lecciones, home, jardín y tienda, diario, hábitos, respiración, repaso, misiones, resumen semanal, perfil con medallas, ayuda en crisis, Lumi, sonidos propios, modo claro/oscuro, accesibilidad y "reducir animaciones". `flutter analyze` en 0 y **221 pruebas** pasando.
 
@@ -447,6 +460,8 @@ También está listo todo el material para publicar: ícono, gráfico de funcion
 **Lo único que falta para publicar son tareas en consolas** (nadie puede hacerlas desde el código): ver "Pendientes actuales".
 
 Lo siguiente en el roadmap, ya después de publicar, son los **cosméticos de Lumi** con Google Play Billing (la única cosa de pago prevista).
+
+**APK de release al día (2026-09-25)** en `build\app\outputs\flutter-apk\app-release.apk`: 79.0 MB, firmado con la llave de release (`CN=Angel Perez`, SHA-1 `C6:8D:...:4C:83`, comprobado con `apksigner`). Lleva los diez arreglos de la ronda de testers. Los APK viejos se borraron: **se guarda solo el último**, para no instalar por error uno sin los arreglos.
 
 ### Ronda de testers (2026-09-22, 23 y 24)
 
@@ -475,7 +490,7 @@ Diez arreglos salidos de probar la app en teléfonos reales. Cada uno con su pru
   5. Subir el AAB firmado y registrar en Firebase el **SHA-1 de "Firma de apps de Play"**, o Google Sign-In falla solo en la versión de Play.
   6. Borrar de Authentication → Users las cuentas de prueba duplicadas (las que quedaron con el mismo correo antes del arreglo de vinculación; vincular no fusiona cuentas que ya existen por separado).
 - **Revisar `lumen.app.soporte@gmail.com`**: que la cuenta exista, que Ángel la lea y que no caiga en spam. Es el correo que Google Play muestra en la ficha y al que llegan las peticiones de eliminar cuenta y de datos personales, con 30 días prometidos.
-- **Probar en el teléfono la ronda de testers** (ver "Estado"): sonido al minimizar, conversaciones, práctica guiada, respiración, hábitos y jardín.
+- **Probar en el teléfono la ronda de testers** con el APK de release al día (ver "Estado"): sonido al minimizar, conversaciones, práctica guiada, respiración, hábitos y jardín; y los tres del 24: guardar una página del diario y volver a escribir (no debe quedar borrador), guardar una que suba de nivel o dé medalla (debe cerrarse sola, y la celebración sale ya en el menú) y que las medallas ya vistas no se repitan. **Aviso**: las cuentas a las que el error viejo ya borró la lista del servidor celebrarán esas medallas una vez más en este APK, y nunca más.
 - **RevenueCat activo** para monetización.
 - **Reverificar líneas de crisis** antes de publicar y cada ~6 meses (última verificación: 2026-09-15).
 - **Panel admin** de rutas de bienestar (sin script Node.js).
